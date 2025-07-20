@@ -250,6 +250,190 @@ class APIGenerator:
                               self.service_handler(service, method))
 ```
 
+### 5. 高级调试API设计
+
+引擎提供完整的调试能力，支持断点、单步执行、变量监控等功能：
+
+#### 5.1 调试会话管理API
+
+```python
+# 创建调试会话（已实现）
+POST /debug/session/create?flow_name={flow_name}
+Response: {"session_id": "uuid"}
+
+# 获取会话状态（已实现）
+GET /debug/session/{session_id}
+Response: {
+    "session_id": "uuid",
+    "flow_name": "UserService.registerUser",
+    "status": "paused|running|completed|error",
+    "current_step": "validate_email",
+    "breakpoints": ["step1", "step3"],
+    "call_stack": [...],
+    "variables": {...}
+}
+
+# 列出所有会话（已实现）
+GET /debug/sessions
+```
+
+#### 5.2 流程控制API（待实现）
+
+```python
+# 暂停执行
+POST /debug/session/{session_id}/pause
+Response: {"status": "paused", "paused_at": "step_id"}
+
+# 停止执行
+POST /debug/session/{session_id}/stop
+Response: {"status": "stopped"}
+
+# 继续执行（从暂停恢复）
+POST /debug/session/{session_id}/continue
+Response: {"status": "running"}
+```
+
+#### 5.3 单步调试API（待实现）
+
+```python
+# 单步执行（Step Over）
+POST /debug/session/{session_id}/step
+Body: {"type": "over"}
+Response: {
+    "executed_step": "step_id",
+    "next_step": "next_step_id",
+    "variables": {...}
+}
+
+# 步入（Step Into）- 进入子流程
+POST /debug/session/{session_id}/step
+Body: {"type": "into"}
+
+# 步出（Step Out）- 执行完当前子流程
+POST /debug/session/{session_id}/step
+Body: {"type": "out"}
+```
+
+#### 5.4 断点管理API（待实现）
+
+```python
+# 设置/取消断点
+POST /debug/session/{session_id}/breakpoint
+Body: {
+    "step_id": "validate_email",
+    "enabled": true
+}
+
+# 获取所有断点
+GET /debug/session/{session_id}/breakpoints
+Response: [
+    {"step_id": "validate_email", "enabled": true},
+    {"step_id": "create_user", "enabled": false}
+]
+
+# 清除所有断点
+DELETE /debug/session/{session_id}/breakpoints
+```
+
+#### 5.5 变量操作API（待实现）
+
+```python
+# 获取当前变量值
+GET /debug/session/{session_id}/variables
+Response: {
+    "input": {...},
+    "local": {...},
+    "global": {...}
+}
+
+# 修改变量值（仅在暂停时允许）
+PUT /debug/session/{session_id}/variable
+Body: {
+    "name": "user.email",
+    "value": "new@example.com"
+}
+
+# 监视表达式
+POST /debug/session/{session_id}/watch
+Body: {"expression": "user.age > 18"}
+Response: {"result": true}
+```
+
+#### 5.6 WebSocket实时通信（已部分实现）
+
+```python
+# WebSocket连接
+WS /debug/session/{session_id}/ws
+
+# 消息类型
+{
+    "type": "session_state",      # 会话状态更新
+    "type": "flow_started",       # 流程开始
+    "type": "step_executed",      # 步骤执行完成
+    "type": "flow_paused",        # 流程暂停（断点或手动）
+    "type": "flow_completed",     # 流程完成
+    "type": "flow_error",         # 流程错误
+    "type": "variable_changed",   # 变量值改变
+    "type": "breakpoint_hit"      # 断点命中
+}
+```
+
+#### 5.7 调试器实现架构
+
+```python
+class DebugEngine:
+    """调试引擎核心组件"""
+    
+    def __init__(self):
+        self.sessions = {}  # 活跃的调试会话
+        self.breakpoints = {}  # 断点管理
+        
+    async def execute_step(self, session_id: str, step: FlowStep):
+        """执行单个步骤，支持调试"""
+        session = self.sessions[session_id]
+        
+        # 检查断点
+        if self.should_break(session, step):
+            await self.pause_execution(session, step)
+            await self.wait_for_resume(session)
+        
+        # 执行步骤
+        result = await step.execute(session.context)
+        
+        # 更新调试信息
+        await self.update_debug_info(session, step, result)
+        
+        # 通知前端
+        await self.notify_clients(session, "step_executed", {
+            "step": step.id,
+            "result": result,
+            "variables": session.context.variables
+        })
+        
+        return result
+    
+    def set_breakpoint(self, session_id: str, step_id: str, enabled: bool):
+        """设置断点"""
+        if session_id not in self.breakpoints:
+            self.breakpoints[session_id] = set()
+        
+        if enabled:
+            self.breakpoints[session_id].add(step_id)
+        else:
+            self.breakpoints[session_id].discard(step_id)
+```
+
+#### 5.8 调试UI集成
+
+前端调试界面（/debug/ui）已实现以下功能：
+- 流程图可视化（基于Mermaid）
+- 断点设置（点击步骤设置）
+- 单步执行控制
+- 变量实时监控
+- 执行历史追踪
+
+待后端API实现后，这些功能将完全可用。
+
 ## 部署架构
 
 ### 1. 引擎部署（一次性）
@@ -332,7 +516,7 @@ docker run -d \
 ### Phase 2: 高级特性（3-4月）
 - [ ] 流程引擎
 - [ ] 复杂规则支持
-- [ ] 调试器集成
+- [ ] 调试器集成（含高级调试API）
 - [ ] GraphQL支持
 
 ### Phase 3: 企业特性（4-6月）

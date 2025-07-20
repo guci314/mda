@@ -8,8 +8,9 @@ This project implements a revolutionary approach to Model-Driven Architecture (M
 
 ### Evolution Journey
 
-1. **Phase 1**: Traditional MDA with LLM-based code generation
+1. **Phase 1**: Traditional MDA with template-based code generation
 2. **Phase 2**: PIM Execution Engine - Models run directly without code generation ✅
+3. **Phase 3**: AI-Enhanced MDA - LLM generates production code when needed ✅
 
 ## 🚀 Key Innovation
 
@@ -71,9 +72,10 @@ docker compose up -d
 
 ### 2. Access the System
 
-- **API**: http://localhost:8001
-- **API Docs**: http://localhost:8001/docs
-- **Debug UI**: http://localhost:8001/debug/ui
+- **API**: http://localhost:8000
+- **API Docs**: http://localhost:8000/docs
+- **Debug UI**: http://localhost:8000/debug/ui
+- **Model Management**: http://localhost:8000/models
 - **Database UI**: http://localhost:8080
 
 ### 3. Create a PIM Model
@@ -108,7 +110,7 @@ The engine automatically creates REST APIs:
 
 ```bash
 # Create a customer
-curl -X POST http://localhost:8001/api/v1/my-domain/customers \
+curl -X POST http://localhost:8000/api/v1/my-domain/customers \
   -H "Content-Type: application/json" \
   -d '{"name": "John Doe", "email": "john@example.com"}'
 ```
@@ -135,6 +137,7 @@ curl -X POST http://localhost:8001/api/v1/my-domain/customers \
 - Flow orchestration with visual debugging
 - Multi-format support (YAML, Markdown)
 - Hot reload without restart
+- **AI Code Generation** (NEW) - Generate production code with Gemini AI
 
 ## 📚 Documentation
 
@@ -194,8 +197,9 @@ This project is licensed under the MIT License - see [LICENSE](LICENSE) for deta
 
 ### 发展历程
 
-1. **第一阶段**：基于LLM的传统MDA代码生成
+1. **第一阶段**：基于模板的传统MDA代码生成
 2. **第二阶段**：PIM执行引擎 - 模型直接运行，无需代码生成 ✅
+3. **第三阶段**：AI增强的MDA - 需要时使用LLM生成生产级代码 ✅
 
 ## 🚀 核心创新
 
@@ -215,9 +219,10 @@ docker compose up -d
 
 ### 2. 访问系统
 
-- **API接口**: http://localhost:8001
-- **API文档**: http://localhost:8001/docs
-- **调试界面**: http://localhost:8001/debug/ui
+- **API接口**: http://localhost:8000
+- **API文档**: http://localhost:8000/docs
+- **调试界面**: http://localhost:8000/debug/ui
+- **模型管理**: http://localhost:8000/models
 - **数据库界面**: http://localhost:8080
 
 ### 3. 创建PIM模型
@@ -260,12 +265,15 @@ services:
 - 可扩展架构
 - 完整的API文档
 - WebSocket支持实时功能
+- **AI代码生成**（新功能）- 使用Gemini AI生成生产级代码
 
 ## 📚 文档
 
+- [业务专家使用手册](业务专家使用手册.md) - 面向业务用户的完整指南
 - [基于Claude Code的MDA实现方案](基于Claude Code的MDA实现方案.md)
 - [PIM执行引擎架构设计](PIM执行引擎架构设计.md)
 - [PIM执行引擎实施路线图](PIM执行引擎实施路线图.md)
+- [开发者指南](pim-engine/开发者指南.md)
 - [引擎README](pim-engine/README.md)
 
 ## 🎯 应用场景

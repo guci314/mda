@@ -1,0 +1,126 @@
+version: '3.8'
+
+services:
+  pim-engine:
+    build: 
+      context: .
+      dockerfile: Dockerfile.llm
+    container_name: pim-engine
+    ports:
+      - "8001:8000"
+    environment:
+      # Database
+      - DATABASE_URL=postgresql://pim:pim123@postgres:5432/pim_engine
+      - REDIS_URL=redis://redis:6379
+      
+      # Engine settings
+      - LOG_LEVEL=INFO
+      - HOT_RELOAD=true
+      - SECRET_KEY=your-secret-key-please-change-in-production
+      
+      # LLM Configuration
+      - LLM_PROVIDER=${LLM_PROVIDER:-auto}  # auto | gemini | anthropic | local
+      - USE_LLM_FOR_ALL=${USE_LLM_FOR_ALL:-false}  # Use LLM for all code gen
+      - LLM_TIMEOUT_SECONDS=${LLM_TIMEOUT_SECONDS:-1200}  # 20 minutes default
+      
+      # Gemini Configuration (if using Gemini)
+      - GOOGLE_AI_STUDIO_KEY=${GOOGLE_AI_STUDIO_KEY}
+      - GEMINI_API_KEY=${GOOGLE_AI_STUDIO_KEY}  # Alternative env var name
+      - VERTEX_AI_PROJECT=${VERTEX_AI_PROJECT}
+      
+      # Proxy Configuration for Gemini CLI
+      # host.docker.internal works on Docker Desktop (Mac/Windows)
+      # For Linux, use the Docker bridge IP (usually 172.17.0.1)
+      - PROXY_HOST=${PROXY_HOST:-host.docker.internal}
+      - PROXY_PORT=${PROXY_PORT:-7890}
+      
+      # Anthropic Configuration (if using Claude)
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      
+      # Local LLM Configuration (if using Ollama)
+      - LOCAL_LLM_URL=${LOCAL_LLM_URL:-http://ollama:11434}
+      - LOCAL_LLM_MODEL=${LOCAL_LLM_MODEL:-codellama:13b}
+      
+    volumes:
+      - ./models:/app/models
+      - ./src:/app/src
+      - ./static:/app/static
+      - pim-data:/app/data
+      
+      # Mount Gemini configuration if available
+      - ${HOME}/.gemini:/root/.gemini:ro
+      
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - pim-network
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: pim-postgres
+    environment:
+      - POSTGRES_USER=pim
+      - POSTGRES_PASSWORD=pim123
+      - POSTGRES_DB=pim_engine
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pim"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - pim-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: pim-redis
+    command: redis-server --appendonly yes
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - pim-network
+
+  # Optional: Local LLM using Ollama
+  ollama:
+    image: ollama/ollama:latest
+    container_name: pim-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    networks:
+      - pim-network
+    profiles:
+      - local-llm
+    # Pre-pull codellama model
+    command: serve
+    
+  # Optional: Adminer for database management
+  adminer:
+    image: adminer
+    container_name: pim-adminer
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+    networks:
+      - pim-network
+
+volumes:
+  pim-data:
+  postgres-data:
+  redis-data:
+  ollama-data:
+
+networks:
+  pim-network:
+    driver: bridge

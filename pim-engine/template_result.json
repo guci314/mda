@@ -1,0 +1,91 @@
+{
+  "package_id": "14475533-4f08-4e52-b52c-116b4f6be021",
+  "model_name": "user-management",
+  "platform": "fastapi",
+  "files": [
+    {
+      "path": "app/models/database.py",
+      "description": "SQLAlchemy database models"
+    },
+    {
+      "path": "app/schemas/__init__.py",
+      "description": "Pydantic schemas for API validation"
+    },
+    {
+      "path": "app/services/userservice.py",
+      "description": "Service layer for UserService"
+    },
+    {
+      "path": "app/services/__init__.py",
+      "description": "Services module init"
+    },
+    {
+      "path": "app/api/routes/userservice.py",
+      "description": "API routes for UserService"
+    },
+    {
+      "path": "app/api/__init__.py",
+      "description": "Main API router"
+    },
+    {
+      "path": "app/main.py",
+      "description": "Main FastAPI application"
+    },
+    {
+      "path": "app/core/config.py",
+      "description": "Application configuration"
+    },
+    {
+      "path": "app/core/database.py",
+      "description": "Database configuration"
+    },
+    {
+      "path": "requirements.txt",
+      "description": "Python dependencies"
+    },
+    {
+      "path": ".env.example",
+      "description": "Environment variables template"
+    },
+    {
+      "path": "tests/conftest.py",
+      "description": "Pytest configuration"
+    },
+    {
+      "path": "tests/test_userservice.py",
+      "description": "Tests for UserService"
+    },
+    {
+      "path": "README.md",
+      "description": "Project documentation"
+    },
+    {
+      "path": "docs/API.md",
+      "description": "API documentation"
+    },
+    {
+      "path": "Dockerfile",
+      "description": "Docker configuration"
+    },
+    {
+      "path": "docker-compose.yml",
+      "description": "Docker Compose configuration"
+    },
+    {
+      "path": ".github/workflows/ci.yml",
+      "description": "CI/CD pipeline"
+    }
+  ],
+  "metadata": {
+    "generated_at": "2025-07-20T22:05:00.037956",
+    "platform": "fastapi",
+    "platform_config": {
+      "framework_version": "0.100+",
+      "python_version": "3.11+",
+      "orm": "sqlalchemy",
+      "database": "postgresql",
+      "authentication": "jwt"
+    },
+    "options": {}
+  }
+}

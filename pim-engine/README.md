@@ -24,10 +24,11 @@ docker compose logs -f pim-engine
 ```
 
 The engine will be available at:
-- API: http://localhost:8001
-- Docs: http://localhost:8001/docs
-- Health: http://localhost:8001/health
-- Debug UI: http://localhost:8001/debug/ui
+- API: http://localhost:8000
+- Docs: http://localhost:8000/docs
+- Health: http://localhost:8000/health
+- Debug UI: http://localhost:8000/debug/ui
+- Model Management: http://localhost:8000/models
 - Adminer (DB UI): http://localhost:8080
 
 ### Local Development
@@ -103,30 +104,30 @@ Once a model is loaded, the engine automatically generates REST APIs:
 
 ```bash
 # Create
-curl -X POST http://localhost:8001/api/v1/user-management/users \
+curl -X POST http://localhost:8000/api/v1/user-management/users \
   -H "Content-Type: application/json" \
   -d '{"name": "John Doe", "email": "john@example.com"}'
 
 # Read
-curl http://localhost:8001/api/v1/user-management/users/{id}
+curl http://localhost:8000/api/v1/user-management/users/{id}
 
 # Update
-curl -X PUT http://localhost:8001/api/v1/user-management/users/{id} \
+curl -X PUT http://localhost:8000/api/v1/user-management/users/{id} \
   -H "Content-Type: application/json" \
   -d '{"name": "Jane Doe"}'
 
 # Delete
-curl -X DELETE http://localhost:8001/api/v1/user-management/users/{id}
+curl -X DELETE http://localhost:8000/api/v1/user-management/users/{id}
 
 # List
-curl http://localhost:8001/api/v1/user-management/users?skip=0&limit=10
+curl http://localhost:8000/api/v1/user-management/users?skip=0&limit=10
 ```
 
 ### Service Method Calls
 
 ```bash
 # Execute service method
-curl -X POST http://localhost:8001/api/v1/user-management/user/registeruser \
+curl -X POST http://localhost:8000/api/v1/user-management/user/registeruser \
   -H "Content-Type: application/json" \
   -d '{"userData": {"name": "John", "email": "john@example.com"}}'
 ```
@@ -167,12 +168,19 @@ curl -X POST http://localhost:8001/api/v1/user-management/user/registeruser \
 - WebSocket-based live updates
 - Variable inspection
 
+### 7. AI Code Generation (NEW)
+- Generate production-ready code using Gemini AI
+- Supports FastAPI platform
+- Generates complete service implementations
+- Includes tests, documentation, and Docker config
+- Generation time: ~100-120 seconds
+
 ## 📊 Engine Management
 
 ### Load a Model
 
 ```bash
-curl -X POST http://localhost:8001/engine/models/load \
+curl -X POST http://localhost:8000/engine/models/load \
   -H "Content-Type: application/json" \
   -d '{"model_name": "user_management"}'
 ```
@@ -180,13 +188,13 @@ curl -X POST http://localhost:8001/engine/models/load \
 ### List Loaded Models
 
 ```bash
-curl http://localhost:8001/engine/models
+curl http://localhost:8000/engine/models
 ```
 
 ### Check Engine Status
 
 ```bash
-curl http://localhost:8001/engine/status
+curl http://localhost:8000/engine/status
 ```
 
 ## 🔍 Monitoring & Debugging
@@ -194,12 +202,12 @@ curl http://localhost:8001/engine/status
 ### Health Check
 
 ```bash
-curl http://localhost:8001/health
+curl http://localhost:8000/health
 ```
 
 ### Flow Debugging
 
-1. Open http://localhost:8001/debug/ui in your browser
+1. Open http://localhost:8000/debug/ui in your browser
 2. Select a flow from the dropdown
 3. Click "Create Debug Session"
 4. Click "Start Execution" to begin
@@ -213,16 +221,46 @@ curl http://localhost:8001/health
 
 ```bash
 # Create debug session
-curl -X POST http://localhost:8001/debug/session/create?flow_name=UserService.registerUser
+curl -X POST http://localhost:8000/debug/session/create?flow_name=UserService.registerUser
 
 # Start flow execution
-curl -X POST http://localhost:8001/debug/session/{session_id}/start \
+curl -X POST http://localhost:8000/debug/session/{session_id}/start \
   -H "Content-Type: application/json" \
   -d '{"userData": {"name": "Test", "email": "test@example.com"}}'
 
 # Get session status
-curl http://localhost:8001/debug/session/{session_id}
+curl http://localhost:8000/debug/session/{session_id}
 ```
+
+## 🤖 AI Code Generation
+
+### Generate Production Code
+
+```bash
+# Generate code using AI (Gemini)
+curl -X POST http://localhost:8000/api/v1/codegen/generate \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model_name": "user_management",
+    "platform": "fastapi",
+    "use_llm": true,
+    "llm_provider": "gemini"
+  }'
+
+# Download generated code
+curl -X POST http://localhost:8000/api/v1/codegen/download \
+  -H "Content-Type: application/json" \
+  -d '{"package_id": "YOUR_PACKAGE_ID"}' \
+  -o generated_code.zip
+```
+
+### Configuration for AI Generation
+
+Set these environment variables for AI code generation:
+- `GEMINI_API_KEY`: Your Gemini API key
+- `PROXY_HOST`: Proxy host (if needed)
+- `PROXY_PORT`: Proxy port (if needed)
+- `LLM_TIMEOUT_SECONDS`: Timeout for AI generation (default: 1200)
 
 ## 🛠️ Configuration
 

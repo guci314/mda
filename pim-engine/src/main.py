@@ -47,8 +47,8 @@ def main():
 ╚═══════════════════════════════════════╝
     """)
     
-    # Create engine
-    engine = PIMEngine()
+    # Get engine instance
+    engine = PIMEngine.get_instance()
     
     # Load initial models
     asyncio.run(load_initial_models(engine))

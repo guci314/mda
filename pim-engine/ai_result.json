@@ -1,0 +1,85 @@
+{
+  "package_id": "2a81f4ff-5d92-43a6-89d7-366c427726cc",
+  "model_name": "user-management",
+  "platform": "fastapi",
+  "files": [
+    {
+      "path": "app/models/database.py",
+      "description": "SQLAlchemy database models"
+    },
+    {
+      "path": "app/schemas/__init__.py",
+      "description": "Pydantic schemas for API validation"
+    },
+    {
+      "path": "app/services/userservice.py",
+      "description": "LLM-generated service for UserService"
+    },
+    {
+      "path": "app/services/__init__.py",
+      "description": "Services module init"
+    },
+    {
+      "path": "app/api/routes/userservice.py",
+      "description": "API routes for UserService"
+    },
+    {
+      "path": "app/api/__init__.py",
+      "description": "Main API router"
+    },
+    {
+      "path": "app/main.py",
+      "description": "Main FastAPI application"
+    },
+    {
+      "path": "app/core/config.py",
+      "description": "Application configuration"
+    },
+    {
+      "path": "app/core/database.py",
+      "description": "Database configuration"
+    },
+    {
+      "path": "requirements.txt",
+      "description": "Python dependencies"
+    },
+    {
+      "path": ".env.example",
+      "description": "Environment variables template"
+    },
+    {
+      "path": "tests/conftest.py",
+      "description": "Pytest configuration"
+    },
+    {
+      "path": "tests/test_userservice.py",
+      "description": "Tests for UserService"
+    },
+    {
+      "path": "README.md",
+      "description": "Project documentation"
+    },
+    {
+      "path": "docs/API.md",
+      "description": "API documentation"
+    },
+    {
+      "path": "Dockerfile",
+      "description": "Docker configuration"
+    },
+    {
+      "path": "docker-compose.yml",
+      "description": "Docker Compose configuration"
+    },
+    {
+      "path": ".github/workflows/ci.yml",
+      "description": "CI/CD pipeline"
+    }
+  ],
+  "metadata": {
+    "generated_with": "Hybrid",
+    "llm_provider": "GeminiCLIProvider",
+    "platform": "fastapi",
+    "options": {}
+  }
+}

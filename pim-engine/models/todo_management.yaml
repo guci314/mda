@@ -1,0 +1,121 @@
+domain: todo-management
+version: 1.0.0
+description: Simple Todo List Management System
+
+entities:
+  - name: Todo
+    attributes:
+      id:
+        type: integer
+        primary_key: true
+        auto_increment: true
+      title:
+        type: string
+        required: true
+        max_length: 200
+      description:
+        type: string
+        max_length: 1000
+      completed:
+        type: boolean
+        default: false
+      priority:
+        type: enum
+        values: [low, medium, high]
+        default: medium
+      created_at:
+        type: datetime
+        auto_now_add: true
+      updated_at:
+        type: datetime
+        auto_now: true
+
+services:
+  - name: TodoService
+    description: Service for managing todo items
+    methods:
+      - name: createTodo
+        description: Create a new todo item
+        parameters:
+          - name: todoData
+            type: Todo
+            exclude: [id, created_at, updated_at]
+        returns: Todo
+        flow: TodoService.createTodo
+        rules:
+          - validate_title_not_empty
+          
+      - name: getTodos
+        description: Get all todos with optional filtering
+        parameters:
+          - name: completed
+            type: boolean
+            optional: true
+          - name: priority
+            type: string
+            optional: true
+        returns: List[Todo]
+        
+      - name: updateTodo
+        description: Update an existing todo
+        parameters:
+          - name: todoId
+            type: integer
+          - name: updates
+            type: Todo
+            exclude: [id, created_at, updated_at]
+            partial: true
+        returns: Todo
+        rules:
+          - validate_todo_exists
+          
+      - name: deleteTodo
+        description: Delete a todo item
+        parameters:
+          - name: todoId
+            type: integer
+        returns: boolean
+        rules:
+          - validate_todo_exists
+
+flows:
+  TodoService.createTodo:
+    description: Flow for creating a new todo item
+    diagram: |
+      flowchart TD
+        Start[Start] --> ValidateTitle[Validate Title]
+        ValidateTitle -->|Valid| CreateTodo[Create Todo]
+        ValidateTitle -->|Invalid| ReturnError[Return Error]
+        CreateTodo --> LogCreation[Log Creation]
+        LogCreation --> ReturnTodo[Return Todo]
+        ReturnError --> End[End]
+        ReturnTodo --> End
+    steps:
+      - id: ValidateTitle
+        type: decision
+        description: Check if title is not empty
+        next: 
+          valid: CreateTodo
+          invalid: ReturnError
+      - id: CreateTodo
+        type: action
+        description: Save todo to database
+        next: LogCreation
+      - id: LogCreation
+        type: action
+        description: Log the creation event
+        next: ReturnTodo
+      - id: ReturnError
+        type: action
+        description: Return validation error
+        next: End
+      - id: ReturnTodo
+        type: action
+        description: Return created todo
+        next: End
+
+rules:
+  validate_title_not_empty: |
+    Title must not be empty or contain only whitespace
+  validate_todo_exists: |
+    Todo item with the given ID must exist in the database

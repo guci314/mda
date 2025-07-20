@@ -15,6 +15,7 @@ services:
     volumes:
       - ./models:/app/models
       - ./src:/app/src  # For development hot reload
+      - ./static:/app/static  # For static files including mermaid.js
       - pim-data:/app/data
     depends_on:
       postgres:

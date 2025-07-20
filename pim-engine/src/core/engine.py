@@ -20,9 +20,23 @@ from utils.logger import setup_logger
 from debug import FlowDebugger
 from debug.debug_routes import create_debug_routes
 
+# Global engine instance
+engine = None
+
 
 class PIMEngine:
     """Main PIM Execution Engine class"""
+    
+    _instance = None
+    
+    @classmethod
+    def get_instance(cls):
+        """Get singleton instance of PIMEngine"""
+        global engine
+        if engine is None:
+            engine = cls()
+            cls._instance = engine
+        return engine
     
     def __init__(self):
         """Initialize the PIM Engine"""
@@ -56,10 +70,28 @@ class PIMEngine:
         debug_router = create_debug_routes(self.flow_debugger)
         self.app.include_router(debug_router)
         
+        # Setup model management routes
+        from api.models import router as models_router
+        self.app.include_router(models_router)
+        
+        # Setup code generation routes
+        from api.codegen import router as codegen_router
+        self.app.include_router(codegen_router)
+        
         # Mount static files if directory exists
         static_path = Path("/app/static")
         if static_path.exists():
             self.app.mount("/static", StaticFiles(directory="/app/static"), name="static")
+            
+        # Add route for models management UI
+        @self.app.get("/models", response_class=HTMLResponse)
+        async def models_ui():
+            """Serve models management UI"""
+            models_html_path = static_path / "models.html"
+            if models_html_path.exists():
+                with open(models_html_path, 'r', encoding='utf-8') as f:
+                    return f.read()
+            return "Models management UI not found"
         
         # Hot reload will be started when the event loop is running
         self._hot_reload_enabled = settings.hot_reload
@@ -114,9 +146,19 @@ class PIMEngine:
         @self.app.get("/engine/status")
         async def engine_status():
             """Get engine status"""
+            loaded_models = []
+            for name, model in self.models.items():
+                loaded_models.append({
+                    "name": name,
+                    "version": model.version,
+                    "description": model.description,
+                    "entities": [e.name for e in model.entities],
+                    "services": [s.name for s in model.services]
+                })
+            
             return {
                 "status": "running",
-                "loaded_models": list(self.models.keys()),
+                "loaded_models": loaded_models,
                 "version": settings.app_version,
                 "configuration": {
                     "hot_reload": settings.hot_reload,
@@ -297,6 +339,11 @@ class PIMEngine:
                     if model_mtime > loaded_time:
                         self.logger.info(f"Model '{model_name}' changed, reloading...")
                         await self.reload_model(model_name)
+    
+    @property
+    def loaded_models(self) -> Dict[str, PIMModel]:
+        """Get loaded models"""
+        return self.models
     
     def run(self):
         """Run the engine"""
