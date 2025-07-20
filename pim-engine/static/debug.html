@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PIM Flow Debugger</title>
+    <script src="https://unpkg.com/mermaid@10.6.1/dist/mermaid.min.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        .header {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 2fr 1fr;
+            gap: 20px;
+        }
+        .panel {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .flow-diagram {
+            min-height: 400px;
+        }
+        .step-item {
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .step-pending { background: #e3e3e3; }
+        .step-running { background: #3498db; color: white; animation: pulse 1s infinite; }
+        .step-completed { background: #2ecc71; color: white; }
+        .step-failed { background: #e74c3c; color: white; }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.6; }
+            100% { opacity: 1; }
+        }
+        
+        .controls {
+            margin: 20px 0;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .btn-primary { background: #3498db; color: white; }
+        .btn-success { background: #2ecc71; color: white; }
+        .btn-danger { background: #e74c3c; color: white; }
+        
+        .variable-item {
+            padding: 5px;
+            margin: 2px 0;
+            background: #f8f8f8;
+            border-radius: 3px;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        .status-waiting { background: #95a5a6; color: white; }
+        .status-running { background: #3498db; color: white; }
+        .status-completed { background: #2ecc71; color: white; }
+        .status-error { background: #e74c3c; color: white; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>PIM Flow Debugger</h1>
+            <div>
+                Session ID: <span id="sessionId">-</span>
+                <span id="sessionStatus" class="status-badge status-waiting">等待中</span>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <select id="flowSelect">
+                <option value="UserService.registerUser">用户注册流程</option>
+            </select>
+            <button class="btn-primary" onclick="createSession()">创建调试会话</button>
+            <button class="btn-success" onclick="startFlow()" disabled id="startBtn">开始执行</button>
+            <button class="btn-danger" onclick="stopFlow()" disabled id="stopBtn">停止</button>
+        </div>
+        
+        <div class="main-content">
+            <div class="panel">
+                <h3>执行步骤</h3>
+                <div id="stepsList"></div>
+            </div>
+            
+            <div class="panel flow-diagram">
+                <h3>流程图</h3>
+                <div id="flowDiagram"></div>
+            </div>
+            
+            <div class="panel">
+                <h3>变量监控</h3>
+                <div id="variablesList"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let ws = null;
+        let currentSession = null;
+        
+        mermaid.initialize({ 
+            startOnLoad: true,
+            theme: 'default',
+            flowchart: {
+                useMaxWidth: true,
+                htmlLabels: true
+            }
+        });
+        
+        function createSession() {
+            const flowName = document.getElementById('flowSelect').value;
+            
+            fetch('/debug/session/create?flow_name=' + flowName, {
+                method: 'POST'
+            })
+            .then(res => res.json())
+            .then(data => {
+                currentSession = data.session_id;
+                document.getElementById('sessionId').textContent = currentSession;
+                document.getElementById('startBtn').disabled = false;
+                connectWebSocket();
+                loadFlowDiagram(flowName);
+            });
+        }
+        
+        function connectWebSocket() {
+            if (ws) ws.close();
+            
+            ws = new WebSocket(`ws://localhost:8001/debug/session/${currentSession}/ws`);
+            
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                handleDebugUpdate(data);
+            };
+            
+            ws.onerror = (error) => {
+                console.error('WebSocket error:', error);
+            };
+        }
+        
+        function startFlow() {
+            const inputData = {
+                userData: {
+                    name: "测试用户",
+                    email: "test@example.com",
+                    password: "password123"
+                }
+            };
+            
+            fetch(`/debug/session/${currentSession}/start`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(inputData)
+            })
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('startBtn').disabled = true;
+                document.getElementById('stopBtn').disabled = false;
+            });
+        }
+        
+        function handleDebugUpdate(data) {
+            switch(data.type) {
+                case 'session_state':
+                    updateSessionState(data.session);
+                    break;
+                case 'flow_started':
+                    updateStatus('running');
+                    addVariable('input', data.input);
+                    break;
+                case 'step_executed':
+                    addStep(data.step);
+                    updateVariables(data.current_variables);
+                    highlightFlowStep(data.step.step_id);
+                    break;
+                case 'flow_completed':
+                    updateStatus('completed');
+                    alert('流程执行完成！');
+                    break;
+                case 'flow_error':
+                    updateStatus('error');
+                    alert('流程执行错误: ' + data.error);
+                    break;
+            }
+        }
+        
+        function updateStatus(status) {
+            const badge = document.getElementById('sessionStatus');
+            badge.className = 'status-badge status-' + status;
+            badge.textContent = {
+                'waiting': '等待中',
+                'running': '执行中',
+                'completed': '已完成',
+                'error': '错误'
+            }[status];
+        }
+        
+        function addStep(step) {
+            const stepsList = document.getElementById('stepsList');
+            const stepDiv = document.createElement('div');
+            stepDiv.className = 'step-item step-completed';
+            stepDiv.innerHTML = `
+                <strong>${step.label || step.step_id}</strong><br>
+                <small>类型: ${step.type}, 耗时: ${step.duration_ms || 0}ms</small>
+            `;
+            stepsList.appendChild(stepDiv);
+        }
+        
+        function updateVariables(variables) {
+            const varsList = document.getElementById('variablesList');
+            varsList.innerHTML = '';
+            
+            for (const [key, value] of Object.entries(variables)) {
+                addVariable(key, value);
+            }
+        }
+        
+        function addVariable(name, value) {
+            const varsList = document.getElementById('variablesList');
+            const varDiv = document.createElement('div');
+            varDiv.className = 'variable-item';
+            varDiv.innerHTML = `<strong>${name}:</strong> ${JSON.stringify(value, null, 2)}`;
+            varsList.appendChild(varDiv);
+        }
+        
+        function loadFlowDiagram(flowName) {
+            // 用户注册流程图
+            const diagram = `
+flowchart TD
+    Start([开始]) --> A[接收用户数据]
+    A --> B{验证邮箱格式}
+    B -->|无效| C[返回错误]
+    B -->|有效| D{检查邮箱唯一性}
+    D -->|已存在| E[返回重复错误]
+    D -->|唯一| F[创建用户记录]
+    F --> G[发送欢迎邮件]
+    G --> H[返回成功]
+    C --> End([结束])
+    E --> End
+    H --> End
+            `;
+            
+            document.getElementById('flowDiagram').innerHTML = '<pre class="mermaid">' + diagram + '</pre>';
+            mermaid.init();
+        }
+        
+        function highlightFlowStep(stepId) {
+            // 在实际实现中，这里会高亮流程图中的对应节点
+            console.log('Highlighting step:', stepId);
+        }
+        
+        function stopFlow() {
+            // 实现停止流程的逻辑
+            document.getElementById('stopBtn').disabled = true;
+        }
+    </script>
+</body>
+</html>

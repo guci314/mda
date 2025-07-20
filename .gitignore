@@ -1,0 +1,74 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+.venv
+*.egg-info/
+dist/
+build/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Environment
+.env
+.env.local
+*.local.json
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs
+*.log
+logs/
+*.log.*
+
+# Docker
+docker-compose.override.yml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test coverage
+htmlcov/
+.coverage
+.coverage.*
+.pytest_cache/
+.tox/
+
+# Documentation build
+docs/_build/
+site/
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+.cache/
+
+# Project specific
+pim-engine/data/
+pim-engine/logs/
+services/*/data/
+services/*/logs/
+
+# Local settings
+.claude/settings.local.json
+
+# Generated service code (if using traditional approach)
+# services/*/app/
+
+# Keep models
+!models/

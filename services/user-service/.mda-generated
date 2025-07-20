@@ -1,0 +1,24 @@
+# MDA Generated Service Marker
+# This file indicates that this service was generated using MDA
+
+generator: /mda-generate-fastapi
+source_model: models/domain/用户管理_psm.md
+generated_at: 2025-01-19
+version: 1.0.0
+
+# Service Information
+service_name: user-service
+domain: 用户管理
+platform: FastAPI + PostgreSQL
+
+# Features
+- CRUD operations for User entity
+- RESTful API with OpenAPI documentation
+- PostgreSQL database with SQLAlchemy ORM
+- Pydantic validation
+- Flow debugger integration at /debug
+- Docker support
+
+# MDA Markers
+- MDA-GENERATED-START/END: Generated code sections
+- MDA-CUSTOM-START/END: Protected custom code sections (preserved during updates)

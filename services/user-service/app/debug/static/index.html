@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Service Flow Debugger - User Service</title>
+    <link rel="stylesheet" href="/debug-ui/debugger.css">
+    <script src="/debug-ui/lib/mermaid.min.js"></script>
+    <script src="/debug-ui/lib/vue.global.js"></script>
+</head>
+<body>
+    <div id="app">
+        <div class="debugger-container">
+            <header class="debugger-header">
+                <h1>{{ serviceName }} Flow Debugger</h1>
+                <div class="flow-selector">
+                    <select v-model="selectedFlow" @change="loadFlow" class="flow-select">
+                        <option value="">Select a flow to debug...</option>
+                        <option v-for="flow in flows" :key="flow.name" :value="flow.name">
+                            {{ flow.name }} ({{ flow.steps }} steps)
+                        </option>
+                    </select>
+                </div>
+            </header>
+            
+            <div class="debugger-main" v-if="currentFlow">
+                <!-- Flow Diagram -->
+                <div class="panel flow-diagram-panel">
+                    <h2>Flow Diagram</h2>
+                    <div id="mermaid-diagram" class="mermaid-container"></div>
+                </div>
+                
+                <!-- Control Panel -->
+                <div class="panel control-panel">
+                    <h2>Execution Control</h2>
+                    <div class="control-buttons">
+                        <button @click="startDebug" :disabled="!canStart" class="btn btn-primary">
+                            <span class="icon">▶</span> Start
+                        </button>
+                        <button @click="continueDebug" :disabled="!canContinue" class="btn btn-success">
+                            <span class="icon">⏵</span> Continue
+                        </button>
+                        <button @click="stepOver" :disabled="!canStep" class="btn btn-info">
+                            <span class="icon">↷</span> Step Over
+                        </button>
+                        <button @click="stopDebug" :disabled="!canStop" class="btn btn-danger">
+                            <span class="icon">◼</span> Stop
+                        </button>
+                    </div>
+                    <div class="status-display">
+                        Status: <span class="status-badge" :class="'status-' + status">{{ status }}</span>
+                    </div>
+                </div>
+                
+                <!-- Context Viewer -->
+                <div class="panel context-panel">
+                    <h2>Execution Context</h2>
+                    <div class="json-viewer">
+                        <pre>{{ JSON.stringify(context, null, 2) }}</pre>
+                    </div>
+                </div>
+                
+                <!-- Breakpoints -->
+                <div class="panel breakpoint-panel">
+                    <h2>Breakpoints</h2>
+                    <div class="breakpoint-list">
+                        <div v-for="step in currentFlow?.steps" :key="step.id" class="breakpoint-item">
+                            <label>
+                                <input 
+                                    type="checkbox" 
+                                    :checked="breakpoints.has(step.id)"
+                                    @change="toggleBreakpoint(step.id)"
+                                >
+                                <span class="step-type" :class="'type-' + step.step_type">
+                                    {{ step.step_type }}
+                                </span>
+                                {{ step.name }}
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Execution History -->
+                <div class="panel history-panel">
+                    <h2>Execution History</h2>
+                    <div class="history-list">
+                        <div 
+                            v-for="record in history" 
+                            :key="record.timestamp"
+                            class="history-item"
+                            :class="{ 
+                                current: record.step_id === currentStep,
+                                error: !record.success 
+                            }"
+                        >
+                            <span class="timestamp">{{ formatTime(record.timestamp) }}</span>
+                            <span class="step-name">{{ record.step_name }}</span>
+                            <span class="duration">{{ record.duration_ms.toFixed(1) }}ms</span>
+                            <span class="result" :class="record.success ? 'success' : 'error'">
+                                {{ record.success ? '✓' : '✗' }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div v-else class="welcome-message">
+                <h2>Welcome to Flow Debugger</h2>
+                <p>Select a flow from the dropdown above to start debugging.</p>
+                <p>Available flows:</p>
+                <ul>
+                    <li v-for="flow in flows" :key="flow.name">
+                        <strong>{{ flow.name }}</strong> - {{ flow.description }}
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <script src="/debug-ui/debugger.js"></script>
+</body>
+</html>

@@ -1,0 +1,141 @@
+# User Management PIM Model
+domain: user-management
+version: 1.0.0
+description: User management system with authentication and authorization
+
+entities:
+  - name: User
+    description: System user entity
+    attributes:
+      name:
+        type: string
+        required: true
+        description: User's full name
+      email:
+        type: string
+        required: true
+        unique: true
+        description: User's email address
+      phone:
+        type: string
+        required: false
+        description: User's phone number
+      status:
+        type: enum
+        enum: [active, inactive, suspended]
+        default: active
+        description: User account status
+      role:
+        type: enum
+        enum: [admin, user, guest]
+        default: user
+        description: User role for authorization
+      lastLogin:
+        type: datetime
+        required: false
+        description: Last login timestamp
+    constraints:
+      - email must be unique
+      - status must be valid enum value
+    indexes:
+      - email
+      - status
+
+services:
+  - name: UserService
+    description: Service for user management operations
+    methods:
+      - name: registerUser
+        description: Register a new user with validation
+        parameters:
+          userData: User
+        flow: UserService.registerUser
+        rules:
+          - validate_email_format
+          - check_email_uniqueness
+      
+      - name: authenticateUser
+        description: Authenticate user with email and password
+        parameters:
+          email: string
+          password: string
+        rules:
+          - validate_credentials
+          - check_user_status
+      
+      - name: updateUserProfile
+        description: Update user profile information
+        parameters:
+          userId: string
+          profileData: User
+        rules:
+          - validate_user_exists
+          - validate_update_permissions
+
+flows:
+  UserService.registerUser:
+    description: User registration flow with validation
+    diagram: |
+      flowchart TD
+        Start([Start]) --> A[Receive User Data]
+        A --> B{Validate Email Format}
+        B -->|Invalid| C[Return Error]
+        B -->|Valid| D{Check Email Uniqueness}
+        D -->|Exists| E[Return Duplicate Error]
+        D -->|Unique| F[Create User Record]
+        F --> G[Send Welcome Email]
+        G --> H[Return Success]
+        C --> End([End])
+        E --> End
+        H --> End
+    steps:
+      - id: Start
+        type: start
+        next: [A]
+      - id: A
+        label: Receive User Data
+        type: action
+        next: [B]
+      - id: B
+        label: Validate Email Format
+        type: decision
+        next: [C, D]
+      - id: C
+        label: Return Error
+        type: action
+        next: [End]
+      - id: D
+        label: Check Email Uniqueness
+        type: decision
+        next: [E, F]
+      - id: E
+        label: Return Duplicate Error
+        type: action
+        next: [End]
+      - id: F
+        label: Create User Record
+        type: action
+        next: [G]
+      - id: G
+        label: Send Welcome Email
+        type: action
+        next: [H]
+      - id: H
+        label: Return Success
+        type: action
+        next: [End]
+      - id: End
+        type: end
+
+rules:
+  validate_email_format: Email must contain @ symbol and valid domain
+  check_email_uniqueness: Email must not already exist in the system
+  validate_credentials: Email and password combination must be valid
+  check_user_status: User status must be active to login
+  validate_user_exists: User ID must exist in the system
+  validate_update_permissions: User can only update their own profile unless admin
+
+metadata:
+  author: PIM Engine Team
+  created: 2024-01-20
+  tags: [authentication, user-management]

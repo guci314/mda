@@ -1,0 +1,316 @@
+# Order Management PIM Model
+domain: order-management
+version: 1.0.0
+description: E-commerce order management system with inventory and payment
+
+entities:
+  - name: Product
+    description: Product in catalog
+    attributes:
+      name:
+        type: string
+        required: true
+        description: Product name
+      sku:
+        type: string
+        required: true
+        unique: true
+        description: Stock keeping unit
+      price:
+        type: decimal
+        required: true
+        description: Product price
+      stock:
+        type: integer
+        required: true
+        default: 0
+        description: Available stock quantity
+      category:
+        type: string
+        required: true
+        description: Product category
+    constraints:
+      - sku must be unique
+      - price must be positive
+      - stock cannot be negative
+    
+  - name: Order
+    description: Customer order
+    attributes:
+      orderNumber:
+        type: string
+        required: true
+        unique: true
+        description: Unique order number
+      customerId:
+        type: string
+        required: true
+        description: Customer ID
+      status:
+        type: enum
+        enum: [pending, confirmed, shipped, delivered, cancelled]
+        default: pending
+        description: Order status
+      totalAmount:
+        type: decimal
+        required: true
+        description: Total order amount
+      shippingAddress:
+        type: json
+        required: true
+        description: Shipping address details
+    constraints:
+      - orderNumber must be unique
+      - totalAmount must be positive
+    relationships:
+      - has many OrderItems
+    
+  - name: OrderItem
+    description: Line item in an order
+    attributes:
+      orderId:
+        type: string
+        required: true
+        description: Parent order ID
+      productId:
+        type: string
+        required: true
+        description: Product ID
+      quantity:
+        type: integer
+        required: true
+        description: Quantity ordered
+      unitPrice:
+        type: decimal
+        required: true
+        description: Price per unit
+      subtotal:
+        type: decimal
+        required: true
+        description: Line item subtotal
+    constraints:
+      - quantity must be positive
+    relationships:
+      - belongs to Order
+      - references Product
+
+services:
+  - name: OrderService
+    description: Service for order management
+    methods:
+      - name: createOrder
+        description: Create a new order with validation
+        parameters:
+          customerId: string
+          items: OrderItem[]
+          shippingAddress: json
+        flow: OrderService.createOrder
+        rules:
+          - validate_customer_exists
+          - validate_items_availability
+          - calculate_order_total
+      
+      - name: confirmOrder
+        description: Confirm order and process payment
+        parameters:
+          orderId: string
+          paymentInfo: json
+        flow: OrderService.confirmOrder
+        rules:
+          - validate_order_exists
+          - validate_payment_info
+          - process_payment
+      
+      - name: shipOrder
+        description: Mark order as shipped
+        parameters:
+          orderId: string
+          trackingNumber: string
+        rules:
+          - validate_order_confirmed
+          - update_inventory
+          - send_shipping_notification
+  
+  - name: InventoryService
+    description: Service for inventory management
+    methods:
+      - name: checkAvailability
+        description: Check product availability
+        parameters:
+          productId: string
+          quantity: integer
+        rules:
+          - validate_product_exists
+          - check_stock_level
+      
+      - name: reserveStock
+        description: Reserve stock for order
+        parameters:
+          productId: string
+          quantity: integer
+        rules:
+          - validate_sufficient_stock
+          - update_stock_level
+      
+      - name: releaseStock
+        description: Release reserved stock
+        parameters:
+          productId: string
+          quantity: integer
+        rules:
+          - update_stock_level
+
+flows:
+  OrderService.createOrder:
+    description: Order creation flow with inventory check
+    diagram: |
+      flowchart TD
+        Start([开始]) --> A[接收订单数据]
+        A --> B{验证客户}
+        B -->|无效| C[返回客户错误]
+        B -->|有效| D{检查商品库存}
+        D -->|库存不足| E[返回库存错误]
+        D -->|库存充足| F[预留库存]
+        F --> G[计算订单总额]
+        G --> H[创建订单记录]
+        H --> I[返回订单确认]
+        C --> End([结束])
+        E --> End
+        I --> End
+    steps:
+      - id: Start
+        type: start
+        next: [A]
+      - id: A
+        label: 接收订单数据
+        type: action
+        next: [B]
+      - id: B
+        label: 验证客户
+        type: decision
+        next: [C, D]
+      - id: C
+        label: 返回客户错误
+        type: action
+        next: [End]
+      - id: D
+        label: 检查商品库存
+        type: decision
+        next: [E, F]
+      - id: E
+        label: 返回库存错误
+        type: action
+        next: [End]
+      - id: F
+        label: 预留库存
+        type: action
+        next: [G]
+      - id: G
+        label: 计算订单总额
+        type: action
+        next: [H]
+      - id: H
+        label: 创建订单记录
+        type: action
+        next: [I]
+      - id: I
+        label: 返回订单确认
+        type: action
+        next: [End]
+      - id: End
+        type: end
+  
+  OrderService.confirmOrder:
+    description: Order confirmation and payment flow
+    diagram: |
+      flowchart TD
+        Start([开始]) --> A[验证订单状态]
+        A --> B{订单待确认?}
+        B -->|否| C[返回状态错误]
+        B -->|是| D[验证支付信息]
+        D --> E{支付信息有效?}
+        E -->|否| F[返回支付错误]
+        E -->|是| G[处理支付]
+        G --> H{支付成功?}
+        H -->|否| I[返回支付失败]
+        H -->|是| J[更新订单状态]
+        J --> K[发送确认邮件]
+        K --> L[返回成功]
+        C --> End([结束])
+        F --> End
+        I --> End
+        L --> End
+    steps:
+      - id: Start
+        type: start
+        next: [A]
+      - id: A
+        label: 验证订单状态
+        type: action
+        next: [B]
+      - id: B
+        label: 订单待确认?
+        type: decision
+        next: [C, D]
+      - id: C
+        label: 返回状态错误
+        type: action
+        next: [End]
+      - id: D
+        label: 验证支付信息
+        type: action
+        next: [E]
+      - id: E
+        label: 支付信息有效?
+        type: decision
+        next: [F, G]
+      - id: F
+        label: 返回支付错误
+        type: action
+        next: [End]
+      - id: G
+        label: 处理支付
+        type: action
+        next: [H]
+      - id: H
+        label: 支付成功?
+        type: decision
+        next: [I, J]
+      - id: I
+        label: 返回支付失败
+        type: action
+        next: [End]
+      - id: J
+        label: 更新订单状态
+        type: action
+        next: [K]
+      - id: K
+        label: 发送确认邮件
+        type: action
+        next: [L]
+      - id: L
+        label: 返回成功
+        type: action
+        next: [End]
+      - id: End
+        type: end
+
+rules:
+  validate_customer_exists: Customer ID must exist in system
+  validate_items_availability: All order items must have sufficient stock
+  calculate_order_total: Sum all item subtotals plus shipping
+  validate_order_exists: Order ID must exist in system
+  validate_payment_info: Payment information must be complete and valid
+  process_payment: Process payment through payment gateway
+  validate_order_confirmed: Order status must be confirmed
+  update_inventory: Decrease stock levels for shipped items
+  send_shipping_notification: Send shipping notification to customer
+  validate_product_exists: Product ID must exist in system
+  check_stock_level: Check if requested quantity is available
+  validate_sufficient_stock: Stock level must be >= requested quantity
+  update_stock_level: Update product stock level
+
+metadata:
+  author: PIM Engine Team
+  created: 2024-01-20
+  tags: [e-commerce, order-management, inventory]
