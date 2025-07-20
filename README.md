@@ -45,7 +45,7 @@ Business users can now define their systems using only PIM models, and the engin
 ```
 mda/
 ├── 基于大语言模型的mda.md          # MDA concepts with LLM
-├── 基于Claude Code的MDA实现方案.md  # Implementation plan v2.0
+├── 基于LLM的MDA实现方案.md         # Implementation plan v2.0
 ├── PIM执行引擎架构设计.md          # Engine architecture design
 ├── PIM执行引擎实施路线图.md        # Implementation roadmap
 ├── CLAUDE.md                       # Claude Code guidance
@@ -141,7 +141,7 @@ curl -X POST http://localhost:8000/api/v1/my-domain/customers \
 
 ## 📚 Documentation
 
-- [Implementation Plan](基于Claude Code的MDA实现方案.md) - Detailed MDA implementation with Claude Code
+- [Implementation Plan](基于LLM的MDA实现方案.md) - Detailed MDA implementation with LLM
 - [Engine Architecture](PIM执行引擎架构设计.md) - Technical architecture of the PIM engine
 - [Implementation Roadmap](PIM执行引擎实施路线图.md) - Development phases and milestones
 - [Engine README](pim-engine/README.md) - PIM engine specific documentation
@@ -270,7 +270,7 @@ services:
 ## 📚 文档
 
 - [业务专家使用手册](业务专家使用手册.md) - 面向业务用户的完整指南
-- [基于Claude Code的MDA实现方案](基于Claude Code的MDA实现方案.md)
+- [基于LLM的MDA实现方案](基于LLM的MDA实现方案.md)
 - [PIM执行引擎架构设计](PIM执行引擎架构设计.md)
 - [PIM执行引擎实施路线图](PIM执行引擎实施路线图.md)
 - [开发者指南](pim-engine/开发者指南.md)

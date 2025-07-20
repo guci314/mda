@@ -15,7 +15,7 @@ This is an MDA (Model Driven Architecture) implementation project that has evolv
 ```
 /home/guci/aiProjects/mda/
 ├── 基于大语言模型的mda.md                # Original MDA concepts
-├── 基于Claude Code的MDA实现方案.md        # Updated implementation plan v2.0
+├── 基于LLM的MDA实现方案.md                # Updated implementation plan v2.0
 ├── PIM执行引擎架构设计.md                # Engine architecture design
 ├── PIM执行引擎实施路线图.md              # Implementation roadmap
 ├── CLAUDE.md                            # This file
