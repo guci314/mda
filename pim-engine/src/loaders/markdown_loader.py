@@ -1,4 +1,4 @@
-"""Markdown format loader for PIM models"""
+"""Markdown format loader for PIM models - 支持自然语言描述"""
 
 import re
 from typing import Dict, Any, List, Optional, Tuple
@@ -8,10 +8,14 @@ from core.models import (
     ModelLoadResult, PIMModel, Entity, Service, Method,
     Attribute, AttributeType, Flow, Rule
 )
+from utils.logger import setup_logger
 
 
 class MarkdownLoader:
-    """Load PIM models from Markdown format"""
+    """Load PIM models from natural language Markdown format"""
+    
+    def __init__(self):
+        self.logger = setup_logger(__name__)
     
     async def load(self, file_path: str) -> ModelLoadResult:
         """Load model from Markdown file"""
@@ -27,8 +31,8 @@ class MarkdownLoader:
                     errors=["Empty markdown file"]
                 )
             
-            # Parse model
-            model = await self._parse_markdown(content)
+            # Parse model using natural language processing
+            model = await self._parse_natural_markdown(content, file_path)
             
             load_time_ms = (time.time() - start_time) * 1000
             
@@ -39,27 +43,47 @@ class MarkdownLoader:
             )
             
         except Exception as e:
+            self.logger.error(f"Failed to load markdown: {e}")
             return ModelLoadResult(
                 success=False,
                 errors=[f"Failed to load markdown: {str(e)}"]
             )
     
-    async def _parse_markdown(self, content: str) -> PIMModel:
-        """Parse markdown content into PIM model"""
-        # Extract domain from title
-        domain = self._extract_domain(content)
+    async def _parse_natural_markdown(self, content: str, file_path: str) -> PIMModel:
+        """Parse natural language markdown into PIM model"""
+        from pathlib import Path
         
-        # Extract entities
-        entities = self._extract_entities(content)
+        # Extract domain from filename or title
+        domain = Path(file_path).stem.replace('_', '-').replace(' ', '-').lower()
         
-        # Extract services
-        services = self._extract_services(content)
+        # Split content into sections
+        sections = self._split_sections(content)
         
-        # Extract flows
-        flows = self._extract_flows(content)
+        # Initialize model data
+        description = ''
+        entities = []
+        services = []
+        flows = {}
+        rules = {}
         
-        # Extract rules
-        rules = self._extract_rules(content)
+        # Process each section
+        for section_title, section_content in sections.items():
+            if '概述' in section_title or '简介' in section_title:
+                description = self._extract_description(section_content)
+            elif '实体' in section_title or '对象' in section_title:
+                entities = self._parse_entities(section_content)
+            elif '流程' in section_title:
+                flows, flow_services = self._parse_flows(section_content)
+                services.extend(flow_services)
+            elif '规则' in section_title:
+                rules = self._parse_rules(section_content)
+            elif '功能' in section_title:
+                func_services = self._parse_functions(section_content, entities)
+                services.extend(func_services)
+        
+        # Generate CRUD services if no services defined
+        if not services and entities:
+            services = self._generate_crud_services(entities)
         
         # Mark debuggable methods
         for service in services:
@@ -71,258 +95,438 @@ class MarkdownLoader:
         
         return PIMModel(
             domain=domain,
+            version="1.0.0",
+            description=description or f"{domain} system",
             entities=entities,
             services=services,
             flows=flows,
             rules=rules
         )
     
-    def _extract_domain(self, content: str) -> str:
-        """Extract domain name from markdown title"""
-        match = re.search(r'^#\s+(.+?)(?:\s+领域模型|\s+\(PIM\))?$', content, re.MULTILINE)
-        if match:
-            return match.group(1).strip()
-        return "Unknown"
+    def _split_sections(self, content: str) -> Dict[str, str]:
+        """将Markdown内容分割成章节"""
+        sections = {}
+        current_section = None
+        current_content = []
+        
+        for line in content.split('\n'):
+            # 检测二级标题
+            if line.startswith('## '):
+                if current_section:
+                    sections[current_section] = '\n'.join(current_content)
+                current_section = line[3:].strip()
+                current_content = []
+            elif current_section:
+                current_content.append(line)
+        
+        # 保存最后一个章节
+        if current_section:
+            sections[current_section] = '\n'.join(current_content)
+        
+        return sections
     
-    def _extract_entities(self, content: str) -> List[Entity]:
-        """Extract entities from markdown"""
+    def _extract_description(self, content: str) -> str:
+        """提取系统描述"""
+        lines = content.strip().split('\n')
+        description_lines = []
+        
+        for line in lines:
+            line = line.strip()
+            if line and not line.startswith('#'):
+                description_lines.append(line)
+                if len(description_lines) >= 2:  # 最多取前两行
+                    break
+        
+        return ' '.join(description_lines)
+    
+    def _parse_entities(self, content: str) -> List[Entity]:
+        """解析实体定义"""
         entities = []
+        current_entity = None
         
-        # Find entity sections
-        entity_pattern = r'###\s+(.+?)\s*\((\w+)\)\s*\n(.*?)(?=###|##\s|$)'
+        for line in content.split('\n'):
+            line = line.strip()
+            
+            # 检测三级标题（实体名）
+            if line.startswith('### '):
+                if current_entity:
+                    entities.append(current_entity)
+                
+                entity_name = line[4:].strip()
+                current_entity = Entity(
+                    name=self._to_english_name(entity_name),
+                    description=entity_name,
+                    attributes=[]
+                )
+            
+            # 解析属性（列表项）
+            elif line.startswith('- ') and current_entity:
+                attr_info = self._parse_attribute(line[2:])
+                if attr_info:
+                    current_entity.attributes.append(attr_info)
+            
+            # 实体描述
+            elif current_entity and line and not line.startswith('#') and not line.startswith('-'):
+                if not current_entity.description or current_entity.description == current_entity.name:
+                    current_entity.description = line
         
-        for match in re.finditer(entity_pattern, content, re.DOTALL):
-            entity_name_cn = match.group(1).strip()
-            entity_name_en = match.group(2).strip()
-            entity_content = match.group(3).strip()
-            
-            # Extract attributes
-            attributes = self._parse_attributes(entity_content)
-            
-            # Extract constraints
-            constraints = self._parse_constraints(entity_content)
-            
-            entities.append(Entity(
-                name=entity_name_en,
-                description=entity_name_cn,
-                attributes=attributes,
-                constraints=constraints
-            ))
+        # 添加最后一个实体
+        if current_entity:
+            entities.append(current_entity)
         
         return entities
     
-    def _extract_services(self, content: str) -> List[Service]:
-        """Extract services from markdown"""
-        services = []
+    def _parse_attribute(self, attr_line: str) -> Optional[Attribute]:
+        """解析属性描述"""
+        # 提取属性名（加粗部分）
+        name_match = re.match(r'\*\*(.+?)\*\*', attr_line)
+        if not name_match:
+            # 尝试普通格式
+            parts = attr_line.split('（')
+            if parts:
+                name = parts[0].strip()
+            else:
+                return None
+        else:
+            name = name_match.group(1)
         
-        # Find service sections
-        service_pattern = r'###\s+(.+?服务)\s*\((\w+)\)\s*\n(.*?)(?=###|##\s|$)'
+        # 标准化属性
+        attr = Attribute(
+            name=self._to_english_name(name),
+            type=AttributeType.STRING,  # 默认类型
+            description=attr_line,
+            required=False
+        )
         
-        for match in re.finditer(service_pattern, content, re.DOTALL):
-            service_name_cn = match.group(1).strip()
-            service_name_en = match.group(2).strip()
-            service_content = match.group(3).strip()
-            
-            # Extract methods
-            methods = self._parse_methods(service_content)
-            
-            services.append(Service(
-                name=service_name_en,
-                description=service_name_cn,
-                methods=methods
-            ))
+        # 检测必填
+        if '必填' in attr_line or '必须' in attr_line:
+            attr.required = True
         
-        return services
+        # 检测唯一
+        if '唯一' in attr_line:
+            attr.unique = True
+        
+        # 检测类型和枚举
+        if '（' in attr_line and '）' in attr_line:
+            content = re.search(r'（(.+?)）', attr_line)
+            if content:
+                options = content.group(1)
+                if '、' in options:
+                    # 枚举类型
+                    attr.type = AttributeType.ENUM
+                    attr.enum = [opt.strip() for opt in options.split('、')]
+                elif '关联到' in options or '关联' in options:
+                    # 引用类型
+                    attr.type = AttributeType.REFERENCE
+                    ref_match = re.search(r'关联到?(.+)', options)
+                    if ref_match:
+                        attr.to = self._to_english_name(ref_match.group(1).strip())
+        
+        # 检测数值类型
+        if '金额' in attr_line or '价格' in attr_line:
+            attr.type = AttributeType.DECIMAL
+        elif '数量' in attr_line or '数' in attr_line:
+            attr.type = AttributeType.INTEGER
+        
+        # 检测日期类型
+        if '日期' in attr_line or '时间' in attr_line:
+            attr.type = AttributeType.DATETIME
+            if '自动记录' in attr_line:
+                attr.auto_now_add = True
+        
+        # 检测百分比
+        if '百分比' in attr_line or '概率' in attr_line:
+            attr.type = AttributeType.INTEGER
+            attr.min = 0
+            attr.max = 100
+        
+        return attr
     
-    def _extract_flows(self, content: str) -> Dict[str, Flow]:
-        """Extract flows from markdown"""
+    def _parse_flows(self, content: str) -> Tuple[Dict[str, Flow], List[Service]]:
+        """解析流程定义"""
         flows = {}
+        services = []
+        current_flow = None
+        in_mermaid = False
+        mermaid_content = []
         
-        # Find flow sections with mermaid diagrams
-        flow_pattern = r'###\s+(\w+Service)\.(\w+)\s+流程\s*\n(.*?)```mermaid\s*\n(.*?)\n```'
-        
-        for match in re.finditer(flow_pattern, content, re.DOTALL):
-            service_name = match.group(1)
-            method_name = match.group(2)
-            flow_description = match.group(3).strip()
-            mermaid_diagram = match.group(4).strip()
-            
-            flow_name = f"{service_name}.{method_name}"
-            
-            # Parse mermaid diagram to extract steps
-            steps = self._parse_mermaid_steps(mermaid_diagram)
-            
-            flows[flow_name] = Flow(
-                name=flow_name,
-                description=flow_description,
-                steps=steps,
-                diagram=mermaid_diagram
-            )
-        
-        return flows
-    
-    def _extract_rules(self, content: str) -> Dict[str, Rule]:
-        """Extract business rules from markdown"""
-        rules = {}
-        
-        # Find rules section
-        rules_section = re.search(r'##\s+业务规则\s*\n(.*?)(?=##|$)', content, re.DOTALL)
-        if rules_section:
-            rules_content = rules_section.group(1)
-            
-            # Parse individual rules
-            rule_pattern = r'\d+\.\s*\*\*(.+?)\*\*[：:]\s*\n\s*-\s*(.+)'
-            
-            for match in re.finditer(rule_pattern, rules_content):
-                rule_name = match.group(1).strip()
-                rule_desc = match.group(2).strip()
-                
-                rules[rule_name] = Rule(
-                    name=rule_name,
-                    description=rule_desc,
-                    condition="",
-                    action=""
+        for line in content.split('\n'):
+            # 检测流程标题
+            if line.startswith('### '):
+                flow_name = line[4:].strip()
+                current_flow = flow_name
+                flows[flow_name] = Flow(
+                    name=flow_name,
+                    description=flow_name,
+                    diagram='',
+                    steps=[]
                 )
-        
-        return rules
-    
-    def _parse_attributes(self, content: str) -> List[Attribute]:
-        """Parse attributes from entity content"""
-        attributes = []
-        
-        # Find attributes section
-        attr_section = re.search(r'\*\*属性\*\*[：:]\s*\n(.*?)(?=\*\*|$)', content, re.DOTALL)
-        if attr_section:
-            attr_content = attr_section.group(1)
-            
-            # Parse each attribute line
-            attr_pattern = r'-\s*(.+?)[：:]\s*(.+)'
-            
-            for match in re.finditer(attr_pattern, attr_content):
-                attr_name = match.group(1).strip()
-                attr_desc = match.group(2).strip()
                 
-                # Infer type from description
-                attr_type = self._infer_attribute_type(attr_name, attr_desc)
+                # 创建对应的服务方法
+                service_name = self._extract_service_from_flow(flow_name)
+                method_name = self._extract_method_from_flow(flow_name)
                 
-                # Convert Chinese name to English
-                attr_name_en = self._convert_to_english_name(attr_name)
+                # 查找或创建服务
+                service = None
+                for s in services:
+                    if s.name == service_name:
+                        service = s
+                        break
                 
-                attributes.append(Attribute(
-                    name=attr_name_en,
-                    type=attr_type,
-                    description=attr_desc
+                if not service:
+                    service = Service(
+                        name=service_name,
+                        description=f'{service_name}相关业务',
+                        methods=[]
+                    )
+                    services.append(service)
+                
+                # 添加方法
+                service.methods.append(Method(
+                    name=method_name,
+                    description=flow_name,
+                    flow=flow_name
                 ))
-        
-        return attributes
-    
-    def _parse_methods(self, content: str) -> List[Method]:
-        """Parse methods from service content"""
-        methods = []
-        
-        # Find methods section
-        method_section = re.search(r'\*\*方法\*\*[：:]\s*\n(.*?)(?=\*\*|$)', content, re.DOTALL)
-        if method_section:
-            method_content = method_section.group(1)
             
-            # Parse each method line
-            method_pattern = r'-\s*`(.+?)\((.+?)\)`\s*(?:⚡\s*可调试\s*)?-\s*(.+)'
-            
-            for match in re.finditer(method_pattern, method_content):
-                method_name = match.group(1).strip()
-                method_params = match.group(2).strip()
-                method_desc = match.group(3).strip()
-                
-                # Convert to English names
-                method_name_en = self._convert_to_english_name(method_name)
-                
-                methods.append(Method(
-                    name=method_name_en,
-                    description=method_desc,
-                    parameters={"input": method_params}
-                ))
+            # 检测Mermaid代码块
+            elif line.strip() == '```mermaid':
+                in_mermaid = True
+                mermaid_content = []
+            elif line.strip() == '```' and in_mermaid:
+                in_mermaid = False
+                if current_flow and current_flow in flows:
+                    flows[current_flow].diagram = '\n'.join(mermaid_content)
+                    # 解析流程步骤
+                    flows[current_flow].steps = self._parse_flow_steps(mermaid_content)
+            elif in_mermaid:
+                mermaid_content.append(line)
         
-        return methods
+        return flows, services
     
-    def _parse_constraints(self, content: str) -> List[str]:
-        """Parse constraints from content"""
-        constraints = []
-        
-        # Find constraints in business rules
-        constraint_pattern = r'-\s*(.+必须.+)'
-        
-        for match in re.finditer(constraint_pattern, content):
-            constraints.append(match.group(1).strip())
-        
-        return constraints
+    def _extract_service_from_flow(self, flow_name: str) -> str:
+        """从流程名提取服务名"""
+        if '客户' in flow_name:
+            return 'CustomerService'
+        elif '订单' in flow_name:
+            return 'OrderService'
+        elif '销售' in flow_name:
+            return 'SalesService'
+        elif '产品' in flow_name:
+            return 'ProductService'
+        else:
+            return 'BusinessService'
     
-    def _parse_mermaid_steps(self, diagram: str) -> List[Dict[str, Any]]:
-        """Parse steps from mermaid flowchart"""
+    def _extract_method_from_flow(self, flow_name: str) -> str:
+        """从流程名提取方法名"""
+        # 移除'流程'后缀
+        method = flow_name.replace('流程', '')
+        # 转换为驼峰命名
+        return self._to_camel_case(method)
+    
+    def _parse_flow_steps(self, mermaid_lines: List[str]) -> List[Dict[str, Any]]:
+        """解析流程步骤"""
         steps = []
+        step_ids = set()
         
-        # Extract nodes
-        node_pattern = r'(\w+)\[(.*?)\]'
-        nodes = {}
-        
-        for match in re.finditer(node_pattern, diagram):
-            node_id = match.group(1)
-            node_label = match.group(2)
-            nodes[node_id] = {
-                "id": node_id,
-                "label": node_label,
-                "type": "process"
-            }
-        
-        # Extract decision nodes
-        decision_pattern = r'(\w+)\{(.*?)\}'
-        for match in re.finditer(decision_pattern, diagram):
-            node_id = match.group(1)
-            node_label = match.group(2)
-            nodes[node_id] = {
-                "id": node_id,
-                "label": node_label,
-                "type": "decision"
-            }
-        
-        # Convert to steps list
-        for node in nodes.values():
-            steps.append(node)
+        for line in mermaid_lines:
+            # 解析节点定义
+            node_match = re.search(r'(\w+)\[(.+?)\]', line)
+            if node_match:
+                step_id = node_match.group(1)
+                step_label = node_match.group(2)
+                
+                if step_id not in step_ids:
+                    step_ids.add(step_id)
+                    step_type = 'action'
+                    
+                    if step_id.lower() == 'start' or '开始' in step_label:
+                        step_type = 'start'
+                    elif step_id.lower() == 'end' or '结束' in step_label:
+                        step_type = 'end'
+                    elif '{' in line and '}' in line:
+                        step_type = 'decision'
+                    
+                    steps.append({
+                        'id': step_id,
+                        'type': step_type,
+                        'description': step_label
+                    })
         
         return steps
     
-    def _infer_attribute_type(self, name: str, description: str) -> AttributeType:
-        """Infer attribute type from name and description"""
-        # Check for common patterns
-        if any(word in name for word in ['时间', 'time', 'date', '日期']):
-            return AttributeType.DATETIME
-        elif any(word in name for word in ['数量', 'count', 'number', '数', '量']):
-            return AttributeType.INTEGER
-        elif any(word in name for word in ['金额', 'price', 'amount', '价']):
-            return AttributeType.FLOAT
-        elif any(word in name for word in ['状态', 'status', 'state']):
-            return AttributeType.ENUM
-        elif any(word in name for word in ['是否', 'is', 'has']):
-            return AttributeType.BOOLEAN
-        else:
-            return AttributeType.STRING
+    def _parse_rules(self, content: str) -> Dict[str, Rule]:
+        """解析业务规则"""
+        rules = {}
+        current_category = None
+        
+        for line in content.split('\n'):
+            line = line.strip()
+            
+            # 类别标题
+            if line.startswith('### '):
+                current_category = line[4:].strip()
+            
+            # 规则项（编号列表）
+            elif re.match(r'^\d+\.\s+\*\*(.+?)\*\*[：:](.+)', line):
+                match = re.match(r'^\d+\.\s+\*\*(.+?)\*\*[：:](.+)', line)
+                if match:
+                    rule_name = match.group(1).strip()
+                    rule_desc = match.group(2).strip()
+                    # 生成规则ID
+                    rule_id = self._to_snake_case(rule_name)
+                    rules[rule_id] = Rule(
+                        name=rule_name,
+                        description=rule_desc,
+                        condition="",
+                        action=""
+                    )
+        
+        return rules
     
-    def _convert_to_english_name(self, chinese_name: str) -> str:
-        """Convert Chinese name to English (simple mapping)"""
-        # Common mappings
+    def _parse_functions(self, content: str, entities: List[Entity]) -> List[Service]:
+        """解析功能描述生成服务"""
+        services = []
+        current_service = None
+        
+        for line in content.split('\n'):
+            line = line.strip()
+            
+            # 功能分类
+            if line.startswith('### '):
+                service_name = line[4:].strip()
+                if '管理' in service_name:
+                    current_service = Service(
+                        name=self._to_english_name(service_name.replace('功能', '服务')),
+                        description=service_name,
+                        methods=[]
+                    )
+                    services.append(current_service)
+            
+            # 功能项
+            elif line.startswith('- ') and current_service:
+                func_desc = line[2:].strip()
+                method = self._function_to_method(func_desc)
+                if method:
+                    current_service.methods.append(method)
+        
+        return services
+    
+    def _function_to_method(self, func_desc: str) -> Optional[Method]:
+        """将功能描述转换为方法定义"""
+        # 常见功能模式映射
+        patterns = [
+            (r'添加新?(.+)', lambda m: Method(name=f'create{self._to_pascal_case(m.group(1))}', description=func_desc)),
+            (r'修改(.+)信息', lambda m: Method(name=f'update{self._to_pascal_case(m.group(1))}', description=func_desc)),
+            (r'查询(.+)', lambda m: Method(name=f'query{self._to_pascal_case(m.group(1))}', description=func_desc)),
+            (r'删除(.+)', lambda m: Method(name=f'delete{self._to_pascal_case(m.group(1))}', description=func_desc)),
+            (r'导出(.+)', lambda m: Method(name=f'export{self._to_pascal_case(m.group(1))}', description=func_desc)),
+            (r'查看(.+)', lambda m: Method(name=f'view{self._to_pascal_case(m.group(1))}', description=func_desc)),
+        ]
+        
+        for pattern, method_gen in patterns:
+            match = re.match(pattern, func_desc)
+            if match:
+                return method_gen(match)
+        
+        # 默认方法
+        return Method(
+            name=self._to_camel_case(func_desc.replace(' ', '')),
+            description=func_desc
+        )
+    
+    def _generate_crud_services(self, entities: List[Entity]) -> List[Service]:
+        """为实体自动生成CRUD服务"""
+        services = []
+        
+        for entity in entities:
+            service = Service(
+                name=f"{entity.name}Service",
+                description=f"管理{entity.description}的基础服务",
+                methods=[
+                    Method(
+                        name=f"create{entity.name}",
+                        description=f"创建新的{entity.description}",
+                        parameters={'data': entity.name}
+                    ),
+                    Method(
+                        name=f"get{entity.name}",
+                        description=f"根据ID获取{entity.description}",
+                        parameters={'id': 'string'}
+                    ),
+                    Method(
+                        name=f"update{entity.name}",
+                        description=f"更新{entity.description}信息",
+                        parameters={'id': 'string', 'data': entity.name}
+                    ),
+                    Method(
+                        name=f"delete{entity.name}",
+                        description=f"删除{entity.description}",
+                        parameters={'id': 'string'}
+                    ),
+                    Method(
+                        name=f"list{entity.name}",
+                        description=f"查询{entity.description}列表",
+                        parameters={'filters': 'json'}
+                    )
+                ]
+            )
+            services.append(service)
+        
+        return services
+    
+    def _to_english_name(self, chinese_name: str) -> str:
+        """将中文名转换为英文名"""
+        # 常见映射
         mappings = {
-            '标识符': 'id',
-            '姓名': 'name',
-            '名称': 'name',
-            '邮箱': 'email',
-            '电话': 'phone',
-            '状态': 'status',
-            '创建时间': 'created_at',
-            '更新时间': 'updated_at',
-            '创建用户': 'createUser',
-            '查询用户': 'queryUser',
-            '更新用户': 'updateUser',
-            '删除用户': 'deleteUser',
-            '注册用户': 'registerUser'
+            '客户': 'Customer',
+            '订单': 'Order',
+            '产品': 'Product',
+            '用户': 'User',
+            '销售机会': 'SalesOpportunity',
+            '跟进记录': 'FollowUpRecord',
+            '客户管理': 'CustomerManagement',
+            '订单管理': 'OrderManagement',
+            '销售管理': 'SalesManagement',
+            '客户服务': 'CustomerService',
+            '订单服务': 'OrderService',
+            '销售服务': 'SalesService'
         }
         
-        return mappings.get(chinese_name, chinese_name)
+        # 检查直接映射
+        if chinese_name in mappings:
+            return mappings[chinese_name]
+        
+        # 检查部分匹配
+        for cn, en in mappings.items():
+            if cn in chinese_name:
+                return en
+        
+        # 返回拼音或原名
+        return self._to_pascal_case(chinese_name)
+    
+    def _to_camel_case(self, text: str) -> str:
+        """转换为驼峰命名（首字母小写）"""
+        words = re.findall(r'[A-Za-z]+|\d+|[\u4e00-\u9fa5]+', text)
+        if not words:
+            return text
+        
+        # 第一个词小写，其余首字母大写
+        result = words[0].lower()
+        for word in words[1:]:
+            result += word.capitalize()
+        
+        return result
+    
+    def _to_pascal_case(self, text: str) -> str:
+        """转换为帕斯卡命名（首字母大写）"""
+        words = re.findall(r'[A-Za-z]+|\d+|[\u4e00-\u9fa5]+', text)
+        return ''.join(word.capitalize() for word in words)
+    
+    def _to_snake_case(self, text: str) -> str:
+        """转换为蛇形命名"""
+        # 移除特殊字符
+        text = re.sub(r'[^\w\s]', '', text)
+        # 替换空格为下划线
+        text = re.sub(r'\s+', '_', text)
+        # 转换为小写
+        return text.lower()
