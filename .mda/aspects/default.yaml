@@ -1,0 +1,72 @@
+# 默认切面配置 - 适用于所有领域
+aspects:
+  # 所有方法都应用的切面
+  all_methods:
+    - logging:
+        level: INFO
+        include_args: true
+        include_result: false
+        include_timing: true
+    
+    - monitoring:
+        provider: prometheus
+        metrics:
+          - response_time
+          - error_rate
+          - throughput
+    
+    - error_handling:
+        strategy: log_and_wrap
+        include_stacktrace: false
+  
+  # 查询方法专用切面 (get*, find*, query*, list*)
+  query_methods:
+    - cache:
+        ttl: 300  # 5分钟
+        key_pattern: "{service}:{method}:{args_hash}"
+        
+    - rate_limit:
+        max_requests: 1000
+        window: 60  # 1分钟
+        by: "user_id"
+  
+  # 变更方法专用切面 (create*, update*, delete*, save*)
+  mutation_methods:
+    - transaction:
+        isolation: read_committed
+        timeout: 30
+        retry_on_deadlock: true
+        
+    - audit:
+        level: detailed
+        include_before_after: true
+        
+    - validation:
+        strict_mode: true
+        sanitize_input: true
+
+# 技术栈配置
+technology:
+  api:
+    framework: fastapi
+    features:
+      - async
+      - openapi
+      - cors
+  
+  database:
+    primary: postgresql
+    orm: sqlalchemy
+    
+  cache:
+    provider: redis
+    serializer: json
+    
+  message_queue:
+    provider: rabbitmq
+    
+# 部署配置
+deployment:
+  containerization: docker
+  orchestration: kubernetes
+  service_mesh: istio

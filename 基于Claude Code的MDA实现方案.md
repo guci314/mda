@@ -233,27 +233,133 @@ curl -X POST http://localhost:8001/api/v1/user-management/user/registeruser \
 4. 输入测试数据
 5. 观察流程执行步骤
 
-## 6. 斜杠命令集成
+## 6. 斜杠命令集成（业务纯洁性版本）
 
-### 6.1 与执行引擎配合使用
+### 6.1 核心设计原则
+基于AOP（面向切面编程）思想，所有斜杠命令保持**业务纯洁性**：
+- 命令参数只包含业务概念，无技术细节
+- 技术实现通过配置文件和切面自动织入
+- 业务逻辑与技术关注点完全分离
+
+### 6.2 改进的命令设计
+
+#### 传统方式（包含技术细节）❌
 ```bash
-# 传统生成方式（用于特殊需求）
-/mda-generate-fastapi domain=用户管理 service=user-service
-
-# 从引擎反向生成代码（导出功能）
-/mda-export-from-engine model=user_management format=fastapi
-
-# 验证模型
-/mda-validate model=models/user_management.yaml
-
-# 故障排除
-/mda-troubleshooting issue="API not generated"
+/mda-generate-fastapi domain=用户管理 db=postgresql cache=redis auth=jwt
 ```
 
-### 6.2 未来命令规划
-- `/mda-test`: 自动生成测试用例
-- `/mda-migrate`: 模型版本迁移
-- `/mda-optimize`: 性能优化建议
+#### 业务纯洁方式（推荐）✅
+```bash
+# 纯业务描述
+/mda-generate-pure domain=用户管理 purpose=用户注册与认证 sla=高可用
+
+# 技术配置分离到配置文件
+/mda-generate-pure domain=订单处理 purpose=订单全生命周期管理 profile=high-performance
+```
+
+### 6.3 技术切面配置
+技术细节通过AOP切面自动应用：
+
+```yaml
+# .mda/aspects/default.yaml
+aspects:
+  logging:
+    decorator: "@log_aspect"
+    level: INFO
+    
+  security:
+    decorator: "@security_aspect"
+    authentication: jwt
+    authorization: rbac
+    
+  monitoring:
+    decorator: "@monitoring_aspect"
+    metrics: [response_time, error_rate]
+    
+  rate_limiting:
+    decorator: "@rate_limit_aspect"
+    default_limit: 1000/hour
+    
+  caching:
+    decorator: "@cache_aspect"
+    ttl: 300
+    
+  transaction:
+    decorator: "@transaction_aspect"
+    isolation: read_committed
+```
+
+### 6.4 命令列表
+
+#### 业务纯洁命令
+```bash
+# 生成纯业务模型的执行代码
+/mda-generate-pure domain=<领域> purpose=<业务目的> [sla=<服务等级>]
+
+# 验证业务规则一致性
+/mda-validate-business domain=<领域> rules=<规则文件>
+
+# 分析业务流程
+/mda-analyze-flow process=<流程名> optimize=true
+```
+
+#### 配置管理命令
+```bash
+# 管理技术配置文件
+/mda-config-profile create name=<配置名> base=<基础配置>
+/mda-config-aspect add aspect=<切面名> to=<领域>
+
+# 切换技术栈（不影响业务逻辑）
+/mda-switch-tech from=fastapi to=spring domain=<领域>
+```
+
+### 6.5 实现示例
+
+生成的代码自动分离业务和技术：
+
+```python
+# domain/services/user_service.py - 纯业务逻辑
+class UserService:
+    """用户服务 - 只包含业务逻辑"""
+    
+    async def register_user(self, user_data: UserData) -> User:
+        # 纯业务规则验证
+        if await self.user_exists(user_data.email):
+            raise BusinessError("用户已存在")
+        
+        # 创建用户（纯业务操作）
+        user = User.create(user_data)
+        
+        # 发送欢迎邮件（业务需求）
+        await self.send_welcome_email(user)
+        
+        return user
+
+# infrastructure/api/user_api.py - 技术切面自动应用
+from aspects import apply_configured_aspects
+
+@apply_configured_aspects("user-management")
+class UserAPI:
+    """API层 - 切面自动处理所有技术关注点"""
+    
+    def __init__(self):
+        self.service = UserService()
+    
+    # 以下切面自动应用：
+    # - 日志记录
+    # - 性能监控
+    # - 安全认证
+    # - 限流控制
+    # - 事务管理
+    # - 错误处理
+    async def register_user(self, request: Request):
+        return await self.service.register_user(request.data)
+```
+
+### 6.6 未来命令规划
+- `/mda-aspect-debug`: 调试切面执行链
+- `/mda-business-test`: 纯业务逻辑测试生成
+- `/mda-compliance-check`: 合规性检查（自动应用行业切面）
 
 ## 7. 最佳实践
 
