@@ -4,11 +4,24 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is an MDA (Model Driven Architecture) implementation project that has evolved from code generation to a **PIM Execution Engine**. The project now interprets and executes PIM models directly at runtime without generating code, enabling true no-code development for business users.
+This is an MDA (Model Driven Architecture) implementation project that features a **PIM Execution Engine** - a revolutionary approach that interprets and executes Platform Independent Models (PIM) directly at runtime, enabling true no-code development for business users.
 
 ### Architecture Evolution
 - **Phase 1**: Traditional MDA with code generation (PIM → PSM → Code)
 - **Phase 2**: PIM Execution Engine (PIM → Runtime Execution) ✅ Current
+- **Hybrid Mode**: Supports both runtime execution AND code generation via Gemini API
+
+### Current Status (2025-07-21)
+- **Engine**: Core implementation completed, runs as standalone Python application
+- **Deployment**: No Docker required, uses SQLite by default
+- **Models**: 3 example models (user management, order management, library system)
+- **Features**: 
+  - Hot reload (5-second detection)
+  - Dynamic API generation
+  - Flow execution with debugging
+  - Code generation via Gemini API
+  - Web-based debug UI
+- **State**: Ready to start with `./start.sh`
 
 ## Project Structure
 
@@ -23,72 +36,141 @@ This is an MDA (Model Driven Architecture) implementation project that has evolv
 │   ├── domain/                          # Domain models
 │   │   ├── 用户管理_pim.md              # User management PIM (pure business)
 │   │   └── 用户管理_psm.md              # User management PSM (FastAPI specific)
-│   ├── user_management.yaml             # User management YAML model
-│   └── order_management.yaml            # Order management YAML model
+│   └── examples/                        # Example models
+│       └── 客户管理系统.md               # Customer management example
 ├── pim-engine/                          # PIM Execution Engine
 │   ├── src/                             # Engine source code
 │   │   ├── core/                        # Core engine components
+│   │   │   ├── engine.py                # Main engine class
+│   │   │   ├── models.py                # Core data models
+│   │   │   └── config.py                # Configuration
 │   │   ├── loaders/                     # Model loaders
+│   │   │   ├── yaml_loader.py           # YAML format loader
+│   │   │   └── markdown_loader.py       # Markdown format loader
 │   │   ├── engines/                     # Execution engines
+│   │   │   ├── data_engine.py           # Database operations
+│   │   │   ├── flow_engine.py           # Flow execution
+│   │   │   └── rule_engine.py           # Rule evaluation
 │   │   ├── api/                         # API generator
+│   │   │   ├── api_generator.py         # Dynamic API creation
+│   │   │   ├── dynamic_router.py        # Route management
+│   │   │   └── openapi_manager.py       # OpenAPI spec
 │   │   └── debug/                       # Debug components
+│   │       ├── flow_debugger.py         # Flow debugging
+│   │       └── debug_routes.py          # Debug API endpoints
+│   ├── models/                          # Example PIM models
+│   │   ├── user_management.yaml         # User management system
+│   │   ├── order_management.yaml        # E-commerce orders
+│   │   └── 图书管理系统.md               # Library system (Chinese)
 │   ├── static/                          # Static files (debug UI)
-│   ├── docker-compose.yml               # Docker setup
-│   └── requirements.txt                 # Python dependencies
-├── services/                            # Generated services (legacy)
-└── .mda/                               # MDA configuration
-    └── commands/                        # Slash command definitions
+│   │   ├── debug.html                   # Debug interface
+│   │   └── models.html                  # Models management UI
+│   ├── requirements.txt                 # Python dependencies
+│   ├── start.sh                         # Start script
+│   ├── stop.sh                          # Stop script
+│   └── tests/                           # Test suite
+└── services/                            # Generated services (legacy)
 ```
 
 ## PIM Execution Engine
 
-### Core Features
-- **Model Interpretation**: YAML/Markdown models are loaded and executed at runtime
-- **Dynamic API Generation**: REST APIs automatically created from models
-- **Data Persistence**: Automatic database schema from entity definitions
-- **Flow Execution**: Business flows executed step-by-step
-- **Rule Engine**: Natural language rules evaluated
-- **Hot Reload**: Model changes detected and applied automatically
-- **Debug Interface**: Web UI for flow visualization and debugging
+### Core Components
+1. **Model Loader**: Supports YAML and Markdown formats with hot reload
+2. **Data Engine**: Dynamic database schema creation and CRUD operations
+3. **API Generator**: Automatic REST endpoint generation with OpenAPI docs
+4. **Flow Engine**: Executes Mermaid-defined business flows
+5. **Rule Engine**: Evaluates natural language business rules
+6. **Debug Engine**: Real-time flow visualization and debugging
+
+### Key Features
+- **Zero Code Generation for Runtime**: Models execute directly without intermediate code
+- **Optional Code Generation**: Use Gemini API to generate traditional code when needed
+- **Hot Reload**: Changes detected within 5 seconds
+- **Database Agnostic**: SQLite default, PostgreSQL optional
+- **No External Dependencies**: Runs without Docker, Redis optional
 
 ### Access Points
 - **API**: http://localhost:8001
+- **API Docs**: http://localhost:8001/docs (Swagger UI)
 - **Debug UI**: http://localhost:8001/debug/ui
-- **API Docs**: http://localhost:8001/docs
-- **Database UI**: http://localhost:8080 (Adminer)
+- **Model Management**: http://localhost:8001/models
 
 ### Quick Start
 ```bash
-# Start the engine
+# Install and start
 cd pim-engine
-docker compose up -d
+./start.sh
 
-# Engine automatically loads models from models/ directory
-# APIs are generated and available immediately
+# The script will:
+# - Check Python 3.11+ 
+# - Create virtual environment
+# - Install dependencies
+# - Start the engine
+
+# Stop the engine
+./stop.sh
+
+# Monitor logs
+tail -f pim-engine.log
+
+# Models in pim-engine/models/ are auto-loaded
+# APIs are generated immediately upon model loading
 ```
 
-## MDA Slash Commands
+## Code Generation (Optional)
 
-### Code Generation (Traditional Approach)
+While the PIM Engine executes models directly, you can optionally generate traditional code using the integrated Gemini API:
+
+### API Endpoints
+
+#### 1. Check LLM Providers
 ```bash
-# Generate FastAPI service from PIM
-/mda-generate-fastapi domain=用户管理 service=user-service
-
-# Update existing code
-/mda-update model=models/domain/用户管理_pim.md target=services/user-service
-
-# Reverse engineer from code
-/mda-reverse source=services/user-service model=models/domain/用户管理_pim.md
-
-# Troubleshooting
-/mda-troubleshooting issue="description"
+curl http://localhost:8001/api/v1/codegen/llm/providers
 ```
 
-### PIM Model Conversion
+#### 2. Generate Complete Code
 ```bash
-# Convert between PIM and PSM
-/pim2FastapiPsm pim=models/domain/用户管理_pim.md psm=models/domain/用户管理_psm.md
+curl -X POST http://localhost:8001/api/v1/codegen/generate \
+  -H "Content-Type: application/json" \
+  -d '{
+    "pim_content": "$(cat models/user_management.yaml)",
+    "target_platform": "fastapi",
+    "output_path": "./generated/user-service"
+  }'
 ```
+
+#### 3. Convert PIM to PSM
+```bash
+curl -X POST http://localhost:8001/api/v1/codegen/pim-to-psm \
+  -H "Content-Type: application/json" \
+  -d '{
+    "pim_content": "$(cat models/user_management.yaml)",
+    "platform": "fastapi"
+  }'
+```
+
+### Configuration
+
+Add to `.env` file:
+```bash
+# Gemini API (for code generation)
+GOOGLE_AI_STUDIO_KEY=your-api-key
+LLM_PROVIDER=gemini
+USE_LLM_FOR_ALL=true
+
+# Proxy (if needed)
+PROXY_HOST=localhost
+PROXY_PORT=7890
+```
+
+### When to Use Code Generation
+
+- **Production Deployment**: When you need standalone services
+- **Custom Logic**: When business rules exceed engine capabilities
+- **Integration**: When integrating with existing codebases
+- **Performance**: When extreme optimization is required
+
+Most use cases can be handled by the PIM Engine directly without code generation.
 
 ## PIM Model Format
 
@@ -160,47 +242,51 @@ flowchart TD
 
 ## Development Workflow
 
-### No-Code Development (Recommended)
-1. **Design PIM Model**: Create YAML/Markdown in `models/`
-2. **Load in Engine**: Model auto-loaded or manually via API
-3. **Test via API**: Use generated endpoints immediately
-4. **Debug Flows**: Use debug UI to visualize execution
-5. **Iterate**: Modify model, changes apply via hot reload
+### No-Code Development (Primary Approach)
+1. **Design PIM Model**: Create YAML/Markdown in `pim-engine/models/`
+2. **Start Engine**: Run `./start.sh` - models auto-load
+3. **Test via API**: Generated endpoints available immediately
+4. **Debug Flows**: Use web UI at http://localhost:8001/debug/ui
+5. **Iterate**: Modify model, hot reload applies changes in 5 seconds
 
-### Traditional Code Generation
-1. **Create PIM Model**: Define business model
-2. **Generate Code**: Use slash commands
-3. **Customize**: Add specific logic
-4. **Sync**: Keep model and code aligned
+### Code Generation (When Needed)
+1. **Design PIM Model**: Same as above
+2. **Generate Code**: Call `/api/v1/codegen/generate` endpoint
+3. **Deploy Generated Code**: Use for production/custom needs
+4. **Maintain Separately**: Generated code is independent
 
 ## Best Practices
 
 ### PIM Model Design
-- Use business language, avoid technical terms
-- Define clear constraints and rules
-- Include flow diagrams for complex logic
-- Version your models with Git
+- Use pure business language (no technical terms)
+- Define explicit constraints and validation rules
+- Include Mermaid flow diagrams for all processes
+- Use YAML for structure, Markdown for documentation
+- Version control all models
 
-### Engine Usage
-- Monitor logs for hot reload activity
-- Use debug UI for flow verification
-- Test APIs via curl or Postman
-- Check database via Adminer
+### Engine Development
+- Keep models in `pim-engine/models/` for auto-loading
+- Monitor `pim-engine.log` for errors
+- Use debug UI to trace flow execution
+- Test with curl/Postman before UI integration
+- Let hot reload handle updates (don't restart)
 
 ### Production Deployment
-- Use environment variables for configuration
-- Separate model directories per environment
-- Enable monitoring and logging
-- Regular backup of models and data
+- Use `.env` for environment-specific config
+- Switch to PostgreSQL for production
+- Enable Redis for caching if needed
+- Set `HOT_RELOAD=false` in production
+- Use systemd or supervisor for process management
 
 ## Technical Stack
 
 - **Engine Runtime**: Python 3.11 + FastAPI
-- **Database**: PostgreSQL + SQLAlchemy
-- **Cache**: Redis
+- **Database**: SQLite (default) / PostgreSQL (optional)
+- **ORM**: SQLAlchemy
+- **Cache**: Redis (optional)
 - **Real-time**: WebSocket
-- **Container**: Docker + Docker Compose
 - **UI**: HTML + Mermaid.js
+- **Default Port**: 8001
 
 ## Future Roadmap
 
@@ -218,13 +304,78 @@ flowchart TD
 
 ## Important Notes
 
-- PIM models should be purely business-focused (no technical terms)
-- The engine eliminates the need for code generation in most cases
-- Hot reload enables rapid iteration without restarts
-- Debug UI helps business users understand flow execution
+### Model Philosophy
+- PIM models must be purely business-focused (zero technical terms)
+- Business experts should understand every line
+- Technical implementation is handled by the engine
+
+### Engine Capabilities
+- Eliminates code generation for 90% of use cases
+- Supports both runtime execution and code generation
+- Hot reload enables real-time model updates
+- Database schema created/updated automatically
+- All CRUD operations generated from entity definitions
+
+### Current Limitations
+- Complex calculations may need custom code
+- External API integrations limited
+- Performance overhead vs native code (~10-20%)
+- Flow debugging still in beta
+
+## Troubleshooting
+
+### Engine Won't Start
+```bash
+# Check if port is in use
+lsof -i:8001
+
+# Check Python version
+python3 --version  # Should be 3.11+
+
+# Check logs
+tail -f pim-engine.log
+
+# Common issues:
+# - Port 8001 already in use
+# - Python version too old
+# - Missing dependencies
+```
+
+### Model Not Loading
+```bash
+# Check model syntax
+# YAML models must have valid YAML syntax
+# Markdown models must follow the specified format
+
+# View engine logs for errors
+grep ERROR pim-engine.log
+```
+
+### API Not Generated
+```bash
+# Verify model loaded
+curl http://localhost:8001/engine/models
+
+# Check OpenAPI spec
+curl http://localhost:8001/openapi.json
+```
+
+### Installation Issues
+```bash
+# If pip install fails
+python3 -m pip install --upgrade pip
+python3 -m pip install -r requirements.txt
+
+# If virtual environment issues
+rm -rf venv
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+```
 
 ---
 
 For detailed documentation, see:
-- [基于Claude Code的MDA实现方案.md](./基于Claude Code的MDA实现方案.md)
+- [基于LLM的MDA实现方案.md](./基于LLM的MDA实现方案.md)
 - [PIM执行引擎架构设计.md](./PIM执行引擎架构设计.md)
+- [PIM执行引擎实施路线图.md](./PIM执行引擎实施路线图.md)

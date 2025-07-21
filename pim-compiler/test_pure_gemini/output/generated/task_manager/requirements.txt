@@ -1,0 +1,22 @@
+# Web Framework
+fastapi
+
+# ASGI Server
+uvicorn[standard]
+
+# ORM and Database Driver
+sqlalchemy[asyncio]
+alembic
+asyncpg
+
+# Pydantic for data validation
+pydantic[email]
+pydantic-settings
+
+# Testing
+pytest
+pytest-cov
+httpx
+
+# Logging
+loguru

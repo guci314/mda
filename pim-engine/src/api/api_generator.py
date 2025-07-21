@@ -21,10 +21,11 @@ class APIGenerator:
     
     async def register_model_routes(self, model: PIMModel):
         """Register all routes for a PIM model"""
-        # Create router for this model
+        # Create router for this model with dependency
         router = APIRouter(
             prefix=f"/{model.domain.lower().replace(' ', '-')}",
-            tags=[model.domain]
+            tags=[model.domain],
+            dependencies=[Depends(lambda: self._check_model_loaded(model.domain))]
         )
         
         # Generate routes for entities
@@ -55,6 +56,14 @@ class APIGenerator:
             del self.pydantic_models[model.domain]
         
         self.logger.info(f"Unregistered API routes for model: {model.domain}")
+    
+    def _check_model_loaded(self, domain: str):
+        """Check if model is loaded before allowing API access"""
+        if domain not in self.engine.models:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Model '{domain}' is not loaded"
+            )
     
     async def _generate_entity_routes(
         self,

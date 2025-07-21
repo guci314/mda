@@ -4,48 +4,41 @@ A revolutionary runtime engine that directly executes Platform Independent Model
 
 ## 🚀 Quick Start
 
-### Using Docker Compose (Recommended)
+### Installation
 
 ```bash
 # Clone the repository
 cd pim-engine
 
-# Copy environment variables
-cp .env.example .env
-
 # Start the engine
-docker compose up -d
+./start.sh
 
-# Check status
-docker compose ps
-
-# View logs
-docker compose logs -f pim-engine
+# Stop the engine
+./stop.sh
 ```
 
 The engine will be available at:
-- API: http://localhost:8000
-- Docs: http://localhost:8000/docs
-- Health: http://localhost:8000/health
-- Debug UI: http://localhost:8000/debug/ui
-- Model Management: http://localhost:8000/models
-- Adminer (DB UI): http://localhost:8080
+- API: http://localhost:8001
+- Docs: http://localhost:8001/docs
+- Health: http://localhost:8001/health
+- Debug UI: http://localhost:8001/debug/ui
+- Model Management: http://localhost:8001/models
 
-### Local Development
+### Manual Installation
 
 ```bash
 # Create virtual environment
-python -m venv venv
+python3 -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 
 # Install dependencies
 pip install -r requirements.txt
 
-# Set Python path
-export PYTHONPATH=$PWD/src
+# Copy environment configuration
+cp .env.example .env  # Edit as needed
 
 # Run the engine
-python src/main.py
+cd src && python main.py
 ```
 
 ## 📝 Creating PIM Models

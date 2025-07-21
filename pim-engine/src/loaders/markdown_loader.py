@@ -214,13 +214,13 @@ class MarkdownLoader:
                 if '、' in options:
                     # 枚举类型
                     attr.type = AttributeType.ENUM
-                    attr.enum = [opt.strip() for opt in options.split('、')]
+                    attr.enum_values = [opt.strip() for opt in options.split('、')]
                 elif '关联到' in options or '关联' in options:
                     # 引用类型
                     attr.type = AttributeType.REFERENCE
                     ref_match = re.search(r'关联到?(.+)', options)
                     if ref_match:
-                        attr.to = self._to_english_name(ref_match.group(1).strip())
+                        attr.reference_entity = self._to_english_name(ref_match.group(1).strip())
         
         # 检测数值类型
         if '金额' in attr_line or '价格' in attr_line:
@@ -313,6 +313,10 @@ class MarkdownLoader:
             return 'SalesService'
         elif '产品' in flow_name:
             return 'ProductService'
+        elif '借' in flow_name or '还' in flow_name:
+            return 'BorrowService'
+        elif '图书' in flow_name:
+            return 'BookService'
         else:
             return 'BusinessService'
     
@@ -489,7 +493,16 @@ class MarkdownLoader:
             '销售管理': 'SalesManagement',
             '客户服务': 'CustomerService',
             '订单服务': 'OrderService',
-            '销售服务': 'SalesService'
+            '销售服务': 'SalesService',
+            # 图书管理系统相关
+            '图书': 'Book',
+            '借阅者': 'Borrower',
+            '借阅记录': 'BorrowRecord',
+            '图书管理': 'BookManagement',
+            '借阅者管理': 'BorrowerManagement',
+            '借还书管理': 'BorrowManagement',
+            '图书服务': 'BookService',
+            '借阅服务': 'BorrowService'
         }
         
         # 检查直接映射

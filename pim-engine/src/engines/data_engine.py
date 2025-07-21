@@ -29,14 +29,24 @@ class DataEngine:
         self.tables: Dict[str, Table] = {}
         
         if database_url:
-            # Create engine with connection pool
-            self.engine = create_engine(
-                database_url,
-                pool_size=20,
-                max_overflow=40,
-                pool_pre_ping=True,
-                echo=False
-            )
+            # Check if it's SQLite
+            if database_url.startswith("sqlite:"):
+                # SQLite specific configuration
+                self.engine = create_engine(
+                    database_url,
+                    connect_args={"check_same_thread": False},
+                    poolclass=NullPool,
+                    echo=False
+                )
+            else:
+                # PostgreSQL and other databases
+                self.engine = create_engine(
+                    database_url,
+                    pool_size=20,
+                    max_overflow=40,
+                    pool_pre_ping=True,
+                    echo=False
+                )
             self.SessionLocal = sessionmaker(
                 autocommit=False,
                 autoflush=False,
@@ -188,6 +198,31 @@ class DataEngine:
                 args.append(CheckConstraint(constraint))
         
         return tuple(args) if args else ()
+    
+    async def cleanup_model(self, pim_model: PIMModel):
+        """Clean up database tables and data for a model"""
+        try:
+            # Drop all tables for this model
+            for entity in pim_model.entities:
+                table_name = entity.name.lower()
+                if table_name in self.models:
+                    # Get the table object
+                    model_class = self.models[table_name]
+                    # Drop the table if it exists
+                    if hasattr(model_class, '__table__'):
+                        model_class.__table__.drop(self.engine, checkfirst=True)
+                        self.logger.info(f"Dropped table: {table_name}")
+                    
+                    # Remove from models dict
+                    del self.models[table_name]
+                    
+                    # Remove from tables dict if exists
+                    if table_name in self.tables:
+                        del self.tables[table_name]
+            
+            self.logger.info(f"Database cleanup completed for model: {pim_model.domain}")
+        except Exception as e:
+            self.logger.error(f"Error during database cleanup: {e}")
     
     async def execute_operation(
         self,

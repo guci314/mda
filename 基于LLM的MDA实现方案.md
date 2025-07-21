@@ -191,7 +191,8 @@ rules:
 ### 5.1 快速开始
 ```bash
 # 1. 启动PIM引擎
-docker compose up -d
+cd pim-engine
+./start.sh
 
 # 2. 访问服务
 - API: http://localhost:8001
@@ -233,133 +234,123 @@ curl -X POST http://localhost:8001/api/v1/user-management/user/registeruser \
 4. 输入测试数据
 5. 观察流程执行步骤
 
-## 6. 斜杠命令集成（业务纯洁性版本）
+## 6. 代码生成（使用Gemini API）
 
 ### 6.1 核心设计原则
-基于AOP（面向切面编程）思想，所有斜杠命令保持**业务纯洁性**：
-- 命令参数只包含业务概念，无技术细节
-- 技术实现通过配置文件和切面自动织入
-- 业务逻辑与技术关注点完全分离
+- 使用Gemini API进行智能代码生成
+- 通过PIM Engine的REST API接口调用
+- 支持PIM到PSM转换和完整代码生成
+- 保持业务逻辑与技术实现分离
 
-### 6.2 改进的命令设计
+### 6.2 代码生成API
 
-#### 传统方式（包含技术细节）❌
+PIM Engine提供以下代码生成端点：
+
+#### 检查LLM提供者
 ```bash
-/mda-generate-fastapi domain=用户管理 db=postgresql cache=redis auth=jwt
+GET /api/v1/codegen/llm/providers
 ```
 
-#### 业务纯洁方式（推荐）✅
+#### PIM转PSM
 ```bash
-# 纯业务描述
-/mda-generate-pure domain=用户管理 purpose=用户注册与认证 sla=高可用
-
-# 技术配置分离到配置文件
-/mda-generate-pure domain=订单处理 purpose=订单全生命周期管理 profile=high-performance
+POST /api/v1/codegen/pim-to-psm
+{
+  "pim_content": "PIM模型内容",
+  "platform": "fastapi"
+}
 ```
 
-### 6.3 技术切面配置
-技术细节通过AOP切面自动应用：
-
-```yaml
-# .mda/aspects/default.yaml
-aspects:
-  logging:
-    decorator: "@log_aspect"
-    level: INFO
-    
-  security:
-    decorator: "@security_aspect"
-    authentication: jwt
-    authorization: rbac
-    
-  monitoring:
-    decorator: "@monitoring_aspect"
-    metrics: [response_time, error_rate]
-    
-  rate_limiting:
-    decorator: "@rate_limit_aspect"
-    default_limit: 1000/hour
-    
-  caching:
-    decorator: "@cache_aspect"
-    ttl: 300
-    
-  transaction:
-    decorator: "@transaction_aspect"
-    isolation: read_committed
-```
-
-### 6.4 命令列表
-
-#### 业务纯洁命令
+#### 生成完整代码
 ```bash
-# 生成纯业务模型的执行代码
-/mda-generate-pure domain=<领域> purpose=<业务目的> [sla=<服务等级>]
-
-# 验证业务规则一致性
-/mda-validate-business domain=<领域> rules=<规则文件>
-
-# 分析业务流程
-/mda-analyze-flow process=<流程名> optimize=true
+POST /api/v1/codegen/generate
+{
+  "pim_content": "PIM模型内容", 
+  "target_platform": "fastapi",
+  "output_path": "./generated"
+}
 ```
 
-#### 配置管理命令
+### 6.3 配置Gemini
+
+在`.env`文件中配置：
 ```bash
-# 管理技术配置文件
-/mda-config-profile create name=<配置名> base=<基础配置>
-/mda-config-aspect add aspect=<切面名> to=<领域>
+# Gemini API配置
+GOOGLE_AI_STUDIO_KEY=your-api-key
+LLM_PROVIDER=gemini
+USE_LLM_FOR_ALL=true
 
-# 切换技术栈（不影响业务逻辑）
-/mda-switch-tech from=fastapi to=spring domain=<领域>
+# 代理配置（可选）
+PROXY_HOST=localhost
+PROXY_PORT=7890
 ```
 
-### 6.5 实现示例
+### 6.4 使用示例
 
-生成的代码自动分离业务和技术：
+#### 1. 从文件生成代码
+```python
+# 使用Python脚本
+import requests
+import json
+
+# 读取PIM模型
+with open('models/user_management.yaml', 'r') as f:
+    pim_content = f.read()
+
+# 调用生成API
+response = requests.post(
+    'http://localhost:8001/api/v1/codegen/generate',
+    json={
+        'pim_content': pim_content,
+        'target_platform': 'fastapi',
+        'output_path': './services/user-service'
+    }
+)
+
+print(response.json())
+```
+
+#### 2. 使用curl命令
+```bash
+# 转换PIM到PSM
+curl -X POST http://localhost:8001/api/v1/codegen/pim-to-psm \
+  -H "Content-Type: application/json" \
+  -d @- << EOF
+{
+  "pim_content": "$(cat models/user_management.yaml)",
+  "platform": "fastapi"
+}
+EOF
+```
+
+### 6.5 生成的代码结构
+
+生成的代码自动分离业务和技术层：
+
+```
+generated/
+├── domain/           # 业务逻辑层
+│   ├── models/      # 领域模型
+│   └── services/    # 业务服务
+├── infrastructure/   # 技术实现层
+│   ├── api/         # REST API
+│   ├── database/    # 数据持久化
+│   └── config/      # 配置管理
+└── tests/           # 测试代码
+```
+
+### 6.6 技术切面支持
+
+虽然不再使用斜杠命令，但仍支持AOP切面配置：
 
 ```python
-# domain/services/user_service.py - 纯业务逻辑
+# 在生成的代码中自动应用切面
+from pim_engine.aspects import apply_aspects
+
+@apply_aspects(['logging', 'monitoring', 'security'])
 class UserService:
-    """用户服务 - 只包含业务逻辑"""
-    
-    async def register_user(self, user_data: UserData) -> User:
-        # 纯业务规则验证
-        if await self.user_exists(user_data.email):
-            raise BusinessError("用户已存在")
-        
-        # 创建用户（纯业务操作）
-        user = User.create(user_data)
-        
-        # 发送欢迎邮件（业务需求）
-        await self.send_welcome_email(user)
-        
-        return user
-
-# infrastructure/api/user_api.py - 技术切面自动应用
-from aspects import apply_configured_aspects
-
-@apply_configured_aspects("user-management")
-class UserAPI:
-    """API层 - 切面自动处理所有技术关注点"""
-    
-    def __init__(self):
-        self.service = UserService()
-    
-    # 以下切面自动应用：
-    # - 日志记录
-    # - 性能监控
-    # - 安全认证
-    # - 限流控制
-    # - 事务管理
-    # - 错误处理
-    async def register_user(self, request: Request):
-        return await self.service.register_user(request.data)
+    # 业务逻辑代码
+    pass
 ```
-
-### 6.6 未来命令规划
-- `/mda-aspect-debug`: 调试切面执行链
-- `/mda-business-test`: 纯业务逻辑测试生成
-- `/mda-compliance-check`: 合规性检查（自动应用行业切面）
 
 ## 7. 最佳实践
 

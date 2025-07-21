@@ -1,0 +1,232 @@
+#!/usr/bin/env python3
+"""
+PIM Compiler CLI - 命令行工具
+使用 Gemini CLI 将 PIM 转换为可执行代码
+"""
+import argparse
+import sys
+import os
+from pathlib import Path
+from dotenv import load_dotenv
+
+# 添加src到Python路径
+script_dir = Path(__file__).parent
+sys.path.insert(0, str(script_dir / "src"))
+
+# 尝试加载环境变量
+def load_env():
+    """按优先级加载环境变量"""
+    # 1. 当前目录的 .env
+    local_env = Path.cwd() / ".env"
+    if local_env.exists():
+        load_dotenv(local_env)
+        return local_env
+    
+    # 2. 项目根目录的 .env
+    project_env = script_dir.parent / ".env"
+    if project_env.exists():
+        load_dotenv(project_env)
+        return project_env
+    
+    # 3. 用户目录的 .env
+    home_env = Path.home() / ".env"
+    if home_env.exists():
+        load_dotenv(home_env)
+        return home_env
+    
+    return None
+
+from compiler.config import CompilerConfig
+from compiler.compiler_factory import CompilerFactory
+from utils.logger import get_logger
+
+logger = get_logger(__name__)
+
+
+def print_banner():
+    """打印 CLI 横幅"""
+    print("""
+╔═══════════════════════════════════════════════════════════╗
+║                    PIM Compiler v3.0                      ║
+║         Platform Independent Model → Executable Code      ║
+║                  Powered by Gemini CLI                    ║
+╚═══════════════════════════════════════════════════════════╝
+""")
+
+
+def print_result(result):
+    """打印编译结果"""
+    if result.success:
+        print("\n✅ 编译成功！")
+        print(f"\n📁 生成的文件:")
+        print(f"   - PSM 文件: {result.psm_file}")
+        print(f"   - 代码目录: {result.code_dir}")
+        
+        if result.statistics:
+            print(f"\n📊 统计信息:")
+            print(f"   - 总文件数: {result.statistics['total_files']}")
+            print(f"   - Python 文件: {result.statistics['python_files']}")
+            print(f"   - PSM 生成时间: {result.statistics['psm_generation_time']}秒")
+            print(f"   - 代码生成时间: {result.statistics['code_generation_time']}秒")
+            print(f"   - 总编译时间: {result.compilation_time:.1f}秒")
+        
+        if result.test_results:
+            print(f"\n🧪 测试结果:")
+            print(f"   - Lint: {'✅ 通过' if result.test_results['lint']['passed'] else '❌ 失败'}")
+            if result.test_results['lint']['fixed']:
+                print(f"     (已自动修复)")
+            print(f"   - 单元测试: {'✅ 通过' if result.test_results['tests']['passed'] else '❌ 失败'}")
+            if result.test_results['tests']['fixed']:
+                print(f"     (已自动修复)")
+        
+        print(f"\n💡 下一步:")
+        print(f"   cd {result.code_dir}")
+        print(f"   pip install -r requirements.txt")
+        print(f"   python main.py  # 或查看 README.md")
+    else:
+        print("\n❌ 编译失败！")
+        if result.error:
+            print(f"\n错误信息: {result.error}")
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="PIM Compiler - 将平台无关模型转换为可执行代码",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+示例:
+  %(prog)s model.md                     # 编译到默认输出目录
+  %(prog)s model.md -o ./output         # 指定输出目录
+  %(prog)s model.md -p django           # 生成 Django 代码
+  %(prog)s model.md --no-test           # 跳过自动测试
+  %(prog)s model.md --model gemini-2.5-pro  # 使用特定模型
+
+支持的平台:
+  - fastapi (默认): FastAPI + SQLAlchemy + Pydantic
+  - django: Django + Django ORM
+  - flask: Flask + SQLAlchemy
+  - spring: Spring Boot + JPA (实验性)
+  - express: Express.js + TypeORM (实验性)
+"""
+    )
+    
+    parser.add_argument(
+        "pim_file",
+        type=str,
+        help="PIM 文件路径 (Markdown 格式)"
+    )
+    
+    parser.add_argument(
+        "-o", "--output",
+        type=str,
+        default="./output",
+        help="输出目录 (默认: ./output)"
+    )
+    
+    parser.add_argument(
+        "-p", "--platform",
+        type=str,
+        default="fastapi",
+        choices=["fastapi", "django", "flask", "spring", "express"],
+        help="目标平台 (默认: fastapi)"
+    )
+    
+    parser.add_argument(
+        "--model",
+        type=str,
+        help="Gemini 模型 (默认: 从环境变量读取)"
+    )
+    
+    parser.add_argument(
+        "--no-test",
+        action="store_true",
+        help="跳过自动测试和修复"
+    )
+    
+    parser.add_argument(
+        "--no-lint",
+        action="store_true",
+        help="跳过 lint 检查"
+    )
+    
+    parser.add_argument(
+        "-v", "--verbose",
+        action="store_true",
+        help="显示详细日志"
+    )
+    
+    parser.add_argument(
+        "--version",
+        action="version",
+        version="%(prog)s 3.0.0"
+    )
+    
+    args = parser.parse_args()
+    
+    # 打印横幅
+    if not args.verbose:
+        print_banner()
+    
+    # 加载环境变量
+    env_file = load_env()
+    if env_file and args.verbose:
+        print(f"✓ 已加载环境变量: {env_file}")
+    
+    # 验证 PIM 文件
+    pim_file = Path(args.pim_file)
+    if not pim_file.exists():
+        print(f"❌ 错误: PIM 文件不存在: {pim_file}")
+        sys.exit(1)
+    
+    if not pim_file.suffix in ['.md', '.markdown']:
+        print(f"⚠️  警告: PIM 文件应该是 Markdown 格式 (.md)")
+    
+    print(f"\n📄 输入文件: {pim_file}")
+    print(f"🎯 目标平台: {args.platform}")
+    print(f"📂 输出目录: {args.output}")
+    
+    # 创建配置
+    config_dict = {
+        "target_platform": args.platform,
+        "output_dir": Path(args.output),
+        "auto_test": not args.no_test,
+        "auto_fix_lint": not args.no_lint,
+        "auto_fix_tests": not args.no_test,
+        "verbose": args.verbose
+    }
+    
+    if args.model:
+        config_dict["gemini_model"] = args.model
+    
+    try:
+        config = CompilerConfig(**config_dict)
+    except Exception as e:
+        print(f"❌ 配置错误: {e}")
+        sys.exit(1)
+    
+    # 创建编译器
+    print(f"\n🔧 初始化编译器...")
+    compiler = CompilerFactory.create_compiler(config)
+    
+    # 执行编译
+    print(f"🚀 开始编译...\n")
+    try:
+        result = compiler.compile(pim_file)
+        print_result(result)
+        
+        # 返回适当的退出码
+        sys.exit(0 if result.success else 1)
+        
+    except KeyboardInterrupt:
+        print("\n\n⚠️  编译被用户中断")
+        sys.exit(130)
+    except Exception as e:
+        print(f"\n❌ 编译出错: {e}")
+        if args.verbose:
+            import traceback
+            traceback.print_exc()
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()

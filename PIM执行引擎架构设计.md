@@ -13,10 +13,10 @@
 
 ```mermaid
 flowchart TB
-    subgraph "PIM生成层（Claude Code）"
-        A["/pim-create"]
-        B["/pim-update"]
-        C["/bug-report"]
+    subgraph "PIM生成层"
+        A[PIM编辑器]
+        B[模型验证]
+        C[版本管理]
         D[PIM模型文件]
     end
     
@@ -448,40 +448,58 @@ docker run -d \
 
 ### 2. 模型部署（热加载）
 ```bash
-# 部署新的PIM模型
-/deploy-pim domain=订单管理 engine=http://localhost:8000
+# 将PIM模型放入models目录
+cp 订单管理.yaml pim-engine/models/
 
-# 引擎自动加载并运行新模型
+# 引擎自动检测并加载新模型（5秒内）
 # 无需重启，无需编译
+
+# 或通过API手动加载
+curl -X POST http://localhost:8001/engine/models/load?model_name=订单管理
 ```
 
-## Claude Code集成
+## 代码生成集成
 
-### 新的Slash Commands
+### 使用Gemini API生成代码
 
-#### /pim-create
+PIM Engine集成了Gemini API用于智能代码生成：
+
+#### 配置Gemini
 ```bash
-/pim-create domain=库存管理 description="管理商品库存，包括入库、出库、盘点"
+# 在.env文件中配置
+GOOGLE_AI_STUDIO_KEY=your-api-key
+LLM_PROVIDER=gemini
+USE_LLM_FOR_ALL=true
 ```
-生成适合引擎执行的PIM模型
 
-#### /pim-deploy
+#### 生成代码
 ```bash
-/pim-deploy model=库存管理_pim engine=production
-```
-将模型部署到指定引擎
+# 从PIM生成完整代码
+curl -X POST http://localhost:8001/api/v1/codegen/generate \
+  -H "Content-Type: application/json" \
+  -d '{
+    "pim_content": "$(cat models/库存管理.yaml)",
+    "target_platform": "fastapi",
+    "output_path": "./generated/inventory-service"
+  }'
 
-#### /pim-test
-```bash
-/pim-test model=库存管理_pim scenario=入库流程
+# PIM转PSM
+curl -X POST http://localhost:8001/api/v1/codegen/pim-to-psm \
+  -H "Content-Type: application/json" \
+  -d '{
+    "pim_content": "$(cat models/库存管理.yaml)",
+    "platform": "fastapi"
+  }'
 ```
-在引擎上测试模型
 
-#### /engine-status
+#### 检查引擎状态
 ```bash
-/engine-status engine=production
+# 查看加载的模型
+curl http://localhost:8001/engine/models
+
+# 查看引擎状态
+curl http://localhost:8001/engine/status
 ```
-查看引擎状态和已加载的模型
 
 ## 优势分析
 
@@ -539,22 +557,29 @@ docker run -d \
 
 ```bash
 # 1. 业务人员创建模型
-/pim-create domain=请假管理 description="员工请假申请和审批流程"
+# 编写请假管理.yaml模型文件
 
-# 2. 部署到引擎
-/pim-deploy model=请假管理_pim engine=production
+# 2. 启动引擎
+cd pim-engine
+./start.sh
 
-# 3. 立即可用
-curl http://engine.company.com/api/v1/leave-requests
+# 3. 模型自动加载（或手动加载）
+curl -X POST http://localhost:8001/engine/models/load?model_name=请假管理
 
-# 4. 发现问题
-/bug-report issue="年假天数计算错误" engine=production
+# 4. 立即可用
+curl http://localhost:8001/api/v1/leave-management/leave-requests
 
-# 5. 自动修复并生效
-# 引擎自动重新加载修复后的模型
+# 5. 生成代码（可选）
+curl -X POST http://localhost:8001/api/v1/codegen/generate \
+  -H "Content-Type: application/json" \
+  -d '{
+    "pim_content": "$(cat models/请假管理.yaml)",
+    "target_platform": "fastapi",
+    "output_path": "./services/leave-service"
+  }'
 
 # 6. 监控运行
-/engine-status engine=production model=请假管理
+curl http://localhost:8001/engine/status
 ```
 
 ## 结论

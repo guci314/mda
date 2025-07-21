@@ -4,24 +4,28 @@ version = "0.1.0"
 description = "Platform Independent Model Execution Engine"
 authors = ["PIM Engine Team"]
 readme = "README.md"
+packages = [{include = "*", from = "src"}]
 
 [tool.poetry.dependencies]
-python = "^3.11"
+python = "^3.10"
 
 [tool.black]
 line-length = 100
-target-version = ['py311']
+target-version = ['py310']
 
 [tool.mypy]
-python_version = "3.11"
+python_version = "3.10"
 warn_return_any = true
 warn_unused_configs = true
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
 testpaths = ["tests"]
 python_files = ["test_*.py"]
+pythonpath = ["src"]
+addopts = "--import-mode=importlib"
 
 [build-system]
 requires = ["poetry-core"]

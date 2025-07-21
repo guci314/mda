@@ -20,15 +20,15 @@ class Settings(BaseSettings):
     
     # Database
     database_url: Optional[str] = Field(
-        default="postgresql://pim:password@localhost:5432/pim_engine",
+        default="sqlite:///./pim_engine.db",
         env="DATABASE_URL"
     )
     db_pool_size: int = 20
     db_max_overflow: int = 40
     
-    # Redis
+    # Redis (optional)
     redis_url: Optional[str] = Field(
-        default="redis://localhost:6379",
+        default=None,
         env="REDIS_URL"
     )
     cache_ttl: int = 300  # 5 minutes
@@ -72,7 +72,7 @@ class Settings(BaseSettings):
     request_timeout: int = 60
     
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=(".env.local", ".env"),
         env_file_encoding="utf-8",
         case_sensitive=False,
         extra="ignore"

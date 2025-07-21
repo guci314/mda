@@ -16,6 +16,9 @@ from core.models import PIMModel, ModelLoadResult
 from loaders import ModelLoader
 from engines import DataEngine, RuleEngine, FlowEngine
 from api import APIGenerator
+from api.dynamic_router import DynamicRouter, DynamicRouterMiddleware
+from api.openapi_manager import OpenAPIManager
+from core.restart_manager import RestartManager
 from utils.logger import setup_logger
 from debug import FlowDebugger
 from debug.debug_routes import create_debug_routes
@@ -59,6 +62,11 @@ class PIMEngine:
         self.flow_engine = FlowEngine(self.rule_engine)
         self.api_generator = APIGenerator(self)
         self.flow_debugger = FlowDebugger()
+        self.openapi_manager = OpenAPIManager(self.app)
+        self.restart_manager = RestartManager()
+        
+        # Override the default OpenAPI method
+        self.app.openapi = self.openapi_manager.custom_openapi
         
         # Setup middleware
         self._setup_middleware()
@@ -79,19 +87,34 @@ class PIMEngine:
         self.app.include_router(codegen_router)
         
         # Mount static files if directory exists
-        static_path = Path("/app/static")
-        if static_path.exists():
-            self.app.mount("/static", StaticFiles(directory="/app/static"), name="static")
+        # Try multiple possible static paths
+        static_paths = [
+            Path("/app/static"),  # Docker path
+            Path("static"),       # Relative path
+            Path(__file__).parent.parent.parent / "static",  # Absolute path from src
+        ]
+        
+        static_path = None
+        for path in static_paths:
+            if path.exists():
+                static_path = path
+                self.app.mount("/static", StaticFiles(directory=str(path)), name="static")
+                self.logger.info(f"Mounted static files from: {path}")
+                break
+        
+        if not static_path:
+            self.logger.warning("Static files directory not found")
             
         # Add route for models management UI
         @self.app.get("/models", response_class=HTMLResponse)
         async def models_ui():
             """Serve models management UI"""
-            models_html_path = static_path / "models.html"
-            if models_html_path.exists():
-                with open(models_html_path, 'r', encoding='utf-8') as f:
-                    return f.read()
-            return "Models management UI not found"
+            if static_path:
+                models_html_path = static_path / "models.html"
+                if models_html_path.exists():
+                    with open(models_html_path, 'r', encoding='utf-8') as f:
+                        return HTMLResponse(content=f.read())
+            return HTMLResponse(content="<h1>Models management UI not found</h1>", status_code=404)
         
         # Hot reload will be started when the event loop is running
         self._hot_reload_enabled = settings.hot_reload
@@ -205,9 +228,13 @@ class PIMEngine:
             
             await self.unload_model(model_name)
             
+            # Schedule restart check
+            asyncio.create_task(self.restart_manager.check_and_restart())
+            
             return {
                 "status": "unloaded",
-                "model": model_name
+                "model": model_name,
+                "message": "Model unloaded. Application will restart to update API documentation."
             }
         
         @self.app.get("/engine/models")
@@ -289,6 +316,10 @@ class PIMEngine:
             load_time_ms = (time.time() - start_time) * 1000
             result.load_time_ms = load_time_ms
             
+            # Update OpenAPI schema
+            self.openapi_manager.model_loaded(model_name)
+            self.restart_manager.model_loaded(model_name)
+            
             self.logger.info(
                 f"Model '{model_name}' loaded successfully in {load_time_ms:.2f}ms"
             )
@@ -303,15 +334,42 @@ class PIMEngine:
             )
     
     async def unload_model(self, model_name: str):
-        """Unload a model"""
+        """Unload a model - cleans up everything before restart"""
         if model_name in self.models:
-            # Remove API routes
-            await self.api_generator.unregister_model_routes(self.models[model_name])
+            model = self.models[model_name]
             
-            # Remove from models
+            try:
+                # Step 1: Remove API routes
+                await self.api_generator.unregister_model_routes(model)
+                self.logger.info(f"Removed API routes for model: {model_name}")
+            except Exception as e:
+                self.logger.error(f"Error removing API routes: {e}")
+            
+            try:
+                # Step 2: Clean up database tables and data
+                await self.data_engine.cleanup_model(model)
+                self.logger.info(f"Cleaned up database for model: {model_name}")
+            except Exception as e:
+                self.logger.error(f"Error cleaning up database: {e}")
+            
+            try:
+                # Step 3: Remove from flow engine
+                # Note: Since flows/rules might be stored as strings in some models,
+                # we'll just clear the engine dictionaries on restart
+                self.logger.info(f"Flow and rule cleanup will occur on restart")
+            except Exception as e:
+                self.logger.error(f"Error in flow/rule cleanup: {e}")
+            
+            # Step 4: Remove from models registry
             del self.models[model_name]
             
-            self.logger.info(f"Model '{model_name}' unloaded")
+            # Step 5: Update OpenAPI schema
+            self.openapi_manager.model_unloaded(model_name)
+            
+            self.logger.info(f"Model '{model_name}' unloaded successfully")
+            
+            # Schedule restart to update API documentation
+            self.restart_manager.model_unloaded(model_name)
     
     async def reload_model(self, model_name: str):
         """Reload a model"""

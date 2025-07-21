@@ -1,0 +1,24 @@
+fastapi
+uvicorn[standard]
+pydantic[email]
+pydantic-settings
+
+# Database
+sqlalchemy[asyncio]
+# For SQLite (used by default)
+aiosqlite
+# For PostgreSQL (recommended for production)
+# asyncpg
+alembic
+
+# Security
+python-jose[cryptography]
+passlib[bcrypt]
+
+# For form data (e.g., login)
+python-multipart
+
+# Testing
+pytest
+httpx
+pytest-asyncio
