@@ -129,8 +129,13 @@ class InstanceManager:
                 pass
             raise RuntimeError(f"Failed to create instance: {str(e)}")
     
-    async def stop_instance(self, instance_id: str):
-        """Stop and remove an instance"""
+    async def stop_instance(self, instance_id: str, hard: bool = False):
+        """Stop and remove an instance
+        
+        Args:
+            instance_id: ID of the instance to stop
+            hard: If True, delete the instance directory
+        """
         if instance_id not in self.instances:
             raise ValueError(f"Instance '{instance_id}' not found")
         
@@ -146,10 +151,22 @@ class InstanceManager:
             # Release port
             self.port_manager.release_port(instance_info.port)
             
+            # Delete instance directory if hard delete
+            if hard:
+                instance_dir = Path(f"instances/{instance_id}")
+                if instance_dir.exists():
+                    logger.info(f"Deleting instance directory: {instance_dir}")
+                    import shutil
+                    try:
+                        shutil.rmtree(instance_dir)
+                        logger.info(f"Instance directory deleted: {instance_dir}")
+                    except Exception as e:
+                        logger.error(f"Failed to delete instance directory: {e}")
+            
             # Remove instance
             del self.instances[instance_id]
             
-            logger.info(f"Instance '{instance_id}' stopped successfully")
+            logger.info(f"Instance '{instance_id}' {'hard' if hard else ''} stopped successfully")
             
         except Exception as e:
             instance_info.status = "error"

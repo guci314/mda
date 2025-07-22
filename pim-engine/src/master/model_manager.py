@@ -25,12 +25,13 @@ COMPILER_AVAILABLE = True  # Enable compiler - will import when needed
 
 class ModelInfo:
     """Information about a loaded model"""
-    def __init__(self, name: str, model: PIMModel, source_file: str):
+    def __init__(self, name: str, model: PIMModel, source_file: str, model_dir: Path = None):
         self.name = name
         self.model = model
         self.source_file = source_file
         self.loaded_at = datetime.now()
         self.version = model.version
+        self.model_dir = model_dir or Path(f"classpath/{name}")
         
     def to_dict(self):
         """Convert to dictionary for API response"""
@@ -80,10 +81,14 @@ class ModelManager:
             raise ValueError(f"Failed to load model: {', '.join(result.errors)}")
         
         # Store model info
+        if result.model is None:
+            raise ValueError(f"Model loading returned None for '{model_name}'")
+        
         model_info = ModelInfo(
             name=model_name,
             model=result.model,
-            source_file=model_file.name
+            source_file=model_file.name,
+            model_dir=Path(f"classpath/{model_name}")
         )
         
         # Compile model if compiler is available
@@ -99,13 +104,33 @@ class ModelManager:
         logger.info(f"Model '{model_name}' loaded successfully")
         return model_info
     
-    def unload_model(self, model_name: str) -> bool:
-        """Unload a model"""
+    def unload_model(self, model_name: str, hard: bool = False) -> bool:
+        """Unload a model
+        
+        Args:
+            model_name: Name of the model to unload
+            hard: If True, delete all model files and directories
+        """
         if model_name not in self.models:
             raise ValueError(f"Model '{model_name}' not found")
         
+        model_info = self.models[model_name]
+        
+        # Remove from memory
         del self.models[model_name]
-        logger.info(f"Model '{model_name}' unloaded")
+        
+        if hard:
+            # Delete model directory (contains generated code, PSM, etc.)
+            if model_info.model_dir.exists():
+                logger.info(f"Deleting model directory: {model_info.model_dir}")
+                import shutil
+                try:
+                    shutil.rmtree(model_info.model_dir)
+                    logger.info(f"Model directory deleted: {model_info.model_dir}")
+                except Exception as e:
+                    logger.error(f"Failed to delete model directory: {e}")
+        
+        logger.info(f"Model '{model_name}' {'hard' if hard else ''} unloaded")
         return True
     
     def get_model(self, model_name: str) -> Optional[ModelInfo]:
@@ -138,7 +163,7 @@ class ModelManager:
         # Configure compiler
         config = CompilerConfig(
             gemini_api_key=os.getenv("GOOGLE_AI_STUDIO_KEY", ""),
-            output_dir=str(output_dir),
+            output_dir=output_dir,  # CompilerConfig expects Path object
             target_platform="fastapi",
             enable_cache=False,  # 禁用缓存确保重新生成完整代码
             verbose=True,

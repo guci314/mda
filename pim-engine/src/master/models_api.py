@@ -91,8 +91,13 @@ async def get_model(request: Request, model_name: str):
 
 
 @router.delete("/{model_name}")
-async def unload_model(request: Request, model_name: str):
-    """Unload a model (will stop all related instances)"""
+async def unload_model(request: Request, model_name: str, hard: bool = False):
+    """Unload a model (will stop all related instances)
+    
+    Args:
+        model_name: Name of the model to unload
+        hard: If true, also delete all files and directories (hard unload)
+    """
     try:
         model_manager = request.app.state.model_manager
         instance_manager = request.app.state.instance_manager
@@ -101,18 +106,22 @@ async def unload_model(request: Request, model_name: str):
         if not model_manager.is_model_loaded(model_name):
             raise HTTPException(status_code=404, detail=f"Model '{model_name}' not found")
         
+        # Get model info before unloading
+        model_info = model_manager.get_model(model_name)
+        
         # Stop all instances of this model
         instances = instance_manager.list_instances(model_name=model_name)
         for instance in instances:
             logger.info(f"Stopping instance '{instance.id}' before unloading model")
-            await instance_manager.stop_instance(instance.id)
+            await instance_manager.stop_instance(instance.id, hard=hard)
         
-        # Unload model
-        model_manager.unload_model(model_name)
+        # Unload model (with hard delete if requested)
+        model_manager.unload_model(model_name, hard=hard)
         
         return {
-            "message": f"Model '{model_name}' unloaded successfully",
-            "instances_stopped": len(instances)
+            "message": f"Model '{model_name}' {'hard' if hard else ''} unloaded successfully",
+            "instances_stopped": len(instances),
+            "hard_delete": hard
         }
         
     except HTTPException:

@@ -69,6 +69,8 @@ class PureGeminiCompiler:
     
     def compile(self, pim_file: Path) -> CompilationResult:
         """编译 PIM 文件"""
+        print("我是经过验证的编译器")
+        logger.info("我是经过验证的编译器")
         start_time = datetime.now()
         
         try:
@@ -176,11 +178,22 @@ class PureGeminiCompiler:
         platform = self.config.target_platform
         framework = self._get_framework_for_platform()
         
+        # 读取PIM文件内容
+        try:
+            pim_content = pim_file.read_text(encoding='utf-8')
+        except Exception as e:
+            logger.error(f"Failed to read PIM file: {e}")
+            return False
+        
         prompt = f"""你是一个专业的软件架构师，精通模型驱动架构（MDA）。
 
-我有一个平台无关模型（PIM）文件，位于：pim/{pim_file.name}
+我有以下平台无关模型（PIM）内容：
 
-请将这个 PIM 转换为 {platform} 平台的平台特定模型（PSM），并保存到 psm/{psm_file.name}
+```markdown
+{pim_content}
+```
+
+请将这个 PIM 转换为 {platform} 平台的平台特定模型（PSM），并创建文件 psm/{psm_file.name}
 
 要求：
 1. 仔细阅读 PIM 文件，理解所有业务需求
@@ -201,21 +214,62 @@ class PureGeminiCompiler:
 - 数据验证：{self._get_validation_lib_for_platform()}
 - 测试框架：{self._get_test_framework_for_platform()}
 
-请生成完整、专业的 PSM 文档。
+请生成完整、专业的 PSM 文档并保存为 psm/{psm_file.name} 文件。确保文件被创建。
 """
         
-        return self._execute_gemini_cli(prompt, work_dir, timeout=300)
+        success = self._execute_gemini_cli(prompt, work_dir, timeout=300)
+        
+        logger.info(f"PSM generation result: {success}")
+        logger.info(f"Expected PSM file: {psm_file}")
+        logger.info(f"PSM file exists: {psm_file.exists()}")
+        
+        # 检查PSM文件是否被创建
+        if success and not psm_file.exists():
+            logger.warning("PSM file not created by Gemini CLI, checking for alternative locations")
+            # 检查工作目录中是否有生成的PSM文件
+            possible_files = [
+                work_dir / psm_file.name,
+                work_dir / f"{pim_file.stem}_psm.md",
+                work_dir / "psm" / psm_file.name,
+                work_dir / "psm" / f"{pim_file.stem}_psm_psm.md",  # Gemini可能添加额外的_psm
+                psm_file.parent / f"{pim_file.stem}_psm_psm.md",  # 在目标目录检查
+            ]
+            
+            for possible_file in possible_files:
+                logger.debug(f"Checking: {possible_file}")
+                if possible_file.exists():
+                    logger.info(f"Found PSM file at {possible_file}, moving to {psm_file}")
+                    import shutil
+                    psm_file.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.move(str(possible_file), str(psm_file))
+                    return True
+                    
+            logger.error("PSM file was not created")
+            return False
+            
+        return success
     
     def _generate_code(self, psm_file: Path, code_dir: Path, work_dir: Path) -> bool:
         """使用 Gemini CLI 生成代码"""
         platform = self.config.target_platform
         framework = self._get_framework_for_platform()
         
+        # 读取PSM文件内容
+        try:
+            psm_content = psm_file.read_text(encoding='utf-8')
+        except Exception as e:
+            logger.error(f"Failed to read PSM file: {e}")
+            return False
+        
         prompt = f"""你是一个专业的 {platform} 开发工程师，精通 {framework} 框架。
 
-我有一个平台特定模型（PSM）文件，位于：psm/{psm_file.name}
+我有以下平台特定模型（PSM）内容：
 
-请根据这个 PSM 文件生成完整的 {platform} 代码实现。
+```markdown
+{psm_content}
+```
+
+请根据这个 PSM 生成完整的 {platform} 代码实现。
 
 要求：
 1. 仔细阅读 PSM 文件，理解所有技术细节
