@@ -172,6 +172,8 @@ class DataEngine:
     def _get_table_args(self, entity: Entity) -> tuple:
         """Get table arguments including constraints and indexes"""
         args = []
+        # Allow redefining tables when reloading models
+        table_kwargs = {'extend_existing': True}
         
         # Add indexes
         for index_def in entity.indexes:
@@ -197,7 +199,12 @@ class DataEngine:
                 # Check constraint
                 args.append(CheckConstraint(constraint))
         
-        return tuple(args) if args else ()
+        # Return args with table kwargs
+        if args:
+            args.append(table_kwargs)
+            return tuple(args)
+        else:
+            return (table_kwargs,)
     
     async def cleanup_model(self, pim_model: PIMModel):
         """Clean up database tables and data for a model"""
@@ -215,6 +222,10 @@ class DataEngine:
                     
                     # Remove from models dict
                     del self.models[table_name]
+                    
+                    # Remove from metadata
+                    if table_name in self.Base.metadata.tables:
+                        self.Base.metadata.remove(self.Base.metadata.tables[table_name])
                     
                     # Remove from tables dict if exists
                     if table_name in self.tables:

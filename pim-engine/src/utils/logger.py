@@ -39,3 +39,8 @@ def setup_logger(
     logger.addHandler(handler)
     
     return logger
+
+
+def get_logger(name: str) -> logging.Logger:
+    """Get logger - compatibility wrapper for PIM Compiler"""
+    return setup_logger(name)

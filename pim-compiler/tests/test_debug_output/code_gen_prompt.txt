@@ -1,0 +1,20 @@
+你是一个专业的 fastapi 开发工程师。
+
+请根据提供的 hello_world_pim.md 文件生成完整的 FastAPI 代码实现。
+
+在当前目录下创建以下文件：
+1. main.py - FastAPI 应用的入口点
+2. requirements.txt - Python 依赖
+
+main.py 应包含：
+```python
+from fastapi import FastAPI
+
+app = FastAPI()
+
+@app.get("/hello")
+def say_hello():
+    return {"message": "Hello World!"}
+```
+
+请生成这些文件。

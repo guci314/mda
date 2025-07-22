@@ -1,0 +1,60 @@
+# PIM Engine Classpath 配置
+# 类似于 Java 的 classpath 配置
+
+# Engine 主配置
+engine:
+  home: ${PIM_HOME:-/opt/pim-engine}
+  version: 1.0.0
+
+# Classpath 配置
+classpath:
+  # 模型路径（按优先级排序）
+  models:
+    - ${PIM_HOME}/classpath/models     # 主模型目录
+    - ${PIM_HOME}/classpath/custom      # 自定义模型
+    - ${USER_HOME}/.pim/models          # 用户模型
+  
+  # 共享库路径
+  libraries:
+    - ${PIM_HOME}/classpath/lib         # 系统库
+    - ${PIM_HOME}/classpath/vendor      # 第三方库
+  
+  # 插件路径
+  plugins:
+    - ${PIM_HOME}/classpath/plugins     # 系统插件
+    - ${USER_HOME}/.pim/plugins         # 用户插件
+
+# 自动加载配置
+autoload:
+  enabled: true                         # 启动时自动加载
+  scan_interval: 30                     # 扫描间隔（秒）
+  patterns:
+    - "*.psm"                          # PSM 文件
+    - "*.psmx"                         # 压缩的 PSM 文件
+  exclude:
+    - "*_test.psm"                     # 排除测试文件
+    - "*.draft.psm"                    # 排除草稿文件
+
+# 依赖解析
+dependency:
+  resolution: strict                    # strict | lenient
+  repositories:
+    - name: central
+      url: https://repo.pim-hub.com/central
+    - name: company
+      url: https://repo.company.com/pim
+
+# 缓存配置
+cache:
+  enabled: true
+  directory: ${PIM_HOME}/runtime/cache
+  max_size: 1GB
+  ttl: 3600                            # 缓存时间（秒）
+
+# 日志配置
+logging:
+  directory: ${PIM_HOME}/runtime/logs
+  level: INFO
+  rotation:
+    max_files: 10
+    max_size: 100MB

@@ -31,7 +31,10 @@ def test_gemini_cli():
             raise AssertionError("Gemini CLI not available")
     
     # 2. Test with API key
-    api_key = os.environ.get('GOOGLE_AI_STUDIO_KEY', 'AIzaSyAK6A0j6OkkDaUd6nB2mgFuzjnWowKBaE0')
+    api_key = os.environ.get('GOOGLE_AI_STUDIO_KEY')
+    if not api_key:
+        print("\n3. Skipping API test - GOOGLE_AI_STUDIO_KEY not set")
+        return
     print(f"\n3. Testing with API key: {api_key[:10]}...")
     
     # Simple test prompt

@@ -228,13 +228,10 @@ class PIMEngine:
             
             await self.unload_model(model_name)
             
-            # Schedule restart check
-            asyncio.create_task(self.restart_manager.check_and_restart())
-            
             return {
                 "status": "unloaded",
                 "model": model_name,
-                "message": "Model unloaded. Application will restart to update API documentation."
+                "message": "Model unloaded successfully. API documentation updated."
             }
         
         @self.app.get("/engine/models")
@@ -318,7 +315,6 @@ class PIMEngine:
             
             # Update OpenAPI schema
             self.openapi_manager.model_loaded(model_name)
-            self.restart_manager.model_loaded(model_name)
             
             self.logger.info(
                 f"Model '{model_name}' loaded successfully in {load_time_ms:.2f}ms"
@@ -367,9 +363,6 @@ class PIMEngine:
             self.openapi_manager.model_unloaded(model_name)
             
             self.logger.info(f"Model '{model_name}' unloaded successfully")
-            
-            # Schedule restart to update API documentation
-            self.restart_manager.model_unloaded(model_name)
     
     async def reload_model(self, model_name: str):
         """Reload a model"""

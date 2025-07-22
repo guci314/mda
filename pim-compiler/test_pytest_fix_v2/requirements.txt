@@ -1,3 +1,0 @@
-pydantic
-email-validator
-pytest

@@ -322,6 +322,79 @@ flowchart TD
 - Performance overhead vs native code (~10-20%)
 - Flow debugging still in beta
 
+## Claude's Working Methods
+
+### Handling Long-Running Tasks
+
+When dealing with tasks that take a long time to complete (e.g., running tests, compilation, code generation), use this proven workflow:
+
+#### 1. Background Execution Pattern
+```bash
+# Start long-running task in background with nohup
+nohup python long_task.py > output.log 2>&1 &
+
+# Or for test suites
+nohup python -m pytest tests/ > test_results.log 2>&1 &
+
+# Capture the process ID for monitoring
+echo $! > process.pid
+```
+
+#### 2. Progress Monitoring Pattern
+```bash
+# Check if process is still running
+ps -p $(cat process.pid) > /dev/null && echo "Still running" || echo "Completed"
+
+# Monitor log file growth
+tail -f output.log
+
+# Check log file periodically
+tail -20 output.log  # Last 20 lines
+grep -i error output.log  # Check for errors
+grep -i "test.*passed" output.log  # Check test progress
+```
+
+#### 3. Decision Making Based on Logs
+- **If tests are passing**: Continue monitoring until completion
+- **If errors occur**: Analyze error patterns and decide on fixes
+- **If process hangs**: Check for common issues (infinite loops, waiting for input)
+- **If partial success**: Determine if it's safe to proceed with partial results
+
+#### 4. Example Workflow from Real Usage
+```bash
+# 1. Start compilation in background
+nohup python pim-compiler/tests/test_compiler.py > compiler.log 2>&1 &
+
+# 2. Initial check after a few seconds
+sleep 5
+tail -20 compiler.log
+
+# 3. Periodic monitoring
+tail -50 compiler.log | grep -E "(ERROR|SUCCESS|Generated|Fixed)"
+
+# 4. Check specific milestones
+grep "PSM generated successfully" compiler.log
+grep "Code generation completed" compiler.log
+grep "All tests passed" compiler.log
+
+# 5. Final verification
+tail -100 compiler.log
+```
+
+#### 5. Best Practices
+- Always redirect both stdout and stderr (`2>&1`)
+- Use descriptive log file names
+- Check logs at reasonable intervals (not too frequent)
+- Look for specific success/failure markers
+- Keep process PIDs for cleanup if needed
+- Use `grep` to filter relevant information from large logs
+
+This approach allows Claude to:
+- Start time-consuming tasks without blocking
+- Continue with other work while monitoring progress
+- Make informed decisions based on intermediate results
+- Handle failures gracefully without losing all progress
+
 ## Troubleshooting
 
 ### Engine Won't Start

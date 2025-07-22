@@ -1,0 +1,73 @@
+{
+    "folders": [
+        {
+            "name": "MDA Project",
+            "path": "."
+        },
+        {
+            "name": "PIM Engine",
+            "path": "pim-engine"
+        }
+    ],
+    "settings": {
+        "python.analysis.extraPaths": [
+            "${workspaceFolder:MDA Project}/pim-engine/src"
+        ],
+        "python.autoComplete.extraPaths": [
+            "${workspaceFolder:MDA Project}/pim-engine/src"
+        ],
+        "python.testing.pytestEnabled": true,
+        "python.testing.unittestEnabled": false,
+        "python.testing.pytestArgs": [
+            "${workspaceFolder:PIM Engine}/tests"
+        ],
+        "python.envFile": "${workspaceFolder:PIM Engine}/.env.local",
+        "files.exclude": {
+            "**/__pycache__": true,
+            "**/*.pyc": true,
+            "**/node_modules": true,
+            "**/.pytest_cache": true,
+            "**/.mypy_cache": true
+        }
+    },
+    "launch": {
+        "version": "0.2.0",
+        "configurations": [
+            {
+                "name": "Python: PIM Engine",
+                "type": "python",
+                "request": "launch",
+                "module": "uvicorn",
+                "args": [
+                    "main:app",
+                    "--reload",
+                    "--host",
+                    "0.0.0.0",
+                    "--port",
+                    "8000"
+                ],
+                "cwd": "${workspaceFolder:PIM Engine}/src",
+                "env": {
+                    "PYTHONPATH": "${workspaceFolder:PIM Engine}/src",
+                    "DATABASE_URL": "sqlite:///./pim_engine.db"
+                },
+                "console": "integratedTerminal"
+            },
+            {
+                "name": "Python: Run Tests",
+                "type": "python",
+                "request": "launch",
+                "module": "pytest",
+                "args": [
+                    "-v",
+                    "${workspaceFolder:PIM Engine}/tests"
+                ],
+                "cwd": "${workspaceFolder:PIM Engine}",
+                "env": {
+                    "PYTHONPATH": "${workspaceFolder:PIM Engine}/src"
+                },
+                "console": "integratedTerminal"
+            }
+        ]
+    }
+}

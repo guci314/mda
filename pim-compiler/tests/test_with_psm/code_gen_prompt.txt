@@ -1,0 +1,17 @@
+你是一个专业的 fastapi 开发工程师，精通 FastAPI 框架。
+
+我有一个平台特定模型（PSM）文件，位于：psm/hello_world_pim_psm.md
+
+请根据这个 PSM 文件生成完整的 fastapi 代码实现。
+
+要求：
+1. 仔细阅读 PSM 文件，理解所有技术细节
+2. 在 generated/hello_world_pim/ 目录下创建完整的项目结构
+3. 必须生成以下核心文件：
+   - main.py（应用程序入口点）
+   - requirements.txt（Python 依赖）
+   - README.md（项目说明文档）
+
+特别注意：main.py 必须是项目的入口点，能够启动整个应用程序。
+
+请生成这些文件。

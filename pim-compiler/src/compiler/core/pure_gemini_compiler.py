@@ -220,21 +220,24 @@ class PureGeminiCompiler:
 要求：
 1. 仔细阅读 PSM 文件，理解所有技术细节
 2. 在 generated/{code_dir.name}/ 目录下创建完整的项目结构
-3. 实现 PSM 中描述的所有功能：
+3. 必须生成以下核心文件：
+   - {'manage.py（Django 管理脚本）' if platform.lower() == 'django' else 'main.py（应用程序入口点）'}
+   - requirements.txt（Python 依赖）
+   - README.md（项目说明文档）
+   - {'settings.py（Django 配置文件）' if platform.lower() == 'django' else ''}
+4. 实现 PSM 中描述的所有功能：
    - 数据模型（使用 ORM）
    - API 接口（RESTful）
    - 业务逻辑服务
    - 配置管理
    - 数据库连接
    - 认证和授权（如果需要）
-4. 生成必要的配置文件：
-   - requirements.txt 或 package.json（根据平台）
+5. 生成必要的配置文件：
    - .env.example（环境变量示例）
    - .gitignore
-5. 生成项目文档：
-   - README.md（包含设置和运行说明）
+6. 生成项目文档：
    - API 文档（如果适用）
-6. 生成测试文件：
+7. 生成测试文件：
    - 单元测试（在 tests/ 目录下）
    - 测试配置文件
 
@@ -250,7 +253,10 @@ class PureGeminiCompiler:
 - 每个文件都要有适当的文档字符串
 - 使用类型提示（Python）
 
+重要：{'manage.py 必须是 Django 项目的管理脚本，能够运行服务器和管理命令' if platform.lower() == 'django' else 'main.py 必须是项目的入口点，能够启动整个应用程序'}。
 不要只生成框架代码，要实现完整的业务逻辑。
+
+{'对于 Django 项目，请确保正确的项目结构：项目名称目录包含 settings.py、urls.py、wsgi.py 等文件。' if platform.lower() == 'django' else ''}
 """
         
         return self._execute_gemini_cli(prompt, work_dir, timeout=600, monitor_progress=True, target_dir=code_dir)
@@ -326,6 +332,8 @@ class PureGeminiCompiler:
                     logger.error(f"Gemini CLI failed with return code {poll_result}")
                     if stderr:
                         logger.error(f"Error: {stderr}")
+                    if stdout:
+                        logger.error(f"Output: {stdout[:500]}")  # Log first 500 chars
                 break
             
             # 检查超时
@@ -335,6 +343,9 @@ class PureGeminiCompiler:
                 time.sleep(2)
                 if process.poll() is None:
                     process.kill()
+                stdout, stderr = process.communicate()
+                if stderr:
+                    logger.error(f"Timeout stderr: {stderr}")
                 break
             
             # 监控文件生成进度
@@ -357,6 +368,7 @@ class PureGeminiCompiler:
                         time.sleep(2)
                         if process.poll() is None:
                             process.kill()
+                        stdout, stderr = process.communicate()
                         break
                         
                 except Exception as e:
@@ -365,22 +377,84 @@ class PureGeminiCompiler:
             time.sleep(check_interval)
         
         # 检查最终结果
-        if target_dir.exists():
-            final_files = list(target_dir.rglob("*"))
-            file_count = len([f for f in final_files if f.is_file()])
-            return file_count > 0
+        success = False
         
-        return poll_result == 0 if poll_result is not None else False
+        # 检查目标目录和工作目录
+        all_generated_files = []
+        
+        # 1. 检查目标目录
+        if target_dir.exists():
+            target_files = list(target_dir.rglob("*"))
+            all_generated_files.extend([f for f in target_files if f.is_file()])
+        
+        # 2. 检查工作目录下的所有文件（排除已知的输入文件）
+        work_files = []
+        excluded_dirs = ["pim", "psm", ".git", "__pycache__"]
+        for item in work_dir.iterdir():
+            if item.is_file() and item.suffix in [".py", ".txt", ".md", ".toml", ".yml", ".yaml"]:
+                work_files.append(item)
+            elif item.is_dir() and item.name not in excluded_dirs:
+                work_files.extend([f for f in item.rglob("*") if f.is_file()])
+        
+        # 合并文件列表
+        all_generated_files.extend(work_files)
+        
+        file_count = len(all_generated_files)
+        py_files = [f for f in all_generated_files if f.suffix == ".py"]
+        
+        # Log what was generated for debugging
+        if file_count > 0:
+            logger.info(f"Total generated files: {file_count}, including {len(py_files)} Python files")
+            # Log Python files
+            for py_file in py_files[:5]:  # 只显示前5个
+                logger.info(f"  - {py_file.relative_to(work_dir)}")
+            
+            # Check if main.py exists
+            main_py = any("main.py" in f.name for f in py_files)
+            if not main_py:
+                logger.warning("main.py not found in generated files")
+            else:
+                # 如果找到main.py，移动文件到正确位置
+                for f in all_generated_files:
+                    if f.parent == work_dir or f.parent.name == "generated":
+                        # 移动到target_dir
+                        try:
+                            target_path = target_dir / f.name
+                            if not target_path.exists():
+                                import shutil
+                                shutil.move(str(f), str(target_path))
+                                logger.info(f"Moved {f.name} to {target_dir}")
+                        except Exception as e:
+                            logger.warning(f"Failed to move {f.name}: {e}")
+        
+        # Success if we have files AND the process didn't fail
+        success = file_count > 0 and (poll_result == 0 if poll_result is not None else True)
+        
+        return success
     
     def _check_key_files(self, files: list) -> bool:
         """检查是否生成了关键文件"""
-        key_files = ["requirements.txt", "main.py", "README.md"]
+        # 检查通用文件
+        common_files = ["requirements.txt", "README.md"]
+        
+        # 检查平台特定文件
+        platform_specific_files = []
+        if hasattr(self.config, 'target_platform'):
+            if self.config.target_platform.lower() == "django":
+                platform_specific_files = ["manage.py", "settings.py"]
+            else:
+                platform_specific_files = ["main.py"]
+        else:
+            platform_specific_files = ["main.py"]
+        
+        key_files = common_files + platform_specific_files
         found_count = 0
         
         for key_file in key_files:
             if any(key_file in str(f) for f in files):
                 found_count += 1
         
+        # 至少找到大部分关键文件
         return found_count >= len(key_files) - 1
     
     def _run_tests_and_fix(self, code_dir: Path) -> Dict[str, Any]:

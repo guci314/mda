@@ -1,0 +1,91 @@
+# PIM Engine 运行时配置
+
+# 服务器配置
+server:
+  host: 0.0.0.0
+  port: 8001
+  workers: 4
+  reload: false                        # 生产环境设为 false
+
+# 数据库配置
+database:
+  # 默认使用 SQLite（开发环境）
+  default:
+    driver: sqlite
+    path: ${PIM_HOME}/runtime/db/pim.db
+  
+  # PostgreSQL（生产环境）
+  production:
+    driver: postgresql
+    host: ${DB_HOST:-localhost}
+    port: ${DB_PORT:-5432}
+    database: ${DB_NAME:-pim_engine}
+    username: ${DB_USER:-pim}
+    password: ${DB_PASSWORD}
+    pool:
+      min: 5
+      max: 20
+
+# API 配置
+api:
+  prefix: /api
+  version: v1
+  cors:
+    enabled: true
+    origins: ["*"]
+  rate_limit:
+    enabled: true
+    requests_per_minute: 60
+  documentation:
+    enabled: true
+    path: /docs
+
+# 安全配置
+security:
+  secret_key: ${SECRET_KEY:-change-me-in-production}
+  token_expiration: 3600
+  encryption:
+    algorithm: AES256
+    key: ${ENCRYPTION_KEY}
+
+# 性能配置
+performance:
+  # 模型加载
+  model_loading:
+    parallel: true
+    max_concurrent: 4
+    timeout: 30
+  
+  # 请求处理
+  request:
+    timeout: 60
+    max_body_size: 10MB
+  
+  # 缓存
+  cache:
+    query_cache: true
+    result_cache: true
+    ttl: 300
+
+# 监控配置
+monitoring:
+  enabled: true
+  metrics:
+    - cpu_usage
+    - memory_usage
+    - request_count
+    - response_time
+  export:
+    prometheus:
+      enabled: true
+      port: 9090
+    
+# 调试配置
+debug:
+  enabled: ${DEBUG:-false}
+  ui:
+    enabled: true
+    path: /debug/ui
+  profiling:
+    enabled: false
+    path: /debug/profile

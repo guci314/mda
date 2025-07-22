@@ -32,3 +32,23 @@ def get_logger(name: str) -> logging.Logger:
     logger.addHandler(console_handler)
     
     return logger
+
+
+def setup_logging(level=logging.INFO):
+    """设置全局日志配置"""
+    # 配置根日志器
+    root_logger = logging.getLogger()
+    root_logger.setLevel(level)
+    
+    # 如果根日志器还没有处理器，添加一个
+    if not root_logger.handlers:
+        console_handler = logging.StreamHandler(sys.stdout)
+        console_handler.setLevel(level)
+        
+        formatter = logging.Formatter(
+            '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+            datefmt='%Y-%m-%d %H:%M:%S'
+        )
+        console_handler.setFormatter(formatter)
+        
+        root_logger.addHandler(console_handler)

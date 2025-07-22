@@ -1,0 +1,55 @@
+{
+    "include": [
+        "pim-engine/src",
+        "pim-engine/tests",
+        "pim-compiler/src",
+        "pim-compiler/tests",
+        "models",
+        "services"
+    ],
+    "exclude": [
+        "**/node_modules",
+        "**/__pycache__",
+        "**/.*",
+        "pim-engine/build",
+        "pim-engine/dist"
+    ],
+    "extraPaths": [
+        "./pim-engine/src",
+        "./pim-compiler/src"
+    ],
+    "reportMissingImports": true,
+    "reportMissingTypeStubs": false,
+    "pythonVersion": "3.10",
+    "pythonPlatform": "Linux",
+    "executionEnvironments": [
+        {
+            "root": "pim-engine/src",
+            "pythonVersion": "3.10",
+            "extraPaths": [
+                "."
+            ]
+        },
+        {
+            "root": "pim-engine/tests",
+            "pythonVersion": "3.10",
+            "extraPaths": [
+                "../src"
+            ]
+        },
+        {
+            "root": "pim-compiler/src",
+            "pythonVersion": "3.10",
+            "extraPaths": [
+                "."
+            ]
+        },
+        {
+            "root": "pim-compiler/tests",
+            "pythonVersion": "3.10",
+            "extraPaths": [
+                "../src"
+            ]
+        }
+    ]
+}

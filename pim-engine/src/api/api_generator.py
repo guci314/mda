@@ -7,6 +7,7 @@ from fastapi import APIRouter, HTTPException, Query, Path, Body, Depends
 from pydantic import BaseModel, create_model, Field
 
 from core.models import PIMModel, Entity, Service, AttributeType
+from api.route_manager import DynamicRouteManager
 from utils.logger import setup_logger
 
 
@@ -18,14 +19,13 @@ class APIGenerator:
         self.engine = engine
         self.routers: Dict[str, APIRouter] = {}
         self.pydantic_models: Dict[str, Dict[str, Type[BaseModel]]] = {}
+        self.route_manager = DynamicRouteManager(engine.app)
     
     async def register_model_routes(self, model: PIMModel):
         """Register all routes for a PIM model"""
-        # Create router for this model with dependency
+        # Create router for this model
         router = APIRouter(
-            prefix=f"/{model.domain.lower().replace(' ', '-')}",
-            tags=[model.domain],
-            dependencies=[Depends(lambda: self._check_model_loaded(model.domain))]
+            tags=[model.domain]
         )
         
         # Generate routes for entities
@@ -39,23 +39,34 @@ class APIGenerator:
         # Store router
         self.routers[model.domain] = router
         
-        # Include router in main app
-        self.engine.app.include_router(router, prefix="/api/v1")
+        # Use route manager to load routes
+        success = self.route_manager.load_model_routes(
+            model.domain,
+            router,
+            prefix="/api/v1"
+        )
         
-        self.logger.info(f"Registered API routes for model: {model.domain}")
+        if success:
+            self.logger.info(f"Registered API routes for model: {model.domain}")
+        else:
+            self.logger.warning(f"Failed to register routes for model: {model.domain}")
     
     async def unregister_model_routes(self, model: PIMModel):
         """Unregister routes for a model"""
-        # FastAPI doesn't support dynamic route removal easily
-        # In production, you might need to recreate the app
-        # For now, we'll just remove from our tracking
-        if model.domain in self.routers:
-            del self.routers[model.domain]
+        # Use route manager to unload routes
+        success = self.route_manager.unload_model_routes(model.domain)
         
-        if model.domain in self.pydantic_models:
-            del self.pydantic_models[model.domain]
-        
-        self.logger.info(f"Unregistered API routes for model: {model.domain}")
+        if success:
+            # Clean up our tracking
+            if model.domain in self.routers:
+                del self.routers[model.domain]
+            
+            if model.domain in self.pydantic_models:
+                del self.pydantic_models[model.domain]
+            
+            self.logger.info(f"Unregistered API routes for model: {model.domain}")
+        else:
+            self.logger.warning(f"Failed to unregister routes for model: {model.domain}")
     
     def _check_model_loaded(self, domain: str):
         """Check if model is loaded before allowing API access"""

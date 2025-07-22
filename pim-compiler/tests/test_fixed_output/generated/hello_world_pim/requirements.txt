@@ -1,0 +1,6 @@
+fastapi
+sqlalchemy==2.0
+pydantic[email]
+uvicorn[standard]
+pytest
+psycopg2-binary  # 如果使用 PostgreSQL
