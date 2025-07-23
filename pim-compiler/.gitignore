@@ -13,9 +13,11 @@ build/
 
 # Testing
 test_*.py
+test_*.md
 test_*_output/
 test_*/
 *.pid
+compile_pim.py
 
 # Compiled output
 compiled_output/
