@@ -83,8 +83,8 @@ class PIMEngine:
         self.app.include_router(models_router)
         
         # Setup code generation routes
-        from api.codegen import router as codegen_router
-        self.app.include_router(codegen_router)
+        # Code generation removed - moved to pim-compiler
+        # PIM Engine focuses on runtime interpretation only
         
         # Mount static files if directory exists
         # Try multiple possible static paths
