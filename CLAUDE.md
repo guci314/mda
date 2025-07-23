@@ -395,6 +395,55 @@ This approach allows Claude to:
 - Make informed decisions based on intermediate results
 - Handle failures gracefully without losing all progress
 
+### Required Use Cases for Background Execution
+
+**IMPORTANT**: Always use the Background Execution Pattern for these operations:
+
+#### 1. PIM Compiler Execution
+```bash
+# Always run pim-compiler in background
+nohup /home/guci/aiProjects/mda/pim-compiler/pim-compiler model.md -o ./output > compiler.log 2>&1 &
+echo $! > compiler.pid
+
+# Monitor compilation progress
+tail -f compiler.log | grep -E "(PSM generated|Code generation|Test|Fixed)"
+
+# Check specific stages
+grep "Step 1: Generating PSM" compiler.log
+grep "Step 2: Generating code" compiler.log
+grep "Compilation completed successfully" compiler.log
+```
+
+#### 2. PIM Engine Model Loading
+```bash
+# When loading models that trigger compilation
+curl -X POST http://localhost:8000/models/upload \
+  -F "file=@model.md" > upload.log 2>&1 &
+
+# Or when using direct load
+curl -X POST http://localhost:8000/models/load \
+  -d '{"model_name": "my_model"}' > load.log 2>&1 &
+
+# Monitor model loading and compilation
+tail -f /home/guci/aiProjects/mda/pim-engine/master.log | grep -E "(Loading model|Compiling|generated successfully)"
+```
+
+#### 3. Running Tests on Generated Code
+```bash
+# Test generated services
+cd generated/my_service
+nohup python -m pytest tests/ -v > test_results.log 2>&1 &
+
+# Monitor test execution
+tail -f test_results.log | grep -E "(PASSED|FAILED|ERROR)"
+```
+
+**Why This Is Required**:
+- PIM compilation typically takes 1-3 minutes
+- Model loading with compilation can take 2-5 minutes
+- These operations cannot be interrupted or they'll fail
+- Background execution prevents timeout issues
+
 ## Troubleshooting
 
 ### Engine Won't Start
