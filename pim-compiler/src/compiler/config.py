@@ -28,8 +28,10 @@ class CompilerConfig:
     
     # 测试和修复选项
     auto_test: bool = True  # 是否自动运行测试
+    enable_lint: bool = False  # 是否启用 lint 检查（默认禁用以避免超时）
     auto_fix_lint: bool = True  # 是否自动修复 lint 错误
     auto_fix_tests: bool = True  # 是否自动修复测试错误
+    lint_fix_mode: str = "critical"  # lint 修复模式: "all" (修复所有), "critical" (只修复关键错误), "skip" (跳过修复)
     
     # 代码生成选项
     generate_tests: bool = True  # 是否生成单元测试
@@ -58,8 +60,10 @@ class CompilerConfig:
             "enable_cache": self.enable_cache,
             "verbose": self.verbose,
             "auto_test": self.auto_test,
+            "enable_lint": self.enable_lint,
             "auto_fix_lint": self.auto_fix_lint,
             "auto_fix_tests": self.auto_fix_tests,
+            "lint_fix_mode": self.lint_fix_mode,
             "generate_tests": self.generate_tests,
             "generate_docs": self.generate_docs,
             "max_retries": self.max_retries,

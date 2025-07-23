@@ -1,0 +1,19 @@
+# Core Framework
+fastapi
+uvicorn[standard]
+
+# Database & ORM
+sqlalchemy
+psycopg2-binary
+alembic
+
+# Data Validation
+pydantic[email]
+pydantic-settings
+
+# Environment Management
+python-dotenv
+
+# Testing
+pytest
+httpx
