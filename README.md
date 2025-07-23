@@ -40,6 +40,23 @@ Business users can now define their systems using only PIM models, and the engin
 └────────────────────────────────────────────┘
 ```
 
+## 🎯 Architecture Components
+
+### 1. PIM Engine (Runtime Interpretation)
+- **Purpose**: Directly interprets and executes PIM models without code generation
+- **Features**: Hot reload, dynamic API generation, flow execution, rule evaluation
+- **Location**: `pim-engine/`
+
+### 2. PIM Compiler (Code Generation)
+- **Purpose**: Generates traditional code from PIM models when needed
+- **Features**: PIM→PSM→Code transformation, multi-platform support, LLM integration
+- **Location**: `pim-compiler/`
+
+### 3. Web UI (Separated Frontend)
+- **Purpose**: Web-based management interface
+- **Features**: Model management, instance control, debugging interface
+- **Location**: `pim-ui/`
+
 ## 📁 Project Structure
 
 ```
@@ -53,10 +70,19 @@ mda/
 ├── models/                         # PIM model examples
 │   ├── user_management.yaml       # User management model
 │   └── order_management.yaml      # E-commerce order model
-├── pim-engine/                    # PIM Execution Engine
-│   ├── src/                       # Source code
-│   ├── docker-compose.yml         # Docker setup
+├── pim-engine/                    # PIM Execution Engine (Runtime)
+│   ├── src/                       # Engine source code
+│   ├── models/                    # PIM models directory
+│   ├── start_master.sh            # Start script
 │   └── README.md                  # Engine documentation
+├── pim-compiler/                  # PIM Compiler (Code Generation)
+│   ├── src/                       # Compiler source code
+│   ├── pim-compiler               # CLI executable
+│   └── README.md                  # Compiler documentation
+├── pim-ui/                        # Web UI (Separated)
+│   ├── public/                    # Static HTML/JS files
+│   ├── server.js                  # Express server
+│   └── README.md                  # UI documentation
 └── .mda/                          # MDA tools and commands
     └── commands/                  # Slash commands for Claude Code
 ```
@@ -67,18 +93,29 @@ mda/
 
 ```bash
 cd pim-engine
-docker compose up -d
+./start_master.sh
+# The engine runs on port 8000
 ```
 
-### 2. Access the System
+### 2. Start the Web UI (Optional)
 
-- **API**: http://localhost:8000
+```bash
+cd pim-ui
+npm install
+npm start
+# The UI runs on port 3000
+```
+
+### 3. Access the System
+
+- **Engine API**: http://localhost:8000
 - **API Docs**: http://localhost:8000/docs
-- **Debug UI**: http://localhost:8000/debug/ui
-- **Model Management**: http://localhost:8000/models
-- **Database UI**: http://localhost:8080
+- **Web UI**: http://localhost:3000
+  - Model Management: http://localhost:3000/models
+  - Instance Management: http://localhost:3000/instances
+  - Debug Interface: http://localhost:3000/debug
 
-### 3. Create a PIM Model
+### 4. Create a PIM Model
 
 Create `models/my_domain.yaml`:
 
@@ -104,7 +141,18 @@ services:
           customerData: Customer
 ```
 
-### 4. Use the Generated API
+### 5. Load the Model
+
+```bash
+# Upload via Web UI
+# Navigate to http://localhost:3000/models and upload your YAML file
+
+# Or via API
+curl -X POST http://localhost:8000/models/upload \
+  -F "file=@models/my_domain.yaml"
+```
+
+### 6. Use the Generated API
 
 The engine automatically creates REST APIs:
 
@@ -122,22 +170,25 @@ curl -X POST http://localhost:8000/api/v1/my-domain/customers \
 - No programming knowledge required
 - Visual debugging of business flows
 - Instant changes without redeployment
+- Web-based model management interface
 
 ### For Developers
-- Zero code generation - maintain models, not code
-- Hot reload for rapid iteration
-- Extensible architecture
-- Full API documentation
+- **Dual Mode**: Runtime interpretation OR code generation
+- Hot reload for rapid iteration (5-second detection)
+- Clean architecture separation (Engine, Compiler, UI)
+- Full OpenAPI documentation
 - WebSocket support for real-time features
+- Type-safe model definitions with Pydantic
 
 ### Technical Capabilities
 - Dynamic API generation from models
 - Automatic database schema creation
-- Business rule execution
-- Flow orchestration with visual debugging
+- Business rule execution in natural language
+- Flow orchestration with Mermaid diagrams
 - Multi-format support (YAML, Markdown)
-- Hot reload without restart
-- **AI Code Generation** (NEW) - Generate production code with Gemini AI
+- Instance management (multiple models running concurrently)
+- **AI-Powered Compilation** - Gemini generates PSM and code
+- **Hard Unload** - Complete cleanup of models and generated files
 
 ## 📚 Documentation
 
@@ -145,6 +196,27 @@ curl -X POST http://localhost:8000/api/v1/my-domain/customers \
 - [Engine Architecture](PIM执行引擎架构设计.md) - Technical architecture of the PIM engine
 - [Implementation Roadmap](PIM执行引擎实施路线图.md) - Development phases and milestones
 - [Engine README](pim-engine/README.md) - PIM engine specific documentation
+- [Claude Code Guide](CLAUDE.md) - Best practices for Claude Code integration
+
+## 🆕 Recent Updates (2025-07)
+
+### Architecture Improvements
+- **UI Separation**: Web UI now runs as independent service (port 3000)
+- **Clean Code Organization**: Compiler code moved from engine to pim-compiler
+- **Type Safety**: Added Pydantic models for runtime instances
+- **Background Execution**: Long-running operations use nohup pattern
+
+### New Features
+- **Model Upload Progress**: Real-time compilation feedback in UI
+- **Hard Unload**: Complete cleanup including generated files
+- **Instance Management**: Create/manage multiple model instances
+- **Compilation Status**: Visual progress indicators during model compilation
+
+### Bug Fixes
+- Fixed API field mismatch (name vs instance_id)
+- Fixed Optional field type checking errors
+- Fixed file deletion during hard unload
+- Fixed upload modal behavior
 
 ## 🛠️ Slash Commands (Claude Code)
 
