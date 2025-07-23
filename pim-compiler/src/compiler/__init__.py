@@ -4,7 +4,7 @@ This package provides a compiler for transforming PIM (Platform Independent Mode
 files into PSM (Platform Specific Model) files and generating code using Gemini CLI.
 """
 
-__version__ = "3.0.0"
+__version__ = "3.1.0"
 __author__ = "PIM Compiler Team"
 
 from .config import CompilerConfig
