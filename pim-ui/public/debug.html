@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PIM Flow Debugger</title>
+    <script src="/static/js/mermaid.min.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        .header {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 2fr 1fr;
+            gap: 20px;
+        }
+        .panel {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .flow-diagram {
+            min-height: 400px;
+        }
+        .step-item {
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .step-pending { background: #e3e3e3; }
+        .step-running { background: #3498db; color: white; animation: pulse 1s infinite; }
+        .step-completed { background: #2ecc71; color: white; }
+        .step-failed { background: #e74c3c; color: white; }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.6; }
+            100% { opacity: 1; }
+        }
+        
+        .controls {
+            margin: 20px 0;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .btn-primary { background: #3498db; color: white; }
+        .btn-success { background: #2ecc71; color: white; }
+        .btn-danger { background: #e74c3c; color: white; }
+        .btn-warning { background: #f39c12; color: white; }
+        .btn-info { background: #16a085; color: white; }
+        
+        .variable-item {
+            padding: 5px;
+            margin: 2px 0;
+            background: #f8f8f8;
+            border-radius: 3px;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .var-value[contenteditable="true"] {
+            display: inline-block;
+            padding: 2px 6px;
+            background: white;
+            border: 1px solid #3498db;
+            border-radius: 3px;
+            cursor: text;
+            transition: all 0.3s;
+        }
+        .var-value[contenteditable="true"]:focus {
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.3);
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        .status-waiting { background: #95a5a6; color: white; }
+        .status-running { background: #3498db; color: white; }
+        .status-paused { background: #f39c12; color: white; }
+        .status-completed { background: #2ecc71; color: white; }
+        .status-error { background: #e74c3c; color: white; }
+        
+        .breakpoint {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            background: #e74c3c;
+            border-radius: 50%;
+            margin-right: 8px;
+            cursor: pointer;
+        }
+        .breakpoint.inactive {
+            background: #95a5a6;
+        }
+        
+        .flow-node {
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .flow-node.has-breakpoint {
+            stroke: #e74c3c !important;
+            stroke-width: 3px !important;
+        }
+        .flow-node.current-step {
+            fill: #3498db !important;
+            animation: pulse 1s infinite;
+        }
+        
+        .debug-controls {
+            background: #34495e;
+            color: white;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .debug-controls button {
+            padding: 8px 16px;
+            margin: 0 4px;
+            font-size: 14px;
+        }
+    </style>
+    <script src="/js/config.js"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>PIM Flow Debugger</h1>
+            <div>
+                Session ID: <span id="sessionId">-</span>
+                <span id="sessionStatus" class="status-badge status-waiting">等待中</span>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <select id="flowSelect">
+                <option value="UserService.registerUser">用户注册流程</option>
+            </select>
+            <button class="btn-primary" onclick="createSession()">创建调试会话</button>
+            <button class="btn-success" onclick="startFlow()" disabled id="startBtn">开始执行</button>
+            <button class="btn-warning" onclick="pauseFlow()" disabled id="pauseBtn">暂停</button>
+            <button class="btn-danger" onclick="stopFlow()" disabled id="stopBtn">停止</button>
+        </div>
+        
+        <div class="debug-controls" id="debugControls">
+            <strong>调试控制：</strong>
+            <button class="btn-info" onclick="stepOver()" id="stepOverBtn" disabled>单步执行</button>
+            <button class="btn-info" onclick="stepInto()" id="stepIntoBtn" disabled>步入</button>
+            <button class="btn-info" onclick="stepOut()" id="stepOutBtn" disabled>步出</button>
+            <button class="btn-success" onclick="continueFlow()" id="continueBtn" disabled>继续执行</button>
+            <label style="margin-left: 20px;">
+                <input type="checkbox" id="breakOnStart" checked> 启动时暂停
+            </label>
+            <label style="margin-left: 20px;">
+                <input type="checkbox" id="simulateMode"> 模拟模式（演示用）
+            </label>
+        </div>
+        
+        <div class="main-content">
+            <div class="panel">
+                <h3>执行步骤</h3>
+                <p style="font-size: 12px; color: #666; margin: 5px 0;">
+                    提示：点击步骤前的圆点设置断点
+                </p>
+                <div id="stepsList"></div>
+            </div>
+            
+            <div class="panel flow-diagram">
+                <h3>流程图</h3>
+                <div id="flowDiagram"></div>
+            </div>
+            
+            <div class="panel">
+                <h3>变量监控</h3>
+                <div id="variablesList"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let ws = null;
+        let currentSession = null;
+        let breakpoints = new Set();
+        let isPaused = false;
+        let currentStepId = null;
+        
+        mermaid.initialize({ 
+            startOnLoad: true,
+            theme: 'default',
+            flowchart: {
+                useMaxWidth: true,
+                htmlLabels: true
+            }
+        });
+        
+        function createSession() {
+            const flowName = document.getElementById('flowSelect').value;
+            
+            fetch('/debug/session/create?flow_name=' + flowName, {
+                method: 'POST'
+            })
+            .then(res => {
+                if (!res.ok) {
+                    throw new Error(`HTTP error! status: ${res.status}`);
+                }
+                return res.json();
+            })
+            .then(data => {
+                currentSession = data.session_id;
+                document.getElementById('sessionId').textContent = currentSession;
+                document.getElementById('startBtn').disabled = false;
+                connectWebSocket();
+                loadFlowDiagram(flowName);
+                
+                // 预加载流程步骤以显示断点
+                preloadFlowSteps();
+                
+                console.log('Session created:', currentSession);
+            })
+            .catch(error => {
+                console.error('Error creating session:', error);
+                alert('创建会话失败: ' + error.message);
+            });
+        }
+        
+        function preloadFlowSteps() {
+            const steps = [
+                {step_id: 'Start', label: '开始', type: 'start'},
+                {step_id: 'A', label: '接收用户数据', type: 'action'},
+                {step_id: 'B', label: '验证邮箱格式', type: 'decision'},
+                {step_id: 'C', label: '返回错误', type: 'action'},
+                {step_id: 'D', label: '检查邮箱唯一性', type: 'decision'},
+                {step_id: 'E', label: '返回重复错误', type: 'action'},
+                {step_id: 'F', label: '创建用户记录', type: 'action'},
+                {step_id: 'G', label: '发送欢迎邮件', type: 'action'},
+                {step_id: 'H', label: '返回成功', type: 'action'},
+                {step_id: 'End', label: '结束', type: 'end'}
+            ];
+            
+            const stepsList = document.getElementById('stepsList');
+            stepsList.innerHTML = ''; // 清空现有步骤
+            
+            steps.forEach(step => {
+                const stepDiv = document.createElement('div');
+                stepDiv.className = 'step-item step-pending';
+                stepDiv.id = `step-${step.step_id}`;
+                
+                const breakpointBtn = document.createElement('span');
+                breakpointBtn.className = 'breakpoint inactive';
+                breakpointBtn.onclick = () => toggleBreakpoint(step.step_id);
+                breakpointBtn.title = '点击设置/取消断点';
+                
+                stepDiv.innerHTML = `
+                    <strong>${step.label}</strong><br>
+                    <small>类型: ${step.type}</small>
+                `;
+                stepDiv.prepend(breakpointBtn);
+                stepsList.appendChild(stepDiv);
+            });
+        }
+        
+        function connectWebSocket() {
+            if (ws) ws.close();
+            
+            // Check if we should simulate
+            if (document.getElementById('simulateMode').checked) {
+                console.log('Using simulation mode, WebSocket not needed');
+                return;
+            }
+            
+            ws = new WebSocket(`ws://localhost:8001/debug/session/${currentSession}/ws`);
+            
+            ws.onopen = () => {
+                console.log('WebSocket connected');
+            };
+            
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                console.log('WebSocket message:', data);
+                handleDebugUpdate(data);
+            };
+            
+            ws.onerror = (error) => {
+                console.error('WebSocket error:', error);
+                alert('WebSocket连接失败，将自动切换到模拟模式');
+                document.getElementById('simulateMode').checked = true;
+            };
+            
+            ws.onclose = () => {
+                console.log('WebSocket closed');
+            };
+        }
+        
+        function startFlow() {
+            const inputData = {
+                userData: {
+                    name: "测试用户",
+                    email: "test@example.com",
+                    password: "password123"
+                }
+            };
+            
+            // Add initial breakpoint if checkbox is checked
+            if (document.getElementById('breakOnStart').checked) {
+                breakpoints.add('Start');
+            }
+            
+            document.getElementById('startBtn').disabled = true;
+            document.getElementById('stopBtn').disabled = false;
+            
+            // Check if in simulate mode
+            if (document.getElementById('simulateMode').checked) {
+                simulateFlowExecution(inputData);
+                return;
+            }
+            
+            fetch(`/debug/session/${currentSession}/start`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(inputData)
+            })
+            .then(res => res.json())
+            .then(data => {
+                console.log('Flow started:', data);
+            })
+            .catch(error => {
+                console.error('Error starting flow:', error);
+                // Fallback to simulation mode
+                simulateFlowExecution(inputData);
+            });
+        }
+        
+        function handleDebugUpdate(data) {
+            switch(data.type) {
+                case 'session_state':
+                    updateSessionState(data.session);
+                    break;
+                case 'flow_started':
+                    updateStatus('running');
+                    addVariable('input', data.input);
+                    document.getElementById('pauseBtn').disabled = false;
+                    
+                    // If break on start is enabled, pause immediately
+                    if (document.getElementById('breakOnStart').checked) {
+                        setTimeout(() => pauseFlow(), 100);
+                    }
+                    break;
+                case 'step_executed':
+                    currentStepId = data.step.step_id;
+                    addStep(data.step);
+                    updateVariables(data.current_variables);
+                    highlightFlowStep(data.step.step_id);
+                    
+                    // Check for breakpoint
+                    if (breakpoints.has(data.step.step_id)) {
+                        pauseAtBreakpoint(data.step.step_id);
+                    }
+                    break;
+                case 'flow_paused':
+                    handleFlowPaused(data);
+                    break;
+                case 'flow_completed':
+                    updateStatus('completed');
+                    alert('流程执行完成！');
+                    break;
+                case 'flow_error':
+                    updateStatus('error');
+                    alert('流程执行错误: ' + data.error);
+                    break;
+            }
+        }
+        
+        function updateStatus(status) {
+            const badge = document.getElementById('sessionStatus');
+            badge.className = 'status-badge status-' + status;
+            badge.textContent = {
+                'waiting': '等待中',
+                'running': '执行中',
+                'paused': '已暂停',
+                'completed': '已完成',
+                'error': '错误'
+            }[status];
+        }
+        
+        function addStep(step) {
+            const stepsList = document.getElementById('stepsList');
+            const stepDiv = document.createElement('div');
+            stepDiv.className = 'step-item step-completed';
+            stepDiv.id = `step-${step.step_id}`;
+            
+            const breakpointBtn = document.createElement('span');
+            breakpointBtn.className = breakpoints.has(step.step_id) ? 'breakpoint' : 'breakpoint inactive';
+            breakpointBtn.onclick = () => toggleBreakpoint(step.step_id);
+            
+            stepDiv.innerHTML = `
+                <strong>${step.label || step.step_id}</strong><br>
+                <small>类型: ${step.type}, 耗时: ${step.duration_ms || 0}ms</small>
+            `;
+            stepDiv.prepend(breakpointBtn);
+            stepsList.appendChild(stepDiv);
+        }
+        
+        function updateVariables(variables) {
+            const varsList = document.getElementById('variablesList');
+            varsList.innerHTML = '';
+            
+            for (const [key, value] of Object.entries(variables)) {
+                addVariable(key, value);
+            }
+        }
+        
+        function addVariable(name, value) {
+            const varsList = document.getElementById('variablesList');
+            const varDiv = document.createElement('div');
+            varDiv.className = 'variable-item';
+            varDiv.id = `var-${name}`;
+            
+            const isEditable = typeof value !== 'object' || value === null;
+            
+            if (isEditable && isPaused) {
+                varDiv.innerHTML = `
+                    <strong>${name}:</strong> 
+                    <span class="var-value" contenteditable="true" 
+                          data-var="${name}"
+                          onblur="updateVariable(this)"
+                          onkeypress="if(event.key==='Enter'){event.preventDefault();this.blur();}">${JSON.stringify(value)}</span>
+                `;
+            } else {
+                varDiv.innerHTML = `<strong>${name}:</strong> <span class="var-value">${JSON.stringify(value, null, 2)}</span>`;
+            }
+            
+            varsList.appendChild(varDiv);
+        }
+        
+        function updateVariable(element) {
+            const varName = element.getAttribute('data-var');
+            const newValue = element.textContent;
+            
+            try {
+                // Try to parse as JSON first
+                const parsedValue = JSON.parse(newValue);
+                
+                fetch(`/debug/session/${currentSession}/variable`, {
+                    method: 'PUT',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        name: varName,
+                        value: parsedValue
+                    })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        element.style.backgroundColor = '#2ecc71';
+                        setTimeout(() => {
+                            element.style.backgroundColor = '';
+                        }, 1000);
+                    } else {
+                        element.style.backgroundColor = '#e74c3c';
+                        element.textContent = JSON.stringify(data.old_value);
+                    }
+                });
+            } catch (e) {
+                // If not valid JSON, treat as string
+                updateVariable(element, newValue);
+            }
+        }
+        
+        function loadFlowDiagram(flowName) {
+            // 用户注册流程图
+            const diagram = `
+flowchart TD
+    Start([开始]) --> A[接收用户数据]
+    A --> B{验证邮箱格式}
+    B -->|无效| C[返回错误]
+    B -->|有效| D{检查邮箱唯一性}
+    D -->|已存在| E[返回重复错误]
+    D -->|唯一| F[创建用户记录]
+    F --> G[发送欢迎邮件]
+    G --> H[返回成功]
+    C --> End([结束])
+    E --> End
+    H --> End
+    
+    %% 添加一些样式提示断点功能
+    classDef breakable fill:#f9f,stroke:#333,stroke-width:2px,cursor:pointer;
+    class Start,A,B,C,D,E,F,G,H breakable;
+            `;
+            
+            document.getElementById('flowDiagram').innerHTML = '<pre class="mermaid">' + diagram + '</pre>';
+            mermaid.init();
+            setupFlowDiagramInteraction();
+        }
+        
+        function highlightFlowStep(stepId) {
+            // Remove previous highlights
+            document.querySelectorAll('.flow-node.current-step').forEach(node => {
+                node.classList.remove('current-step');
+            });
+            
+            // Add highlight to current step
+            const nodes = document.querySelectorAll(`.flow-node[data-step="${stepId}"]`);
+            nodes.forEach(node => {
+                node.classList.add('current-step');
+            });
+        }
+        
+        function setupFlowDiagramInteraction() {
+            // Wait for mermaid to render
+            setTimeout(() => {
+                const svg = document.querySelector('#flowDiagram svg');
+                if (svg) {
+                    // Add click handlers to nodes
+                    const nodes = svg.querySelectorAll('.node');
+                    nodes.forEach(node => {
+                        const rect = node.querySelector('rect, circle, polygon');
+                        if (rect) {
+                            rect.classList.add('flow-node');
+                            const label = node.querySelector('.nodeLabel')?.textContent || '';
+                            
+                            // Map label to step ID (simplified mapping)
+                            let stepId = label.replace(/[\[\]\(\)]/g, '').replace(/\s+/g, '_');
+                            rect.setAttribute('data-step', stepId);
+                            
+                            rect.addEventListener('click', () => {
+                                toggleBreakpoint(stepId);
+                            });
+                        }
+                    });
+                }
+            }, 500);
+        }
+        
+        function pauseFlow() {
+            fetch(`/debug/session/${currentSession}/pause`, {
+                method: 'POST'
+            });
+        }
+        
+        function stopFlow() {
+            fetch(`/debug/session/${currentSession}/stop`, {
+                method: 'POST'
+            })
+            .then(() => {
+                updateStatus('completed');
+                document.getElementById('stopBtn').disabled = true;
+                document.getElementById('pauseBtn').disabled = true;
+                document.getElementById('debugControls').style.display = 'none';
+            });
+        }
+        
+        function toggleBreakpoint(stepId) {
+            if (breakpoints.has(stepId)) {
+                breakpoints.delete(stepId);
+            } else {
+                breakpoints.add(stepId);
+            }
+            updateBreakpointDisplay(stepId);
+            
+            // Send to backend
+            fetch(`/debug/session/${currentSession}/breakpoint`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    step_id: stepId,
+                    enabled: breakpoints.has(stepId)
+                })
+            });
+        }
+        
+        function updateBreakpointDisplay(stepId) {
+            const stepEl = document.getElementById(`step-${stepId}`);
+            if (stepEl) {
+                const bp = stepEl.querySelector('.breakpoint');
+                if (bp) {
+                    bp.className = breakpoints.has(stepId) ? 'breakpoint' : 'breakpoint inactive';
+                }
+            }
+            
+            // Update flow diagram
+            const nodes = document.querySelectorAll(`.flow-node[data-step="${stepId}"]`);
+            nodes.forEach(node => {
+                if (breakpoints.has(stepId)) {
+                    node.classList.add('has-breakpoint');
+                } else {
+                    node.classList.remove('has-breakpoint');
+                }
+            });
+        }
+        
+        function pauseAtBreakpoint(stepId) {
+            isPaused = true;
+            updateStatus('paused');
+            enableDebugControls(true);
+            document.getElementById('pauseBtn').disabled = true;
+        }
+        
+        function handleFlowPaused(data) {
+            isPaused = true;
+            updateStatus('paused');
+            enableDebugControls(true);
+            document.getElementById('pauseBtn').disabled = true;
+            
+            if (data.reason === 'breakpoint') {
+                console.log(`在断点处暂停: ${data.step_id}`);
+            }
+        }
+        
+        function stepOver() {
+            if (document.getElementById('simulateMode').checked) {
+                simulateContinue();
+                return;
+            }
+            
+            fetch(`/debug/session/${currentSession}/step`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({type: 'over'})
+            });
+        }
+        
+        function stepInto() {
+            fetch(`/debug/session/${currentSession}/step`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({type: 'into'})
+            });
+        }
+        
+        function stepOut() {
+            fetch(`/debug/session/${currentSession}/step`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({type: 'out'})
+            });
+        }
+        
+        function continueFlow() {
+            isPaused = false;
+            enableDebugControls(false);
+            document.getElementById('pauseBtn').disabled = false;
+            
+            if (document.getElementById('simulateMode').checked) {
+                simulateContinue();
+                return;
+            }
+            
+            fetch(`/debug/session/${currentSession}/continue`, {
+                method: 'POST'
+            });
+        }
+        
+        function enableDebugControls(enable) {
+            document.getElementById('stepOverBtn').disabled = !enable;
+            document.getElementById('stepIntoBtn').disabled = !enable;
+            document.getElementById('stepOutBtn').disabled = !enable;
+            document.getElementById('continueBtn').disabled = !enable;
+        }
+        
+        // Simulation functions for demo
+        let simulationSteps = [];
+        let currentSimStep = 0;
+        
+        function simulateFlowExecution(inputData) {
+            simulationSteps = [
+                {step_id: 'Start', label: '开始', type: 'start'},
+                {step_id: 'A', label: '接收用户数据', type: 'action'},
+                {step_id: 'B', label: '验证邮箱格式', type: 'decision'},
+                {step_id: 'D', label: '检查邮箱唯一性', type: 'decision'},
+                {step_id: 'F', label: '创建用户记录', type: 'action'},
+                {step_id: 'G', label: '发送欢迎邮件', type: 'action'},
+                {step_id: 'H', label: '返回成功', type: 'action'},
+                {step_id: 'End', label: '结束', type: 'end'}
+            ];
+            currentSimStep = 0;
+            
+            updateStatus('running');
+            addVariable('input', inputData);
+            document.getElementById('pauseBtn').disabled = false;
+            
+            // Start simulation
+            if (document.getElementById('breakOnStart').checked || breakpoints.has('Start')) {
+                simulatePause('Start');
+            } else {
+                simulateNextStep();
+            }
+        }
+        
+        function simulateNextStep() {
+            if (currentSimStep < simulationSteps.length) {
+                const step = simulationSteps[currentSimStep];
+                
+                // Mark previous steps as completed
+                for (let i = 0; i < currentSimStep; i++) {
+                    const el = document.getElementById(`step-${simulationSteps[i].step_id}`);
+                    if (el) el.className = 'step-item step-completed';
+                }
+                
+                // Mark current step as running
+                const currentEl = document.getElementById(`step-${step.step_id}`);
+                if (currentEl) currentEl.className = 'step-item step-running';
+                
+                highlightFlowStep(step.step_id);
+                
+                // Add some variables
+                if (step.step_id === 'B') {
+                    addVariable('emailValid', true);
+                } else if (step.step_id === 'D') {
+                    addVariable('emailUnique', true);
+                } else if (step.step_id === 'F') {
+                    addVariable('userId', '12345');
+                }
+                
+                currentSimStep++;
+                
+                // Check for breakpoint
+                if (breakpoints.has(step.step_id)) {
+                    setTimeout(() => simulatePause(step.step_id), 500);
+                } else if (currentSimStep < simulationSteps.length) {
+                    setTimeout(() => simulateNextStep(), 1000);
+                } else {
+                    // Flow completed
+                    updateStatus('completed');
+                    document.getElementById('stopBtn').disabled = true;
+                    document.getElementById('pauseBtn').disabled = true;
+                }
+            }
+        }
+        
+        function simulatePause(stepId) {
+            isPaused = true;
+            updateStatus('paused');
+            enableDebugControls(true);
+            document.getElementById('pauseBtn').disabled = true;
+        }
+        
+        function simulateContinue() {
+            if (currentSimStep < simulationSteps.length) {
+                simulateNextStep();
+            }
+        }
+    </script>
+</body>
+</html>

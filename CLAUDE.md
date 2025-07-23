@@ -21,7 +21,7 @@ This is an MDA (Model Driven Architecture) implementation project that features 
   - Flow execution with debugging
   - Code generation via Gemini API
   - Web-based debug UI
-- **State**: Ready to start with `./start.sh`
+- **State**: Ready to start with `./start_master.sh`
 
 ## Project Structure
 
@@ -66,7 +66,7 @@ This is an MDA (Model Driven Architecture) implementation project that features 
 │   │   ├── debug.html                   # Debug interface
 │   │   └── models.html                  # Models management UI
 │   ├── requirements.txt                 # Python dependencies
-│   ├── start.sh                         # Start script
+│   ├── start_master.sh                  # Start script
 │   ├── stop.sh                          # Stop script
 │   └── tests/                           # Test suite
 └── services/                            # Generated services (legacy)
@@ -90,16 +90,16 @@ This is an MDA (Model Driven Architecture) implementation project that features 
 - **No External Dependencies**: Runs without Docker, Redis optional
 
 ### Access Points
-- **API**: http://localhost:8001
-- **API Docs**: http://localhost:8001/docs (Swagger UI)
-- **Debug UI**: http://localhost:8001/debug/ui
-- **Model Management**: http://localhost:8001/models
+- **API**: http://localhost:8000
+- **API Docs**: http://localhost:8000/docs (Swagger UI)
+- **Debug UI**: http://localhost:8000/debug/ui
+- **Model Management**: http://localhost:8000/models
 
 ### Quick Start
 ```bash
 # Install and start
 cd pim-engine
-./start.sh
+./start_master.sh
 
 # The script will:
 # - Check Python 3.11+ 
@@ -125,12 +125,12 @@ While the PIM Engine executes models directly, you can optionally generate tradi
 
 #### 1. Check LLM Providers
 ```bash
-curl http://localhost:8001/api/v1/codegen/llm/providers
+curl http://localhost:8000/api/v1/codegen/llm/providers
 ```
 
 #### 2. Generate Complete Code
 ```bash
-curl -X POST http://localhost:8001/api/v1/codegen/generate \
+curl -X POST http://localhost:8000/api/v1/codegen/generate \
   -H "Content-Type: application/json" \
   -d '{
     "pim_content": "$(cat models/user_management.yaml)",
@@ -141,7 +141,7 @@ curl -X POST http://localhost:8001/api/v1/codegen/generate \
 
 #### 3. Convert PIM to PSM
 ```bash
-curl -X POST http://localhost:8001/api/v1/codegen/pim-to-psm \
+curl -X POST http://localhost:8000/api/v1/codegen/pim-to-psm \
   -H "Content-Type: application/json" \
   -d '{
     "pim_content": "$(cat models/user_management.yaml)",
@@ -244,9 +244,9 @@ flowchart TD
 
 ### No-Code Development (Primary Approach)
 1. **Design PIM Model**: Create YAML/Markdown in `pim-engine/models/`
-2. **Start Engine**: Run `./start.sh` - models auto-load
+2. **Start Engine**: Run `./start_master.sh` - models auto-load
 3. **Test via API**: Generated endpoints available immediately
-4. **Debug Flows**: Use web UI at http://localhost:8001/debug/ui
+4. **Debug Flows**: Use web UI at http://localhost:8000/debug/ui
 5. **Iterate**: Modify model, hot reload applies changes in 5 seconds
 
 ### Code Generation (When Needed)
@@ -286,7 +286,7 @@ flowchart TD
 - **Cache**: Redis (optional)
 - **Real-time**: WebSocket
 - **UI**: HTML + Mermaid.js
-- **Default Port**: 8001
+- **Default Port**: 8000
 
 ## Future Roadmap
 
@@ -400,7 +400,7 @@ This approach allows Claude to:
 ### Engine Won't Start
 ```bash
 # Check if port is in use
-lsof -i:8001
+lsof -i:8000
 
 # Check Python version
 python3 --version  # Should be 3.11+
@@ -409,7 +409,7 @@ python3 --version  # Should be 3.11+
 tail -f pim-engine.log
 
 # Common issues:
-# - Port 8001 already in use
+# - Port 8000 already in use
 # - Python version too old
 # - Missing dependencies
 ```
@@ -427,10 +427,10 @@ grep ERROR pim-engine.log
 ### API Not Generated
 ```bash
 # Verify model loaded
-curl http://localhost:8001/engine/models
+curl http://localhost:8000/engine/models
 
 # Check OpenAPI spec
-curl http://localhost:8001/openapi.json
+curl http://localhost:8000/openapi.json
 ```
 
 ### Installation Issues

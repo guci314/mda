@@ -5,6 +5,12 @@ from datetime import datetime
 from pydantic import BaseModel, Field
 from enum import Enum
 
+# Re-export instance models
+from .instance_models import (
+    Instance, InstanceStatus, InstanceConfig, 
+    ProcessInfo, InstanceMetrics
+)
+
 
 class AttributeType(str, Enum):
     """Supported attribute types"""

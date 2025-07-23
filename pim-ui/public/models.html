@@ -1,0 +1,1183 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PIM 模型管理</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f7fa;
+            color: #333;
+        }
+        
+        .header {
+            background: #fff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 20px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .header h1 {
+            font-size: 24px;
+            color: #2c3e50;
+            display: inline-block;
+        }
+        
+        .main-content {
+            padding: 20px;
+        }
+        
+        .actions {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-right: 10px;
+        }
+        
+        .btn-primary {
+            background: #3498db;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #2980b9;
+        }
+        
+        .btn-success {
+            background: #2ecc71;
+            color: white;
+        }
+        
+        .btn-danger {
+            background: #e74c3c;
+            color: white;
+        }
+        
+        .btn-warning {
+            background: #f39c12;
+            color: white;
+        }
+        
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .models-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
+        }
+        
+        .model-card {
+            background: #fff;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .model-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        
+        .model-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 15px;
+        }
+        
+        .model-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        .model-status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        .status-loaded {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status-unloaded {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .status-loading {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .status-compiling {
+            background: #cce5ff;
+            color: #004085;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
+        
+        @keyframes progress {
+            0% { width: 30%; }
+            50% { width: 70%; }
+            100% { width: 30%; }
+        }
+        
+        .compilation-info {
+            margin-top: 10px;
+            padding: 10px;
+            background: #f0f8ff;
+            border-radius: 4px;
+            font-size: 13px;
+            color: #0056b3;
+        }
+        
+        .compilation-spinner {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid rgba(0,86,179,.3);
+            border-radius: 50%;
+            border-top-color: #0056b3;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+        
+        .model-info {
+            margin-bottom: 15px;
+        }
+        
+        .model-info p {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        
+        .model-info .label {
+            font-weight: 500;
+            color: #444;
+        }
+        
+        .model-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .model-actions button {
+            flex: 1;
+            padding: 8px 16px;
+            font-size: 13px;
+        }
+        
+        /* 上传区域 */
+        .upload-area {
+            border: 2px dashed #3498db;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            background: #f8f9fa;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        
+        .upload-area.dragover {
+            background: #e3f2fd;
+            border-color: #2196f3;
+        }
+        
+        .upload-area h3 {
+            color: #3498db;
+            margin-bottom: 10px;
+        }
+        
+        .upload-area p {
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .file-preview {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .file-icon {
+            width: 60px;
+            height: 60px;
+            background: #3498db;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        
+        .file-name {
+            font-size: 16px;
+            color: #2c3e50;
+            font-weight: 500;
+            max-width: 300px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .file-size {
+            font-size: 14px;
+            color: #666;
+        }
+        
+        #fileInput {
+            display: none;
+        }
+        
+        /* 模态框 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal.show {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: #fff;
+            border-radius: 8px;
+            padding: 30px;
+            max-width: 90%;
+            max-height: 90%;
+            overflow: auto;
+            position: relative;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .modal-header h2 {
+            color: #2c3e50;
+        }
+        
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #999;
+        }
+        
+        .close-btn:hover {
+            color: #333;
+        }
+        
+        .model-preview {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 20px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            max-height: 500px;
+            overflow: auto;
+            white-space: pre-wrap;
+        }
+        
+        /* 加载动画 */
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* 提示信息 */
+        .alert {
+            padding: 15px 20px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        
+        .alert.show {
+            display: block;
+        }
+        
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .alert-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        
+        /* 空状态 */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+        
+        .empty-state h3 {
+            font-size: 20px;
+            margin-bottom: 10px;
+            color: #666;
+        }
+        
+        .empty-state p {
+            font-size: 14px;
+        }
+    </style>
+    <script src="/js/config.js"></script>
+    <script>
+        // Ensure functions are available globally early
+        window.addEventListener('load', function() {
+            console.log('Page fully loaded');
+        });
+    </script>
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <h1>PIM 模型管理</h1>
+        </div>
+    </header>
+    
+    <main class="main-content container">
+        <!-- 提示信息 -->
+        <div id="alert" class="alert"></div>
+        
+        <!-- 操作区域 -->
+        <div class="actions">
+            <button class="btn btn-primary" id="refreshBtn">
+                <span id="refreshText">刷新列表</span>
+            </button>
+            <button class="btn btn-success" id="uploadModelBtn" onclick="showUploadModal()">
+                上传模型
+            </button>
+            <button class="btn btn-warning" id="loadAllBtn">
+                加载所有模型
+            </button>
+        </div>
+        
+        <!-- 模型列表 -->
+        <div id="modelsList" class="models-grid">
+            <div class="empty-state">
+                <h3>暂无模型</h3>
+                <p>点击"上传模型"按钮添加新的 PIM 模型</p>
+            </div>
+        </div>
+    </main>
+    
+    <!-- 上传模态框 -->
+    <div id="uploadModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>上传 PIM 模型</h2>
+                <button class="close-btn" onclick="closeUploadModal()">&times;</button>
+            </div>
+            
+            <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
+                <div id="uploadContent">
+                    <h3>点击或拖拽文件到此处</h3>
+                    <p>支持 .md, .yaml, .yml 格式的 PIM 模型文件</p>
+                </div>
+            </div>
+            
+            <input type="file" id="fileInput" accept=".md,.yaml,.yml" onchange="handleFileSelect(event)">
+            
+            <div style="margin-top: 20px; text-align: right;">
+                <button class="btn" onclick="closeUploadModal()">取消</button>
+                <button class="btn btn-primary" id="uploadBtn" onclick="uploadFile()" disabled>上传</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 预览模态框 -->
+    <div id="previewModal" class="modal">
+        <div class="modal-content" style="max-width: 800px;">
+            <div class="modal-header">
+                <h2 id="previewTitle">模型预览</h2>
+                <button class="close-btn" onclick="closePreviewModal()">&times;</button>
+            </div>
+            <div class="model-preview" id="previewContent"></div>
+        </div>
+    </div>
+    
+    <!-- 代码生成进度模态框 -->
+    <div id="codeGenModal" class="modal">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <h2>代码生成中...</h2>
+            </div>
+            <div style="padding: 20px; text-align: center;">
+                <div class="spinner" style="width: 40px; height: 40px; margin: 0 auto 20px;"></div>
+                <p id="codeGenStatus">正在生成代码，请稍候...</p>
+                <div id="codeGenProgress" style="margin-top: 20px; display: none;">
+                    <div style="background: #e0e0e0; height: 4px; border-radius: 2px; overflow: hidden;">
+                        <div id="progressBar" style="background: #3498db; height: 100%; width: 0%; transition: width 0.3s;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 代码预览模态框 -->
+    <div id="codePreviewModal" class="modal">
+        <div class="modal-content" style="max-width: 90%; max-height: 90%;">
+            <div class="modal-header">
+                <h2 id="codePreviewTitle">生成的代码</h2>
+                <button class="close-btn" onclick="closeCodePreviewModal()">&times;</button>
+            </div>
+            <div style="padding: 20px;">
+                <div style="margin-bottom: 20px; display: flex; gap: 10px; align-items: center;">
+                    <select id="fileSelector" onchange="showSelectedFile()" style="flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                        <!-- 文件列表将动态填充 -->
+                    </select>
+                    <button class="btn btn-primary" onclick="downloadCode()">
+                        下载所有代码 (ZIP)
+                    </button>
+                </div>
+                <div class="model-preview" id="codeContent" style="max-height: 500px; overflow: auto;"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Add error handling
+        window.addEventListener('error', function(e) {
+            console.error('Script error:', e.message, 'at', e.filename, ':', e.lineno);
+        });
+        
+        let models = [];
+        let selectedFile = null;
+        let compilingModels = new Set(); // 跟踪正在编译的模型
+        
+        // 初始化
+        document.addEventListener('DOMContentLoaded', async function() {
+            // 等待配置加载
+            if (typeof loadConfig === 'function') {
+                await loadConfig();
+            }
+            
+            // 添加按钮事件监听器
+            const uploadBtn = document.getElementById('uploadModelBtn');
+            if (uploadBtn) {
+                uploadBtn.addEventListener('click', function() {
+                    console.log('Upload button clicked');
+                    window.showUploadModal();
+                });
+            }
+            
+            const refreshBtn = document.getElementById('refreshBtn');
+            if (refreshBtn) {
+                refreshBtn.addEventListener('click', function() {
+                    window.refreshModels();
+                });
+            }
+            
+            const loadAllBtn = document.getElementById('loadAllBtn');
+            if (loadAllBtn) {
+                loadAllBtn.addEventListener('click', function() {
+                    window.loadAllModels();
+                });
+            }
+            
+            refreshModels();
+            setupDragAndDrop();
+        });
+        
+        // 刷新模型列表
+        window.refreshModels = async function() {
+            const refreshBtn = document.querySelector('#refreshText');
+            refreshBtn.innerHTML = '<span class="spinner"></span> 加载中...';
+            
+            try {
+                // 直接获取已加载的模型
+                const modelsRes = await fetch(API_BASE_URL + '/models');
+                const modelsData = await modelsRes.json();
+                
+                models = modelsData.models || [];
+                
+                renderModels();
+                showAlert('模型列表已刷新', 'success');
+            } catch (error) {
+                console.error('Error refreshing models:', error);
+                showAlert('刷新失败: ' + error.message, 'error');
+            } finally {
+                refreshBtn.innerHTML = '刷新列表';
+            }
+        }
+        
+        // 渲染模型列表
+        function renderModels() {
+            const container = document.getElementById('modelsList');
+            
+            // 合并已加载的模型和正在编译的模型
+            const allItems = [];
+            
+            // 添加正在编译的模型
+            compilingModels.forEach(modelName => {
+                if (!models.some(m => m.name === modelName)) {
+                    allItems.push({
+                        name: modelName,
+                        isCompiling: true
+                    });
+                }
+            });
+            
+            // 添加已加载的模型
+            allItems.push(...models);
+            
+            if (allItems.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <h3>暂无模型</h3>
+                        <p>点击"上传模型"按钮添加新的 PIM 模型</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = allItems.map(model => {
+                if (model.isCompiling) {
+                    // 正在编译的模型
+                    return `
+                        <div class="model-card" style="border: 2px solid #004085; background: #f0f8ff;">
+                            <div class="model-header">
+                                <h3 class="model-title">${model.name}</h3>
+                                <span class="model-status status-compiling">
+                                    <span class="compilation-spinner"></span>
+                                    编译中
+                                </span>
+                            </div>
+                            
+                            <div class="compilation-info">
+                                <p><strong>🔄 正在编译模型...</strong></p>
+                                <p id="compile-time-${model.name}" style="font-size: 18px; color: #004085; font-weight: bold;">已用时: 0秒</p>
+                                <p style="font-size: 12px; margin-top: 5px; color: #666;">
+                                    编译过程包括：生成PSM、生成代码、创建数据库结构等步骤
+                                </p>
+                                <div style="margin-top: 10px;">
+                                    <div style="background: #e0e0e0; height: 4px; border-radius: 2px; overflow: hidden;">
+                                        <div style="background: #004085; height: 100%; width: 30%; animation: progress 3s infinite;"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    // 已加载的模型
+                    return `
+                        <div class="model-card">
+                            <div class="model-header">
+                                <h3 class="model-title">${model.name}</h3>
+                                <span class="model-status status-loaded">
+                                    已加载
+                                </span>
+                            </div>
+                            
+                            <div class="model-info">
+                                <p><span class="label">版本:</span> ${model.version || '1.0.0'}</p>
+                                <p><span class="label">描述:</span> ${model.description || '暂无描述'}</p>
+                                <p><span class="label">实体:</span> ${model.entities ? model.entities.length : 0} 个</p>
+                                <p><span class="label">服务:</span> ${model.services ? model.services.length : 0} 个</p>
+                            </div>
+                            
+                            <div class="model-actions">
+                                <button class="btn btn-danger" onclick="unloadModel('${model.name}')">
+                                    卸载
+                                </button>
+                                <button class="btn btn-danger" onclick="hardUnloadModel('${model.name}')">
+                                    硬卸载
+                                </button>
+                                <button class="btn" onclick="previewModel('${model.name}')">
+                                    预览
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }
+            }).join('');
+        }
+        
+        // 加载模型
+        async function loadModel(modelName) {
+            try {
+                const res = await fetch(API_BASE_URL + `/models/load?model_name=${modelName}`, {
+                    method: 'POST'
+                });
+                
+                if (res.ok) {
+                    showAlert(`模型 ${modelName} 加载成功`, 'success');
+                    await refreshModels();
+                } else {
+                    const error = await res.json();
+                    showAlert(`加载失败: ${error.detail || '未知错误'}`, 'error');
+                }
+            } catch (error) {
+                showAlert(`加载失败: ${error.message}`, 'error');
+            }
+        }
+        
+        // 卸载模型
+        async function unloadModel(modelName) {
+            if (!confirm(`确定要卸载模型 ${modelName} 吗？`)) {
+                return;
+            }
+            
+            try {
+                const res = await fetch(API_BASE_URL + `/models/${modelName}`, {
+                    method: 'DELETE'
+                });
+                
+                if (res.ok) {
+                    showAlert(`模型 ${modelName} 卸载成功`, 'success');
+                    await refreshModels();
+                } else {
+                    const error = await res.json();
+                    showAlert(`卸载失败: ${error.detail || '未知错误'}`, 'error');
+                }
+            } catch (error) {
+                showAlert(`卸载失败: ${error.message}`, 'error');
+            }
+        }
+        
+        // 硬卸载模型
+        async function hardUnloadModel(modelName) {
+            if (!confirm(`确定要硬卸载模型 ${modelName} 吗？\n\n警告：这将删除所有相关文件和目录！`)) {
+                return;
+            }
+            
+            try {
+                const res = await fetch(API_BASE_URL + `/models/${modelName}?hard=true`, {
+                    method: 'DELETE'
+                });
+                
+                if (res.ok) {
+                    showAlert(`模型 ${modelName} 硬卸载成功`, 'success');
+                    await refreshModels();
+                } else {
+                    const error = await res.json();
+                    showAlert(`硬卸载失败: ${error.detail || '未知错误'}`, 'error');
+                }
+            } catch (error) {
+                showAlert(`硬卸载失败: ${error.message}`, 'error');
+            }
+        }
+        
+        // 加载所有模型
+        window.loadAllModels = async function() {
+            const unloadedModels = models.filter(m => m.status === 'unloaded');
+            if (unloadedModels.length === 0) {
+                showAlert('所有模型都已加载', 'info');
+                return;
+            }
+            
+            showAlert(`正在加载 ${unloadedModels.length} 个模型...`, 'info');
+            
+            for (const model of unloadedModels) {
+                await loadModel(model.name);
+            }
+        }
+        
+        // 预览模型
+        async function previewModel(modelName) {
+            try {
+                const res = await fetch(API_BASE_URL + `/models/${modelName}/content`);
+                if (res.ok) {
+                    const content = await res.text();
+                    document.getElementById('previewTitle').textContent = `模型预览 - ${modelName}`;
+                    document.getElementById('previewContent').textContent = content;
+                    document.getElementById('previewModal').classList.add('show');
+                } else {
+                    showAlert('无法获取模型内容', 'error');
+                }
+            } catch (error) {
+                showAlert(`预览失败: ${error.message}`, 'error');
+            }
+        }
+        
+        // 文件上传相关
+        function showUploadModal() {
+            const modal = document.getElementById('uploadModal');
+            if (modal) {
+                modal.classList.add('show');
+            } else {
+                console.error('Upload modal not found');
+            }
+        }
+        // Also add to window object for global access
+        window.showUploadModal = showUploadModal;
+        
+        window.closeUploadModal = function() {
+            const modal = document.getElementById('uploadModal');
+            if (modal) {
+                modal.classList.remove('show');
+            }
+            selectedFile = null;
+            const fileInput = document.getElementById('fileInput');
+            if (fileInput) fileInput.value = '';
+            const uploadBtn = document.getElementById('uploadBtn');
+            if (uploadBtn) uploadBtn.disabled = true;
+            
+            // 重置上传区域内容
+            const uploadContent = document.getElementById('uploadContent');
+            if (uploadContent) {
+                uploadContent.innerHTML = `
+                    <h3>点击或拖拽文件到此处</h3>
+                    <p>支持 .md, .yaml, .yml 格式的 PIM 模型文件</p>
+                `;
+            }
+        }
+        
+        function closePreviewModal() {
+            document.getElementById('previewModal').classList.remove('show');
+        }
+        
+        window.handleFileSelect = function(event) {
+            const file = event.target.files[0];
+            if (file) {
+                selectedFile = file;
+                document.getElementById('uploadBtn').disabled = false;
+                showFilePreview(file);
+                showAlert(`已选择文件: ${file.name}`, 'info');
+            }
+        }
+        
+        // 显示文件预览
+        function showFilePreview(file) {
+            const uploadContent = document.getElementById('uploadContent');
+            const fileExt = file.name.split('.').pop().toUpperCase();
+            const fileSize = formatFileSize(file.size);
+            
+            uploadContent.innerHTML = `
+                <div class="file-preview">
+                    <div class="file-icon">${fileExt}</div>
+                    <div class="file-name" title="${file.name}">${file.name}</div>
+                    <div class="file-size">${fileSize}</div>
+                </div>
+            `;
+        }
+        
+        // 格式化文件大小
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+        
+        window.uploadFile = async function() {
+            if (!selectedFile) return;
+            
+            // 禁用上传按钮，防止重复点击
+            const uploadBtn = document.getElementById('uploadBtn');
+            if (uploadBtn) {
+                uploadBtn.disabled = true;
+                uploadBtn.textContent = '上传中...';
+            }
+            
+            const formData = new FormData();
+            formData.append('file', selectedFile);
+            const uploadedFileName = selectedFile.name;
+            
+            try {
+                const res = await fetch(API_BASE_URL + '/models/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await res.json();
+                
+                if (res.ok) {
+                    // 获取模型名称
+                    const modelName = result.name || uploadedFileName.replace(/\.(md|yaml|yml)$/, '');
+                    
+                    // 立即关闭模态框
+                    closeUploadModal();
+                    
+                    // 立即添加到编译列表并刷新UI
+                    compilingModels.add(modelName);
+                    renderModels();
+                    
+                    // 显示成功提示
+                    showAlert('模型上传成功，正在编译中...', 'success');
+                    
+                    // 开始轮询检查编译状态
+                    startCompilationStatusCheck(modelName);
+                } else {
+                    // 更详细的错误处理
+                    if (result.detail && result.detail.includes('already exists')) {
+                        showAlert('上传失败: 文件已存在，请重命名文件或删除现有文件', 'error');
+                    } else {
+                        showAlert(`上传失败: ${result.detail || '未知错误'}`, 'error');
+                    }
+                    // 恢复上传按钮
+                    if (uploadBtn) {
+                        uploadBtn.disabled = false;
+                        uploadBtn.textContent = '上传';
+                    }
+                }
+            } catch (error) {
+                showAlert(`上传失败: ${error.message}`, 'error');
+                // 恢复上传按钮
+                if (uploadBtn) {
+                    uploadBtn.disabled = false;
+                    uploadBtn.textContent = '上传';
+                }
+            }
+        }
+        
+        // 检查模型编译状态
+        let compilationCheckIntervals = new Map(); // 支持多个模型同时编译
+        
+        function startCompilationStatusCheck(modelName) {
+            // 不需要再次添加到编译列表，因为已经在上传成功时添加了
+            const startTime = Date.now();
+            console.log(`开始监控模型 ${modelName} 的编译状态`);
+            
+            // 如果该模型已经在检查中，先清除旧的
+            if (compilationCheckIntervals.has(modelName)) {
+                clearInterval(compilationCheckIntervals.get(modelName));
+            }
+            
+            const intervalId = setInterval(async () => {
+                // 更新编译时间
+                const elapsedTime = Math.floor((Date.now() - startTime) / 1000);
+                updateCompilationTime(modelName, elapsedTime);
+                
+                // 刷新模型列表
+                await refreshModels();
+                
+                // 检查是否编译完成
+                // 由于编译失败也会导致模型出现在列表中，我们需要检查是否还在编译中
+                // 如果超过一定时间（比如5分钟）还在编译，可能是编译失败了
+                const elapsedMinutes = elapsedTime / 60;
+                
+                if (elapsedMinutes > 5) {
+                    // 超过5分钟，可能编译失败
+                    clearInterval(intervalId);
+                    compilationCheckIntervals.delete(modelName);
+                    compilingModels.delete(modelName);
+                    
+                    // 检查模型是否真的存在
+                    const modelExists = models.some(m => m.name === modelName);
+                    if (modelExists) {
+                        showAlert(`模型 ${modelName} 已加载（编译可能未完全成功）`, 'warning');
+                    } else {
+                        showAlert(`模型 ${modelName} 编译失败或超时`, 'error');
+                    }
+                    renderModels();
+                }
+                
+                // 检查模型是否已经在列表中（表示编译完成）
+                const modelExists = models.some(m => m.name === modelName);
+                
+                if (modelExists && elapsedTime > 10) {
+                    // 如果模型存在且已经过了10秒，认为编译完成
+                    clearInterval(intervalId);
+                    compilationCheckIntervals.delete(modelName);
+                    compilingModels.delete(modelName);
+                    
+                    showAlert(`模型 ${modelName} 已加载`, 'success');
+                    renderModels();
+                }
+            }, 2000); // 每2秒检查一次
+            
+            compilationCheckIntervals.set(modelName, intervalId);
+        }
+        
+        // 更新编译时间显示
+        function updateCompilationTime(modelName, seconds) {
+            const element = document.getElementById(`compile-time-${modelName}`);
+            if (element) {
+                // 格式化时间显示
+                if (seconds < 60) {
+                    element.textContent = `已用时: ${seconds}秒`;
+                } else {
+                    const minutes = Math.floor(seconds / 60);
+                    const remainingSeconds = seconds % 60;
+                    element.textContent = `已用时: ${minutes}分${remainingSeconds}秒`;
+                }
+            }
+        }
+        
+        // 拖拽上传
+        function setupDragAndDrop() {
+            const uploadArea = document.getElementById('uploadArea');
+            
+            uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadArea.classList.add('dragover');
+            });
+            
+            uploadArea.addEventListener('dragleave', () => {
+                uploadArea.classList.remove('dragover');
+            });
+            
+            uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadArea.classList.remove('dragover');
+                
+                const file = e.dataTransfer.files[0];
+                if (file && (file.name.endsWith('.md') || file.name.endsWith('.yaml') || file.name.endsWith('.yml'))) {
+                    selectedFile = file;
+                    document.getElementById('uploadBtn').disabled = false;
+                    showFilePreview(file);
+                    showAlert(`已选择文件: ${file.name}`, 'info');
+                } else {
+                    showAlert('请选择 .md, .yaml 或 .yml 格式的文件', 'error');
+                }
+            });
+        }
+        
+        // 显示提示信息
+        function showAlert(message, type) {
+            const alert = document.getElementById('alert');
+            alert.className = `alert alert-${type} show`;
+            alert.textContent = message;
+            
+            setTimeout(() => {
+                alert.classList.remove('show');
+            }, 3000);
+        }
+        
+        // 生成代码
+        async function generateCode(modelName) {
+            const platform = document.getElementById(`platform-${modelName}`).value;
+            const useLLM = document.getElementById(`llm-${modelName}`).checked;
+            
+            // 显示进度模态框
+            document.getElementById('codeGenModal').classList.add('show');
+            document.getElementById('codeGenStatus').textContent = useLLM ? '正在初始化 AI 代码生成器...' : '正在初始化代码生成器...';
+            
+            try {
+                // 模拟进度更新
+                updateProgress(20, useLLM ? '正在连接 AI 服务...' : '正在加载模型...');
+                
+                const response = await fetch('/api/v1/codegen/generate', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        model_name: modelName,
+                        platform: platform,
+                        use_llm: useLLM,
+                        options: {
+                            include_tests: true,
+                            include_docs: true,
+                            include_deployment: true,
+                            use_llm_for_all: useLLM  // 如果选择了 AI，则全部使用 AI 生成
+                        }
+                    })
+                });
+                
+                updateProgress(60, useLLM ? '正在使用 AI 生成代码...' : '正在生成代码文件...');
+                
+                if (!response.ok) {
+                    throw new Error(`生成失败: ${response.statusText}`);
+                }
+                
+                const result = await response.json();
+                updateProgress(100, '代码生成完成！');
+                
+                // 关闭进度模态框
+                setTimeout(() => {
+                    document.getElementById('codeGenModal').classList.remove('show');
+                    // 显示代码预览
+                    showCodePreview(result);
+                }, 500);
+                
+            } catch (error) {
+                document.getElementById('codeGenModal').classList.remove('show');
+                showAlert(`代码生成失败: ${error.message}`, 'error');
+            }
+        }
+        
+        // 更新进度
+        function updateProgress(percent, status) {
+            document.getElementById('codeGenStatus').textContent = status;
+            document.getElementById('codeGenProgress').style.display = 'block';
+            document.getElementById('progressBar').style.width = percent + '%';
+        }
+        
+        // 显示代码预览
+        let currentCodePackage = null;
+        
+        function showCodePreview(codePackage) {
+            currentCodePackage = codePackage;
+            
+            // 填充文件选择器
+            const fileSelector = document.getElementById('fileSelector');
+            fileSelector.innerHTML = '';
+            
+            codePackage.files.forEach((file, index) => {
+                const option = document.createElement('option');
+                option.value = index;
+                option.textContent = file.path;
+                fileSelector.appendChild(option);
+            });
+            
+            // 显示第一个文件
+            if (codePackage.files.length > 0) {
+                showSelectedFile();
+            }
+            
+            document.getElementById('codePreviewTitle').textContent = 
+                `生成的代码 - ${codePackage.model_name} (${codePackage.platform})`;
+            document.getElementById('codePreviewModal').classList.add('show');
+        }
+        
+        // 显示选中的文件
+        function showSelectedFile() {
+            if (!currentCodePackage) return;
+            
+            const fileIndex = document.getElementById('fileSelector').value;
+            const file = currentCodePackage.files[fileIndex];
+            
+            if (file) {
+                // 根据文件扩展名进行语法高亮（这里简单处理）
+                const content = escapeHtml(file.content);
+                document.getElementById('codeContent').innerHTML = `<pre><code>${content}</code></pre>`;
+            }
+        }
+        
+        // HTML转义
+        function escapeHtml(text) {
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return text.replace(/[&<>"']/g, m => map[m]);
+        }
+        
+        // 下载代码
+        async function downloadCode() {
+            if (!currentCodePackage) return;
+            
+            try {
+                const response = await fetch('/api/v1/codegen/download', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        package_id: currentCodePackage.package_id
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('下载失败');
+                }
+                
+                // 获取文件名
+                const contentDisposition = response.headers.get('content-disposition');
+                const filename = contentDisposition
+                    ? contentDisposition.split('filename=')[1].replace(/"/g, '')
+                    : `${currentCodePackage.model_name}.zip`;
+                
+                // 下载文件
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+                
+                showAlert('代码已下载', 'success');
+            } catch (error) {
+                showAlert(`下载失败: ${error.message}`, 'error');
+            }
+        }
+        
+        // 关闭代码预览模态框
+        function closeCodePreviewModal() {
+            document.getElementById('codePreviewModal').classList.remove('show');
+            currentCodePackage = null;
+        }
+        
+        // 模态框关闭
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) {
+                event.target.classList.remove('show');
+            }
+        }
+    </script>
+</body>
+</html>

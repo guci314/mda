@@ -1,0 +1,7 @@
+{
+  "instance_id": "hello_world_pim_d5e493b4",
+  "model_name": "hello_world_pim",
+  "port": 8002,
+  "database_url": "sqlite:///instances/hello_world_pim_d5e493b4/database.db",
+  "log_file": "logs/hello_world_pim_d5e493b4.log"
+}

@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>模型管理 - PIM Engine</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        .header h1 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            color: #7f8c8d;
+        }
+        
+        .nav-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .nav-tab {
+            padding: 10px 20px;
+            background-color: #ecf0f1;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            text-decoration: none;
+            color: #333;
+            transition: all 0.3s;
+        }
+        
+        .nav-tab:hover, .nav-tab.active {
+            background-color: #3498db;
+            color: white;
+        }
+        
+        .card {
+            background-color: #fff;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        .card h2 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 1.5em;
+        }
+        
+        .load-model-form {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .form-input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background-color: #3498db;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background-color: #2980b9;
+        }
+        
+        .btn-danger {
+            background-color: #e74c3c;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background-color: #c0392b;
+        }
+        
+        .btn-success {
+            background-color: #27ae60;
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background-color: #229954;
+        }
+        
+        .model-list {
+            display: grid;
+            gap: 15px;
+        }
+        
+        .model-item {
+            border: 1px solid #ecf0f1;
+            border-radius: 8px;
+            padding: 20px;
+            background-color: #f8f9fa;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .model-info h3 {
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+        
+        .model-info p {
+            color: #7f8c8d;
+            font-size: 14px;
+        }
+        
+        .model-meta {
+            display: flex;
+            gap: 15px;
+            margin-top: 10px;
+        }
+        
+        .meta-item {
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .meta-item strong {
+            color: #333;
+        }
+        
+        .model-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .alert {
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+        
+        .alert-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .alert-error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .alert-info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #7f8c8d;
+        }
+        
+        .empty-state h3 {
+            color: #95a5a6;
+            margin-bottom: 10px;
+        }
+        
+        .detail-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .detail-item {
+            background-color: #ecf0f1;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        
+        .detail-item h4 {
+            color: #2c3e50;
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+        
+        .detail-item ul {
+            list-style: none;
+            font-size: 13px;
+            color: #555;
+        }
+        
+        .detail-item li {
+            padding: 2px 0;
+        }
+        
+        .upload-area {
+            border: 2px dashed #3498db;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background-color: #f8f9fa;
+        }
+        
+        .upload-area:hover {
+            border-color: #2980b9;
+            background-color: #ecf0f1;
+        }
+        
+        .upload-area.drag-over {
+            border-color: #27ae60;
+            background-color: #d5f4e6;
+        }
+        
+        .upload-placeholder {
+            pointer-events: none;
+        }
+        
+        .tab-content {
+            display: block;
+        }
+        
+        .nav-tabs {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            border-bottom: 1px solid #ecf0f1;
+        }
+        
+        .btn-sm {
+            padding: 5px 10px;
+            font-size: 14px;
+        }
+    </style>
+    <script src="/js/config.js"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>PIM Engine 模型管理</h1>
+            <p>加载和管理平台无关模型（PIM）</p>
+        </div>
+        
+        <div class="nav-tabs">
+            <a href="#" class="nav-tab active">模型管理</a>
+            <a href="/ui/instances" class="nav-tab">实例管理</a>
+            <a href="/ui/dashboard" class="nav-tab">控制台</a>
+        </div>
+        
+        <div id="alerts"></div>
+        
+        <div class="card">
+            <h2>加载新模型</h2>
+            <div style="margin-bottom: 20px;">
+                <ul class="nav nav-tabs" style="display: flex; gap: 10px; margin-bottom: 15px;">
+                    <li class="nav-item">
+                        <button class="nav-tab active" onclick="switchTab('file')" id="fileTab">上传文件</button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-tab" onclick="switchTab('name')" id="nameTab">从模型目录加载</button>
+                    </li>
+                </ul>
+                
+                <!-- 文件上传表单 -->
+                <form id="uploadModelForm" class="tab-content">
+                    <div class="upload-area" id="uploadArea">
+                        <input type="file" id="fileInput" accept=".md,.yaml,.yml" style="display: none;">
+                        <div class="upload-placeholder" onclick="document.getElementById('fileInput').click()">
+                            <div style="font-size: 3em; color: #3498db;">📁</div>
+                            <h3 style="color: #2c3e50; margin: 10px 0;">拖放文件到此处或点击选择</h3>
+                            <p style="color: #7f8c8d;">支持 .md, .yaml, .yml 格式的 PIM 模型文件</p>
+                        </div>
+                    </div>
+                    <div id="fileInfo" style="display: none; margin: 15px 0;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px; background: #f8f9fa; border-radius: 4px;">
+                            <span id="fileName"></span>
+                            <button type="button" class="btn btn-sm" onclick="clearFile()">清除</button>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary" style="width: 100%;">上传并加载模型</button>
+                </form>
+                
+                <!-- 模型名称表单 -->
+                <form id="loadModelForm" class="load-model-form tab-content" style="display: none;">
+                    <input type="text" id="modelName" class="form-input" placeholder="输入模型名称（如: user_management）" required>
+                    <button type="submit" class="btn btn-primary">加载模型</button>
+                </form>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2>已加载的模型 <span id="modelCount"></span></h2>
+            <div id="modelList" class="model-list">
+                <div class="empty-state">
+                    <h3>暂无加载的模型</h3>
+                    <p>请在上方输入模型名称并点击"加载模型"</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const API_BASE = '';
+        let models = [];
+        let selectedFile = null;
+        
+        // 切换标签
+        function switchTab(tab) {
+            const fileTab = document.getElementById('fileTab');
+            const nameTab = document.getElementById('nameTab');
+            const uploadForm = document.getElementById('uploadModelForm');
+            const loadForm = document.getElementById('loadModelForm');
+            
+            if (tab === 'file') {
+                fileTab.classList.add('active');
+                nameTab.classList.remove('active');
+                uploadForm.style.display = 'block';
+                loadForm.style.display = 'none';
+            } else {
+                fileTab.classList.remove('active');
+                nameTab.classList.add('active');
+                uploadForm.style.display = 'none';
+                loadForm.style.display = 'flex';
+            }
+        }
+        
+        // 文件拖放处理
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('drag-over');
+        });
+        
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('drag-over');
+        });
+        
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('drag-over');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFileSelect(files[0]);
+            }
+        });
+        
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFileSelect(e.target.files[0]);
+            }
+        });
+        
+        // 处理文件选择
+        function handleFileSelect(file) {
+            const validExtensions = ['.md', '.yaml', '.yml'];
+            const fileExt = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
+            
+            if (!validExtensions.includes(fileExt)) {
+                showAlert('请选择 .md, .yaml 或 .yml 格式的文件', 'error');
+                return;
+            }
+            
+            selectedFile = file;
+            document.getElementById('fileName').textContent = file.name;
+            document.getElementById('fileInfo').style.display = 'block';
+            document.getElementById('uploadArea').style.display = 'none';
+        }
+        
+        // 清除选中的文件
+        function clearFile() {
+            selectedFile = null;
+            document.getElementById('fileInput').value = '';
+            document.getElementById('fileInfo').style.display = 'none';
+            document.getElementById('uploadArea').style.display = 'block';
+        }
+        
+        // 显示提示信息
+        function showAlert(message, type = 'info') {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type}`;
+            alertDiv.textContent = message;
+            
+            const alertsContainer = document.getElementById('alerts');
+            alertsContainer.appendChild(alertDiv);
+            
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 5000);
+        }
+        
+        // 获取模型列表
+        async function fetchModels() {
+            try {
+                const response = await fetch(`${API_BASE}/models`);
+                const data = await response.json();
+                models = data.models;
+                renderModels();
+            } catch (error) {
+                showAlert('获取模型列表失败: ' + error.message, 'error');
+            }
+        }
+        
+        // 渲染模型列表
+        function renderModels() {
+            const modelList = document.getElementById('modelList');
+            const modelCount = document.getElementById('modelCount');
+            
+            modelCount.textContent = `(${models.length})`;
+            
+            if (models.length === 0) {
+                modelList.innerHTML = `
+                    <div class="empty-state">
+                        <h3>暂无加载的模型</h3>
+                        <p>请在上方输入模型名称并点击"加载模型"</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            modelList.innerHTML = models.map(model => `
+                <div class="model-item">
+                    <div class="model-info">
+                        <h3>${model.name}</h3>
+                        <p>${model.description || '无描述'}</p>
+                        <div class="model-meta">
+                            <span class="meta-item"><strong>版本:</strong> ${model.version}</span>
+                            <span class="meta-item"><strong>源文件:</strong> ${model.source_file}</span>
+                            <span class="meta-item"><strong>加载时间:</strong> ${new Date(model.loaded_at).toLocaleString('zh-CN')}</span>
+                        </div>
+                        <div class="detail-grid">
+                            ${model.entities.length > 0 ? `
+                                <div class="detail-item">
+                                    <h4>实体 (${model.entities.length})</h4>
+                                    <ul>
+                                        ${model.entities.map(e => `<li>• ${e}</li>`).join('')}
+                                    </ul>
+                                </div>
+                            ` : ''}
+                            ${model.services.length > 0 ? `
+                                <div class="detail-item">
+                                    <h4>服务 (${model.services.length})</h4>
+                                    <ul>
+                                        ${model.services.map(s => `<li>• ${s}</li>`).join('')}
+                                    </ul>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                    <div class="model-actions">
+                        <button class="btn btn-success" onclick="createInstance('${model.name}')">创建实例</button>
+                        <button class="btn btn-danger" onclick="unloadModel('${model.name}')">卸载</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        // 加载模型
+        async function loadModel(modelName) {
+            try {
+                const response = await fetch(`${API_BASE}/models/load`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ model_name: modelName })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    showAlert(`模型 '${modelName}' 加载成功！`, 'success');
+                    fetchModels();
+                } else {
+                    const error = await response.json();
+                    showAlert(`加载失败: ${error.detail}`, 'error');
+                }
+            } catch (error) {
+                showAlert('加载模型失败: ' + error.message, 'error');
+            }
+        }
+        
+        // 卸载模型
+        async function unloadModel(modelName) {
+            if (!confirm(`确定要卸载模型 '${modelName}' 吗？这将停止所有相关实例。`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/models/${modelName}`, {
+                    method: 'DELETE'
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    showAlert(data.message, 'success');
+                    fetchModels();
+                } else {
+                    const error = await response.json();
+                    showAlert(`卸载失败: ${error.detail}`, 'error');
+                }
+            } catch (error) {
+                showAlert('卸载模型失败: ' + error.message, 'error');
+            }
+        }
+        
+        // 创建实例（跳转到实例管理页面）
+        function createInstance(modelName) {
+            window.location.href = `/ui/instances?model=${modelName}`;
+        }
+        
+        // 文件上传表单提交
+        document.getElementById('uploadModelForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            if (!selectedFile) {
+                showAlert('请先选择一个模型文件', 'error');
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('file', selectedFile);
+            
+            try {
+                const response = await fetch(`${API_BASE}/models/upload`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    showAlert(`模型 '${data.name}' 上传并加载成功！`, 'success');
+                    clearFile();
+                    fetchModels();
+                } else {
+                    const error = await response.json();
+                    showAlert(`上传失败: ${error.detail}`, 'error');
+                }
+            } catch (error) {
+                showAlert('上传模型失败: ' + error.message, 'error');
+            }
+        });
+        
+        // 表单提交
+        document.getElementById('loadModelForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const modelName = document.getElementById('modelName').value.trim();
+            if (modelName) {
+                await loadModel(modelName);
+                document.getElementById('modelName').value = '';
+            }
+        });
+        
+        // 页面加载时获取模型列表
+        fetchModels();
+        
+        // 定期刷新
+        setInterval(fetchModels, 10000);
+    </script>
+</body>
+</html>

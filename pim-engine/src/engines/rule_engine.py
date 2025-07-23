@@ -190,7 +190,7 @@ class RuleEngine:
         context: Dict[str, Any]
     ) -> Any:
         """Interpret rule using pattern matching"""
-        description = rule.description.lower()
+        description = rule.description.lower() if rule.description else ""
         
         # Common business rule patterns
         if '折扣' in description or 'discount' in description:

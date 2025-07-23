@@ -25,7 +25,7 @@ COMPILER_AVAILABLE = True  # Enable compiler - will import when needed
 
 class ModelInfo:
     """Information about a loaded model"""
-    def __init__(self, name: str, model: PIMModel, source_file: str, model_dir: Path = None):
+    def __init__(self, name: str, model: PIMModel, source_file: str, model_dir: Path | None = None):
         self.name = name
         self.model = model
         self.source_file = source_file

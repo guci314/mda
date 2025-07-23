@@ -2,8 +2,6 @@
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse
 from pathlib import Path
 
 from .models_api import router as models_router
@@ -48,55 +46,7 @@ def create_app() -> FastAPI:
         process_manager=app.state.process_manager
     )
     
-    # Mount static files
-    static_path = Path(__file__).parent.parent.parent / "static"
-    if static_path.exists():
-        app.mount("/static", StaticFiles(directory=str(static_path)), name="static")
-        logger.info(f"Mounted static files from: {static_path}")
-    
-    # UI Routes - Define these BEFORE API routes to avoid conflicts
-    @app.get("/", response_class=HTMLResponse)
-    async def root():
-        """Redirect to dashboard"""
-        return HTMLResponse(content="""
-            <html>
-                <head>
-                    <meta http-equiv="refresh" content="0; url=/ui/dashboard" />
-                </head>
-                <body>
-                    <p>Redirecting to dashboard...</p>
-                </body>
-            </html>
-        """)
-    
-    @app.get("/ui/models", response_class=HTMLResponse)
-    async def models_ui():
-        """Models management UI"""
-        ui_file = static_path / "models_ui.html"
-        if ui_file.exists():
-            with open(ui_file, 'r', encoding='utf-8') as f:
-                return HTMLResponse(content=f.read())
-        return HTMLResponse(content="<h1>Models UI not found</h1>", status_code=404)
-    
-    @app.get("/ui/instances", response_class=HTMLResponse)
-    async def instances_ui():
-        """Instances management UI"""
-        ui_file = static_path / "instances_ui.html"
-        if ui_file.exists():
-            with open(ui_file, 'r', encoding='utf-8') as f:
-                return HTMLResponse(content=f.read())
-        return HTMLResponse(content="<h1>Instances UI not found</h1>", status_code=404)
-    
-    @app.get("/ui/dashboard", response_class=HTMLResponse)
-    async def dashboard():
-        """Dashboard UI"""
-        ui_file = static_path / "dashboard.html"
-        if ui_file.exists():
-            with open(ui_file, 'r', encoding='utf-8') as f:
-                return HTMLResponse(content=f.read())
-        return HTMLResponse(content="<h1>Dashboard not found</h1>", status_code=404)
-    
-    # Include API routers - These come AFTER UI routes
+    # Include API routers
     app.include_router(models_router, prefix="/models", tags=["Models"])
     app.include_router(instances_router, prefix="/instances", tags=["Instances"])
     

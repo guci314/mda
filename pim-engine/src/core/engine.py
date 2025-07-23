@@ -213,8 +213,8 @@ class PIMEngine:
                 "status": "loaded",
                 "model": model_name,
                 "load_time_ms": result.load_time_ms,
-                "entities": len(result.model.entities),
-                "services": len(result.model.services)
+                "entities": len(result.model.entities) if result.model else 0,
+                "services": len(result.model.services) if result.model else 0
             }
         
         @self.app.delete("/engine/models/{model_name}")
@@ -293,6 +293,13 @@ class PIMEngine:
             
             if not result.success:
                 return result
+            
+            # Ensure model is not None
+            if not result.model:
+                return ModelLoadResult(
+                    success=False,
+                    errors=["Model loading succeeded but model is None"]
+                )
             
             # Store model
             self.models[model_name] = result.model
