@@ -9,6 +9,10 @@ from pathlib import Path
 from typing import Optional, Dict, Any
 from dataclasses import dataclass
 from datetime import datetime
+from dotenv import load_dotenv
+
+# 加载环境变量
+load_dotenv()
 
 from compiler.config import CompilerConfig
 from utils.logger import get_logger
@@ -358,6 +362,7 @@ class PureGeminiCompiler:
         except Exception as e:
             logger.error(f"Failed to execute Gemini CLI: {e}")
             return False
+    
     
     def _execute_with_monitoring(self, prompt: str, work_dir: Path, env: dict, 
                                 model: str, timeout: int, target_dir: Path) -> bool:

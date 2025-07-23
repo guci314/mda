@@ -3,10 +3,13 @@
 from typing import Dict, List, Optional
 from datetime import datetime
 import uuid
+from pathlib import Path
 
 from .model_manager import ModelManager
 from .port_manager import PortManager
 from .process_manager import ProcessManager, ProcessInfo
+from .persistence_manager import PersistenceManager
+from database.models import InstanceStatus as DBInstanceStatus
 from utils.logger import setup_logger
 
 logger = setup_logger(__name__)
@@ -58,10 +61,11 @@ class InstanceManager:
     """Manages model instances"""
     
     def __init__(self, model_manager: ModelManager, port_manager: PortManager, 
-                 process_manager: ProcessManager):
+                 process_manager: ProcessManager, persistence_manager: Optional[PersistenceManager] = None):
         self.model_manager = model_manager
         self.port_manager = port_manager
         self.process_manager = process_manager
+        self.persistence_manager = persistence_manager
         self.instances: Dict[str, InstanceInfo] = {}
         
     async def create_instance(self, model_name: str, instance_id: Optional[str] = None,
@@ -94,6 +98,19 @@ class InstanceManager:
             )
             instance_info.config = config or {}
             
+            # Save to persistence
+            if self.persistence_manager:
+                try:
+                    self.persistence_manager.save_instance(
+                        instance_id=instance_id,
+                        model_name=model_name,
+                        port=allocated_port,
+                        config=config
+                    )
+                except Exception as e:
+                    logger.error(f"Failed to persist instance: {e}")
+                    # Continue even if persistence fails
+            
             # Start process
             process_info = await self.process_manager.start_process(
                 instance_id=instance_id,
@@ -104,14 +121,32 @@ class InstanceManager:
             
             instance_info.process_info = process_info
             
+            # Update persistence with PID
+            if self.persistence_manager and process_info:
+                self.persistence_manager.update_instance_status(
+                    instance_id, DBInstanceStatus.STARTING, 
+                    pid=process_info.pid
+                )
+            
             # Wait for instance to be ready
             import asyncio
             for _ in range(30):  # 30 seconds timeout
                 if await self.process_manager.check_health(instance_id):
                     instance_info.status = "running"
+                    
+                    # Update persistence status
+                    if self.persistence_manager:
+                        self.persistence_manager.update_instance_status(
+                            instance_id, DBInstanceStatus.RUNNING
+                        )
                     break
                 await asyncio.sleep(1)
             else:
+                if self.persistence_manager:
+                    self.persistence_manager.update_instance_status(
+                        instance_id, DBInstanceStatus.ERROR,
+                        health_error="Instance failed to start within timeout"
+                    )
                 raise RuntimeError("Instance failed to start within timeout")
             
             # Store instance
@@ -144,6 +179,10 @@ class InstanceManager:
         # Update status
         instance_info.status = "stopping"
         
+        # Update persistence status
+        if self.persistence_manager:
+            self.persistence_manager.update_instance_status(instance_id, DBInstanceStatus.STOPPING)
+        
         try:
             # Stop process
             await self.process_manager.stop_process(instance_id)
@@ -162,6 +201,15 @@ class InstanceManager:
                         logger.info(f"Instance directory deleted: {instance_dir}")
                     except Exception as e:
                         logger.error(f"Failed to delete instance directory: {e}")
+            
+            # Update persistence
+            if self.persistence_manager:
+                if hard:
+                    # Delete from database for hard delete
+                    self.persistence_manager.delete_instance(instance_id)
+                else:
+                    # Just update status for soft stop
+                    self.persistence_manager.update_instance_status(instance_id, DBInstanceStatus.STOPPED)
             
             # Remove instance
             del self.instances[instance_id]
@@ -210,4 +258,113 @@ class InstanceManager:
         elif not is_healthy and instance_info.status == "running":
             instance_info.status = "unhealthy"
         
+        # Update persistence
+        if self.persistence_manager:
+            self.persistence_manager.update_instance_health(instance_id, is_healthy)
+            if instance_info.status == "unhealthy":
+                self.persistence_manager.update_instance_status(
+                    instance_id, DBInstanceStatus.UNHEALTHY
+                )
+        
         return is_healthy
+    
+    async def restore_from_database(self):
+        """Restore instances from database on startup"""
+        if not self.persistence_manager:
+            logger.info("No persistence manager, skipping instance restoration")
+            return
+        
+        logger.info("Restoring instances from database...")
+        try:
+            # Get all instances from database
+            db_instances = self.persistence_manager.get_all_instances()
+            
+            for instance_data in db_instances:
+                try:
+                    instance_id = instance_data.get('id')
+                    model_name = instance_data.get('model')
+                    
+                    # Skip if instance already in memory
+                    if instance_id and instance_id in self.instances:
+                        continue
+                    
+                    # Only restore instances that were running
+                    status = instance_data.get('status')
+                    if status != 'running' and status != DBInstanceStatus.RUNNING.value:
+                        logger.info(f"Skipping instance '{instance_id}' with status {status}")
+                        continue
+                    
+                    # Check if model is loaded
+                    if not self.model_manager.is_model_loaded(model_name):
+                        logger.warning(f"Model '{model_name}' not loaded, skipping instance '{instance_id}'")
+                        continue
+                    
+                    # Try to restart the instance
+                    logger.info(f"Attempting to restart instance '{instance_id}'")
+                    try:
+                        # Allocate the same port if available
+                        port = instance_data.get('port')
+                        allocated_port = self.port_manager.allocate_port(port)
+                        
+                        # Create instance info
+                        instance_info = InstanceInfo(
+                            instance_id=instance_id,
+                            model_name=model_name,
+                            port=allocated_port
+                        )
+                        instance_info.config = instance_data.get('config') or {}
+                        
+                        # Start process
+                        process_info = await self.process_manager.start_process(
+                            instance_id=instance_id,
+                            model_name=model_name,
+                            port=allocated_port,
+                            config=instance_data.get('config')
+                        )
+                        
+                        instance_info.process_info = process_info
+                        
+                        # Update persistence with new PID
+                        if process_info:
+                            self.persistence_manager.update_instance_status(
+                                instance_id, DBInstanceStatus.STARTING, 
+                                pid=process_info.pid
+                            )
+                            self.persistence_manager.increment_restart_count(instance_id)
+                        
+                        # Wait for instance to be ready
+                        import asyncio
+                        for _ in range(30):  # 30 seconds timeout
+                            if await self.process_manager.check_health(instance_id):
+                                instance_info.status = "running"
+                                self.persistence_manager.update_instance_status(
+                                    instance_id, DBInstanceStatus.RUNNING
+                                )
+                                break
+                            await asyncio.sleep(1)
+                        else:
+                            logger.error(f"Instance '{instance_id}' failed to restart")
+                            self.persistence_manager.update_instance_status(
+                                instance_id, DBInstanceStatus.ERROR,
+                                health_error="Failed to restart after system restart"
+                            )
+                            continue
+                        
+                        # Store instance
+                        self.instances[instance_id] = instance_info
+                        logger.info(f"Successfully restarted instance '{instance_id}'")
+                        
+                    except Exception as e:
+                        logger.error(f"Failed to restart instance '{instance_id}': {e}")
+                        self.persistence_manager.update_instance_status(
+                            instance_id, DBInstanceStatus.ERROR,
+                            health_error=f"Failed to restart: {str(e)}"
+                        )
+                        
+                except Exception as e:
+                    logger.error(f"Error processing instance '{instance_id}': {e}")
+                    
+            logger.info(f"Restored {len(self.instances)} instances from database")
+            
+        except Exception as e:
+            logger.error(f"Failed to restore instances from database: {e}")

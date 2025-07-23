@@ -1,0 +1,25 @@
+# Web Framework
+fastapi
+uvicorn[standard]
+
+# ORM and Database
+sqlalchemy[asyncio]
+# Use 'psycopg2-binary' for PostgreSQL or 'aiosqlite' for SQLite in async mode
+aiosqlite
+alembic              # For database migrations
+
+# Data Validation
+pydantic
+pydantic-settings
+email-validator
+
+# Security and Authentication
+passlib[bcrypt]
+python-jose[cryptography]
+python-multipart     # For OAuth2PasswordRequestForm
+
+# Testing
+pytest
+pytest-cov
+httpx                # For TestClient
+pytest-asyncio       # For async tests
