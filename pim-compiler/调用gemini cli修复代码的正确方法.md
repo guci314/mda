@@ -235,7 +235,7 @@ def _fix_with_gemini_advanced(self, code_dir: str, error_info: Dict[str, Any]):
         
         # 调用 Gemini CLI
         result = subprocess.run(
-            ["gemini", "-p", prompt, "-m", "gemini-2.5-pro"],
+            ["gemini", "-p", prompt, "-m", "gemini-2.0-flash-exp"],
             capture_output=True,
             text=True,
             timeout=300  # 5分钟超时
@@ -318,7 +318,7 @@ def generate_code_from_psm_with_gemini(psm_file: Path, output_dir: Path) -> bool
     
     # 调用 Gemini CLI
     result = subprocess.run(
-        ["gemini", "-m", "gemini-2.5-pro", "-p", prompt, "-y"],
+        ["gemini", "-m", "gemini-2.0-flash-exp", "-p", prompt, "-y"],
         capture_output=True,
         text=True,
         env=env,

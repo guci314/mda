@@ -43,7 +43,7 @@ GEMINI_API_KEY=your-api-key
 GOOGLE_API_KEY=your-google-api-key
 
 # 可选：指定模型
-GEMINI_MODEL=gemini-2.0-flash-exp  # 或 gemini-2.5-pro
+GEMINI_MODEL=gemini-2.0-flash-exp  # 或 models/gemini-2.5-flash
 ```
 
 ### 3. 创建 PIM 文件

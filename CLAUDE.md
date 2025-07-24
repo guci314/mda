@@ -484,6 +484,115 @@ tail -f test_results.log | grep -E "(PASSED|FAILED|ERROR)"
 - These operations cannot be interrupted or they'll fail
 - Background execution prevents timeout issues
 
+## PIM Compiler v3.0 (Pure Gemini CLI)
+
+### Overview
+PIM Compiler v3.0 is a pure Gemini CLI-based MDA compiler that generates production-ready FastAPI applications from Platform Independent Models (PIM).
+
+### Key Features
+- **Pure Gemini CLI**: Uses Gemini CLI directly without Python SDK dependencies
+- **Auto-fixing**: Automatically fixes compilation errors with intelligent retry
+- **Application Verification**: Ensures generated apps can start successfully
+- **REST Endpoint Testing**: Validates core endpoints work correctly
+- **Background Execution**: Supports long-running compilations
+
+### Finding Log Locations
+```bash
+# 1. Find recent compilation logs in pim-compiler directory
+cd /home/guci/aiProjects/mda/pim-compiler
+ls -lt *.log | head -10  # List recent log files by modification time
+
+# 2. Find active compilation processes and their logs
+ps aux | grep -E "python.*compile" | grep -v grep  # Find compilation process
+# The log file is usually specified after '>' in the command
+
+# 3. Find Gemini logs for specific compilation
+# Pattern: compiled_output/<model_name>/generated/<model_name>/gemini.log
+find compiled_output -name "gemini.log" -type f -mtime -1  # Modified in last 24h
+
+# 4. Monitor the most recent compilation log
+tail -f $(ls -t *.log | head -1)  # Follow newest log file
+
+# 5. Quick status check of recent compilation
+# Find and check the latest log
+latest_log=$(ls -t *.log | head -1)
+if [ -f "$latest_log" ]; then
+    echo "Checking $latest_log"
+    tail -50 "$latest_log" | grep -E "(Compilation completed|failed|ERROR|Step)"
+fi
+
+# 6. Find all Gemini fixing attempts across all compilations
+find compiled_output -name "gemini.log" -exec grep -l "GEMINI CLI PROMPT" {} \;
+
+# 7. Common log patterns to search for
+# - "Step 1: Generating PSM" - PSM generation started
+# - "PSM generated in" - PSM generation completed
+# - "Step 2: Generating code" - Code generation started
+# - "Code generated in" - Code generation completed
+# - "Application started successfully" - App startup succeeded
+# - "Compilation completed successfully" - Full success
+# - "ERROR" - Any errors
+```
+
+### Compilation Process
+1. **PSM Generation**: Converts PIM to Platform Specific Model
+2. **Code Generation**: Gemini generates FastAPI code from PSM
+3. **Auto-fixing**: Fixes errors through iterative Gemini calls
+4. **Application Startup**: Verifies app can start (max 10 attempts)
+5. **REST Testing**: Tests key endpoints
+
+### Known Issues and Solutions
+
+#### Command Line Length Limit
+- **Problem**: Linux has ~128KB limit for command arguments
+- **Solution**: Compiler uses file-based approach for prompts >50KB
+- **Implementation**: Saves prompt to `prompt.txt`, Gemini reads from file
+
+#### Attention Focus
+- **Problem**: Long prompts cause Gemini to lose focus
+- **Solution**: Simplified prompts + GEMINI_KNOWLEDGE.md reference
+- **Example**: "根据 {psm_file.name} 文件生成 FastAPI 代码。参考 GEMINI_KNOWLEDGE.md 中的规范。"
+
+### Configuration
+```bash
+# .env file in pim-compiler directory
+GEMINI_MODEL=models/gemini-2.5-flash  # Current model (do NOT hardcode in source)
+PROXY_HOST=localhost
+PROXY_PORT=7890
+```
+
+### Usage Example
+```bash
+cd /home/guci/aiProjects/mda/pim-compiler
+
+# Choose a descriptive log name based on model and timestamp
+LOG_FILE="${MODEL_NAME}_compile_$(date +%Y%m%d_%H%M%S).log"
+
+# Compile in background (recommended for large models)
+nohup python -m compiler.cli compile examples/smart_hospital_system.md \
+    --output ./compiled_output/smart_hospital_system \
+    --platform fastapi > "$LOG_FILE" 2>&1 &
+
+# Save PID for monitoring
+echo $! > "${MODEL_NAME}_compile.pid"
+
+# Monitor progress
+tail -f "$LOG_FILE" | grep -E "(Step|generated|Fixed|Compilation)"
+
+# Check if still running
+ps -p $(cat "${MODEL_NAME}_compile.pid") > /dev/null && echo "Still running" || echo "Completed"
+
+# Quick way to find your log later
+ls -lt *_compile_*.log | head -5  # Find recent compilation logs
+```
+
+### Performance Stats (Hospital System)
+- **PSM Generation**: ~4 minutes
+- **Code Generation**: ~7 minutes  
+- **Total Time**: ~11-12 minutes
+- **Files Generated**: 140+ files
+- **Success Rate**: 95%+ with auto-fixing
+
 ## Troubleshooting
 
 ### Engine Won't Start

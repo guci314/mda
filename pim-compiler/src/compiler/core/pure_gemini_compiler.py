@@ -19,6 +19,24 @@ from compiler.config import CompilerConfig
 from utils.logger import get_logger
 from .error_pattern_cache import ErrorPatternCache
 from .incremental_fixer import IncrementalFixer
+from .prompts import (
+    PSM_GENERATION_PROMPT,
+    CODE_GENERATION_PROMPT,
+    TEST_FIX_PROMPT,
+    FIX_HISTORY_APPEND,
+    LINT_FIX_MANY_ERRORS_PROMPT,
+    LINT_FIX_FEW_ERRORS_PROMPT,
+    STARTUP_FIX_PROMPT,
+    INCREMENTAL_FIX_PROMPT,
+    FILE_SPECIFIC_FIX_PROMPT,
+    API_ERROR_PATTERNS,
+    CRITICAL_LINT_ERROR_CODES,
+    ERROR_TYPE_MAPPING,
+    PLATFORM_FRAMEWORKS,
+    PLATFORM_ORMS,
+    PLATFORM_VALIDATORS,
+    PLATFORM_TEST_FRAMEWORKS
+)
 
 logger = get_logger(__name__)
 
@@ -82,8 +100,6 @@ class PureGeminiCompiler:
     
     def compile(self, pim_file: Path) -> CompilationResult:
         """编译 PIM 文件"""
-        print("我是经过验证的编译器")
-        logger.info("我是经过验证的编译器")
         start_time = datetime.now()
         
         try:
@@ -109,6 +125,19 @@ class PureGeminiCompiler:
             # 复制 PIM 文件到项目根目录
             pim_copy = code_dir / pim_file.name
             shutil.copy2(pim_file, pim_copy)
+            
+            # 复制知识库文件到项目根目录
+            # 首先尝试从pim-compiler目录查找
+            knowledge_file = Path(__file__).parent.parent.parent / "GEMINI_KNOWLEDGE.md"
+            if not knowledge_file.exists():
+                # 如果不存在，尝试从当前工作目录查找
+                knowledge_file = Path.cwd() / "GEMINI_KNOWLEDGE.md"
+            
+            if knowledge_file.exists():
+                shutil.copy2(knowledge_file, code_dir / "GEMINI_KNOWLEDGE.md")
+                logger.info(f"Copied knowledge file to {code_dir / 'GEMINI_KNOWLEDGE.md'}")
+            else:
+                logger.warning(f"Knowledge file not found at {knowledge_file}")
             
             # 步骤 1: 使用 Gemini CLI 生成 PSM，直接放在项目根目录
             logger.info("Step 1: Generating PSM with Gemini CLI...")
@@ -203,63 +232,37 @@ class PureGeminiCompiler:
     
     def _generate_psm(self, pim_file: Path, psm_file: Path, work_dir: Path) -> bool:
         """使用 Gemini CLI 生成 PSM"""
-        logger.info("=" * 80)
-        logger.info("PSM GENERATION DETAILS:")
-        logger.info(f"  1. PIM source file (absolute): {pim_file.resolve()}")
-        logger.info(f"  2. Expected PSM output (absolute): {psm_file.resolve()}")
-        logger.info(f"  3. Working directory (absolute): {work_dir.resolve()}")
-        logger.info(f"  4. PSM parent directory (absolute): {psm_file.parent.resolve()}")
-        logger.info("=" * 80)
+        logger.info(f"Generating PSM from {pim_file.name} in {work_dir}")
         
         platform = self.config.target_platform
         framework = self._get_framework_for_platform()
         
-        # 读取PIM文件内容
-        try:
-            pim_content = pim_file.read_text(encoding='utf-8')
-        except Exception as e:
-            logger.error(f"Failed to read PIM file: {e}")
+        # 确保 PIM 文件存在
+        if not pim_file.exists():
+            logger.error(f"PIM file not found: {pim_file}")
             return False
         
-        prompt = f"""你是一个专业的软件架构师，精通模型驱动架构（MDA）。
-
-当前工作目录的绝对路径是: {work_dir.resolve()}
-
-我有以下平台无关模型（PIM）内容：
-
-```markdown
-{pim_content}
-```
-
-请将这个 PIM 转换为 {platform} 平台的平台特定模型（PSM）。
-
-要求：
-1. 仔细阅读 PIM 文件，理解所有业务需求
-2. 生成详细的 PSM 文档，包含以下部分：
-   - 技术架构说明（使用 {framework} 框架）
-   - 数据模型设计（包含具体字段类型、约束、索引、关系）
-   - API 接口设计（RESTful，包含路由、请求/响应格式、状态码）
-   - 业务逻辑实现方案（服务层设计）
-   - 项目结构说明
-   - 技术栈和依赖列表
-3. 使用 Markdown 格式，包含代码示例
-4. 保持技术中立的业务逻辑，只添加平台特定的技术实现细节
-
-技术要求：
-- 框架：{framework}
-- 数据库：SQLite（开发和测试环境默认使用，生产环境可选PostgreSQL）
-- ORM：{self._get_orm_for_platform()}
-- 数据验证：{self._get_validation_lib_for_platform()}
-- 测试框架：{self._get_test_framework_for_platform()}
-
-数据库配置要求：
-- 默认使用 SQLite，数据库文件路径：`./app.db`
-- 在 config.py 中的 DATABASE_URL 默认值应该是：`sqlite:///./app.db`
-- 不要使用 PostgreSQL 作为默认数据库，除非PSM中明确要求
-- 确保 Settings 类中的 SECRET_KEY 有默认值或标记为可选
-
-请生成完整、专业的 PSM 文档并保存为 {psm_file.name} 文件。
-"""
+        # 将 PIM 文件复制到工作目录，确保 Gemini 可以访问
+        work_pim_file = work_dir / pim_file.name
+        try:
+            # 只有当源文件和目标文件不同时才复制
+            if pim_file.resolve() != work_pim_file.resolve():
+                shutil.copy2(pim_file, work_pim_file)
+                logger.info(f"Copied PIM file to work directory: {work_pim_file}")
+            else:
+                logger.info(f"PIM file already in work directory: {work_pim_file}")
+        except Exception as e:
+            logger.error(f"Failed to copy PIM file to work directory: {e}")
+            return False
+        
+        prompt = PSM_GENERATION_PROMPT.format(
+            pim_file=work_pim_file.name,
+            platform=platform,
+            psm_file=psm_file.name,
+            framework=framework,
+            orm=self._get_orm_for_platform(),
+            validation_lib=self._get_validation_lib_for_platform()
+        )
         
         # 重试机制：最多尝试3次
         max_attempts = 3
@@ -292,47 +295,22 @@ class PureGeminiCompiler:
         
         # 检查PSM文件是否被创建
         if success and not psm_file.exists():
-            logger.warning("PSM file not created at expected location, searching...")
+            logger.warning("PSM file not created at expected location")
+            # 检查最常见的备选位置
+            alt_psm = work_dir / f"{pim_file.stem}_psm_psm.md"
+            if alt_psm.exists():
+                logger.info(f"Found PSM file at {alt_psm}, moving to {psm_file}")
+                shutil.move(str(alt_psm), str(psm_file))
+                return True
             
-            # 列出工作目录的内容
-            logger.info("Listing work_dir contents:")
-            for item in work_dir.rglob("*"):
-                if item.is_file():
-                    logger.info(f"  File: {item.relative_to(work_dir)}")
-            
-            # 检查工作目录中是否有生成的PSM文件
-            possible_files = [
-                work_dir / psm_file.name,
-                work_dir / f"{pim_file.stem}_psm.md",
-                work_dir / "psm" / psm_file.name,
-                work_dir / "psm" / f"{pim_file.stem}_psm_psm.md",  # Gemini可能添加额外的_psm
-                psm_file.parent / f"{pim_file.stem}_psm_psm.md",  # 在目标目录检查
-            ]
-            
-            logger.info("Checking possible PSM locations:")
-            for possible_file in possible_files:
-                logger.info(f"  Checking: {possible_file} (exists={possible_file.exists()})")
-                if possible_file.exists():
-                    logger.info(f"Found PSM file at {possible_file}, moving to {psm_file}")
-                    import shutil
-                    psm_file.parent.mkdir(parents=True, exist_ok=True)
-                    shutil.move(str(possible_file), str(psm_file))
-                    logger.info(f"PSM file moved successfully to: {psm_file}")
-                    return True
-                    
-            logger.error("PSM file was not created in any expected location")
+            logger.error("PSM file was not created")
             return False
             
         return success
     
     def _generate_code(self, psm_file: Path, code_dir: Path, work_dir: Path) -> bool:
         """使用 Gemini CLI 生成代码"""
-        logger.info("=" * 80)
-        logger.info("CODE GENERATION DETAILS:")
-        logger.info(f"  1. PSM source file (absolute): {psm_file.resolve()}")
-        logger.info(f"  2. Code output directory (absolute): {code_dir.resolve()}")
-        logger.info(f"  3. Working directory (absolute): {work_dir.resolve()}")
-        logger.info("=" * 80)
+        logger.info(f"Generating code from {psm_file.name} to {code_dir}")
         
         platform = self.config.target_platform
         framework = self._get_framework_for_platform()
@@ -344,197 +322,12 @@ class PureGeminiCompiler:
             logger.error(f"Failed to read PSM file: {e}")
             return False
         
-        # 获取项目名称（从 code_dir 名称推断）
-        project_name = code_dir.name.replace('_', '-')
-        
-        # 获取 PIM 文件名
-        pim_filename = psm_file.name.replace('_psm.md', '.md')
-        
-        prompt = f"""你是一个专业的 {platform} 开发工程师，精通 {framework} 框架。
-
-当前工作目录的绝对路径是: {work_dir.resolve()}
-
-当前目录中有：
-- {pim_filename} - 原始的平台无关模型（PIM）
-- {psm_file.name} - 平台特定模型（PSM）
-
-我有以下平台特定模型（PSM）内容：
-
-```markdown
-{psm_content}
-```
-
-{self._get_fix_guidelines()}
-
-请根据这个 PSM 生成完整的 {platform} 微服务代码实现。
-
-**项目结构要求**：
-当前目录就是项目根目录，直接在当前目录下创建所有项目文件和目录。
-
-**FastAPI 微服务必须包含的文件结构**：
-```
-./
-├── main.py                 # 应用程序入口点（必须）
-├── requirements.txt        # Python 依赖列表（必须）
-├── README.md              # 项目说明文档（必须）
-├── .env.example           # 环境变量示例（必须）
-├── .gitignore             # Git 忽略文件（必须）
-├── alembic.ini            # 数据库迁移配置（如果使用数据库）
-├── app/                   # 应用主目录（必须）
-│   ├── __init__.py
-│   ├── main.py            # FastAPI 应用实例（必须）
-│   ├── api/               # API 路由目录（必须）
-│   │   ├── __init__.py
-│   │   ├── v1/
-│   │   │   ├── __init__.py
-│   │   │   ├── api.py     # API 路由聚合（必须）
-│   │   │   └── endpoints/ # 端点目录（必须）
-│   │   │       ├── __init__.py
-│   │   │       ├── auth.py    # 认证相关端点（如果需要认证）
-│   │   │       └── [其他端点文件]
-│   ├── core/              # 核心配置目录（必须）
-│   │   ├── __init__.py
-│   │   ├── config.py      # 应用配置（必须）
-│   │   └── security.py    # 安全相关（如果需要认证）
-│   ├── models/            # 数据模型目录（必须）
-│   │   ├── __init__.py
-│   │   └── [模型文件]
-│   ├── schemas/           # Pydantic 模型目录（必须）
-│   │   ├── __init__.py
-│   │   └── [schema文件]
-│   ├── services/          # 业务逻辑目录（必须）
-│   │   ├── __init__.py
-│   │   └── [服务文件]
-│   ├── crud/              # CRUD 操作目录（如果使用数据库）
-│   │   ├── __init__.py
-│   │   └── [CRUD文件]
-│   └── db/                # 数据库相关（如果使用数据库）
-│       ├── __init__.py
-│       ├── base.py        # 数据库基类
-│       └── session.py     # 数据库会话
-├── tests/                 # 测试目录（必须）
-│   ├── __init__.py
-│   ├── conftest.py        # pytest 配置（必须）
-│   ├── unit/              # 单元测试
-│   │   ├── __init__.py
-│   │   └── test_[模块].py
-│   └── api/               # API 测试
-│       ├── __init__.py
-│       └── test_[端点].py
-└── alembic/               # 数据库迁移目录（如果使用数据库）
-    └── versions/
-```
-
-**关键文件内容要求**：
-
-1. **根目录的 main.py**（必须）：
-   ```python
-   #!/usr/bin/env python3
-   import uvicorn
-   from app.main import app
-   
-   if __name__ == "__main__":
-       uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)
-   ```
-
-2. **app/main.py**（必须）：
-   ```python
-   from fastapi import FastAPI
-   from fastapi.middleware.cors import CORSMiddleware
-   from app.api.v1.api import api_router
-   from app.core.config import settings
-   
-   app = FastAPI(
-       title=settings.PROJECT_NAME,
-       version=settings.VERSION,
-       openapi_url=f"{{settings.API_V1_STR}}/openapi.json"
-   )
-   
-   # 配置 CORS
-   app.add_middleware(
-       CORSMiddleware,
-       allow_origins=["*"],
-       allow_credentials=True,
-       allow_methods=["*"],
-       allow_headers=["*"],
-   )
-   
-   # 包含路由
-   app.include_router(api_router, prefix=settings.API_V1_STR)
-   ```
-
-3. **app/core/config.py**（必须）：
-   必须包含完整的配置管理，使用 pydantic-settings
-
-4. **app/api/v1/api.py**（必须）：
-   必须聚合所有端点路由
-
-5. **tests/conftest.py**（必须）：
-   必须包含测试配置和 fixtures
-
-**实现要求**：
-1. 必须实现 PSM 中描述的所有功能，不能只生成框架代码
-2. 每个实体必须有对应的：
-   - SQLAlchemy 模型（在 app/models/ 中）
-   - Pydantic Schema（在 app/schemas/ 中）
-   - CRUD 操作（在 app/crud/ 中）
-   - API 端点（在 app/api/v1/endpoints/ 中）
-   - 业务逻辑（在 app/services/ 中）
-   - 单元测试（在 tests/ 中）
-
-3. 使用最新版本的库语法：
-   - **Pydantic v2+**: 
-     * 使用 `model_config = ConfigDict(...)` 而不是内部 `Config` 类
-     * 使用 `field_validator` 装饰器进行字段验证
-     * 使用 `model_dump()` 而不是 `dict()`
-     * 示例：
-       ```python
-       from pydantic import BaseModel, ConfigDict, field_validator
-       
-       class UserBase(BaseModel):
-           model_config = ConfigDict(from_attributes=True)
-           
-           email: str
-           
-           @field_validator('email')
-           @classmethod
-           def validate_email(cls, v: str) -> str:
-               # 验证逻辑
-               return v
-       ```
-     * Settings 类示例：
-       ```python
-       from pydantic_settings import BaseSettings, SettingsConfigDict
-       
-       class Settings(BaseSettings):
-           model_config = SettingsConfigDict(env_file=".env", case_sensitive=True)
-           
-           PROJECT_NAME: str = "My API"
-           SECRET_KEY: str
-       ```
-   - **SQLAlchemy 2.0+**: 
-     * 使用 `Mapped` 和 `mapped_column` 进行类型注解
-     * 使用新的查询语法
-   - **FastAPI**: 使用最新的依赖注入方式
-
-4. 必须包含完整的错误处理、日志记录和安全功能
-
-**重要提醒**：
-- 不要创建虚拟环境或安装依赖
-- 必须生成所有列出的必需文件，不能遗漏
-- 代码必须是完整可运行的，不是框架或示例
-- 使用绝对导入，从 app 开始（例如：from app.models import User）
-- **Pydantic v2 注意事项**：
-  * 绝对不要同时使用 `Config` 类和 `model_config`，会导致错误
-  * 使用 `from pydantic_settings import BaseSettings` 而不是 `from pydantic import BaseSettings`
-  * 字段验证器必须使用 `@field_validator` 装饰器，不要使用旧的 `@validator`
-  * 确保所有 Pydantic 模型都使用 v2 语法
-
-现在请生成完整的 FastAPI 微服务代码。
-"""
+        # 简化的提示词，只告诉 Gemini PSM 文件位置和知识库
+        prompt = CODE_GENERATION_PROMPT.format(psm_file=psm_file.name)
         
         return self._execute_gemini_cli(prompt, work_dir, timeout=600, monitor_progress=True, target_dir=code_dir)
     
+       
     def _execute_gemini_cli(self, prompt: str, work_dir: Path, timeout: int = 300, 
                             monitor_progress: bool = False, target_dir: Optional[Path] = None) -> bool:
         """执行 Gemini CLI 命令，支持 API 500 错误重试"""
@@ -572,7 +365,7 @@ class PureGeminiCompiler:
                         log_file.write(f"=== GEMINI CLI PROMPT ===\n{prompt}\n\n=== GEMINI CLI OUTPUT ===\n")
                         log_file.flush()
                         
-                        # 运行命令并实时写入日志
+                        # 直接使用提示词，不再判断长度
                         process = subprocess.Popen(
                             [self.gemini_cli_path, "-m", model, "-p", prompt, "-y"],
                             stdout=subprocess.PIPE,
@@ -660,15 +453,7 @@ class PureGeminiCompiler:
         if not error_text:
             return False
         
-        # 检查多种 API 500 错误模式
-        api_error_patterns = [
-            "status: INTERNAL",
-            "code\":500",
-            "Internal error has occurred",
-            "API Error: got status: INTERNAL"
-        ]
-        
-        return any(pattern in error_text for pattern in api_error_patterns)
+        return any(pattern in error_text for pattern in API_ERROR_PATTERNS)
     
     def _execute_with_monitoring(self, prompt: str, work_dir: Path, env: dict, 
                                 model: str, timeout: int, target_dir: Path) -> tuple[bool, bool]:
@@ -682,6 +467,7 @@ class PureGeminiCompiler:
             log_file.write(f"=== GEMINI CLI PROMPT ===\n{prompt}\n\n=== GEMINI CLI OUTPUT ===\n")
             log_file.flush()
             
+            # 直接使用提示词，不再判断长度
             process = subprocess.Popen(
                 [self.gemini_cli_path, "-m", model, "-p", prompt, "-y"],
                 stdout=subprocess.PIPE,
@@ -783,35 +569,13 @@ class PureGeminiCompiler:
         file_count = len(all_generated_files)
         py_files = [f for f in all_generated_files if f.suffix == ".py"]
         
-        # Log what was generated for debugging
+        # Log summary
         if file_count > 0:
-            logger.info("=" * 80)
-            logger.info("GENERATED FILES SUMMARY:")
-            logger.info(f"Total generated files: {file_count}, including {len(py_files)} Python files")
-            logger.info("Generated file locations:")
-            
-            # 按目录分组显示文件
-            dirs_with_files = {}
-            for f in all_generated_files:
-                parent = f.parent
-                if parent not in dirs_with_files:
-                    dirs_with_files[parent] = []
-                dirs_with_files[parent].append(f)
-            
-            for dir_path, files in sorted(dirs_with_files.items()):
-                logger.info(f"  Directory (absolute): {dir_path.resolve()}")
-                for f in sorted(files)[:5]:  # 每个目录最多显示5个文件
-                    logger.info(f"    - {f.name}")
-                if len(files) > 5:
-                    logger.info(f"    ... and {len(files) - 5} more files")
-            
+            logger.info(f"Generated {file_count} files ({len(py_files)} Python files)")
             # 特别检查测试文件
             test_files = [f for f in all_generated_files if "test" in f.name.lower() or f.parent.name == "tests"]
             if test_files:
-                logger.info(f"Found {len(test_files)} test files:")
-                for test_file in test_files[:3]:
-                    logger.info(f"  - {test_file.resolve()}")
-            logger.info("=" * 80)
+                logger.info(f"Found {len(test_files)} test files")
             
             # Check if main.py exists
             main_py = any("main.py" in f.name for f in py_files)
@@ -825,7 +589,6 @@ class PureGeminiCompiler:
                         try:
                             target_path = target_dir / f.name
                             if not target_path.exists():
-                                import shutil
                                 shutil.move(str(f), str(target_path))
                                 logger.info(f"Moved {f.name} to {target_dir}")
                         except Exception as e:
@@ -1028,37 +791,18 @@ class PureGeminiCompiler:
         # 分析错误类型
         error_types = self._categorize_errors(test_errors)
         
-        prompt = f"""运行 pytest 失败，需要修复测试错误。
-
-这是第 {attempt} 次尝试（最多 5 次）。
-
-错误信息：
-{test_errors}
-
-错误类型分析：
-{', '.join(error_types)}
-
-请分析错误原因并修复代码，确保：
-1. 修复所有测试失败
-2. 不要破坏已通过的测试
-3. 保持代码质量和规范
-4. 优先修复语法错误，然后是导入错误，最后是逻辑错误
-5. **Pydantic v2 相关错误修复**：
-   - 如果遇到 "Config" and "model_config" cannot be used together 错误：
-     * 删除旧的 `class Config:` 内部类
-     * 使用 `model_config = ConfigDict(...)` 替代
-   - 如果遇到 BaseSettings 导入错误：
-     * 使用 `from pydantic_settings import BaseSettings, SettingsConfigDict`
-   - 如果遇到验证器错误：
-     * 使用 `@field_validator` 而不是 `@validator`
-     * 验证器方法需要 `@classmethod` 装饰器
-"""
+        prompt = TEST_FIX_PROMPT.format(
+            attempt=attempt,
+            errors=test_errors,
+            error_types=', '.join(error_types)
+        )
         
         # 如果有修复历史，添加上下文
         if fix_history:
-            prompt += "\n\n之前的修复尝试：\n"
+            history_text = ""
             for fix in fix_history[-2:]:  # 只包含最近2次历史
-                prompt += f"- 第 {fix['attempt']} 次尝试: {'成功' if fix['success'] else '失败'}\n"
+                history_text += f"- 第 {fix['attempt']} 次尝试: {'成功' if fix['success'] else '失败'}\n"
+            prompt += FIX_HISTORY_APPEND.format(fix_history=history_text)
         
         return prompt
     
@@ -1066,18 +810,10 @@ class PureGeminiCompiler:
         """分类错误类型"""
         error_types = []
         
-        if "SyntaxError" in error_output:
-            error_types.append("语法错误")
-        if "ImportError" in error_output or "ModuleNotFoundError" in error_output:
-            error_types.append("导入错误")
-        if "AssertionError" in error_output:
-            error_types.append("断言失败")
-        if "TypeError" in error_output:
-            error_types.append("类型错误")
-        if "AttributeError" in error_output:
-            error_types.append("属性错误")
-        if "NameError" in error_output:
-            error_types.append("名称错误")
+        for error_key, error_name in ERROR_TYPE_MAPPING.items():
+            if error_key in error_output:
+                if error_name not in error_types:
+                    error_types.append(error_name)
         
         if not error_types:
             error_types.append("未知错误")
@@ -1154,12 +890,11 @@ class PureGeminiCompiler:
                     if pattern_match and pattern_match.success_rate > 0.5:
                         # 使用模式模板快速修复
                         logger.info(f"Applying pattern template for {file.path}")
-                        prompt = f"""
-{pattern_match.fix_template}
-
-文件: {file.path}
-具体错误: {file.errors[0].error_message}
-"""
+                        prompt = INCREMENTAL_FIX_PROMPT.format(
+                            fix_template=pattern_match.fix_template,
+                            file_path=file.path,
+                            error_message=file.errors[0].error_message
+                        )
                         fix_applied = self._fix_with_gemini(code_dir, prompt, "pytest", timeout=60)
                         self.error_cache.update_pattern_success_rate(pattern_match, fix_applied)
                     
@@ -1212,21 +947,10 @@ class PureGeminiCompiler:
     
     def _filter_critical_lint_errors(self, lint_errors: str) -> str:
         """过滤出关键的 lint 错误"""
-        critical_error_codes = {
-            'E9',    # 语法错误
-            'E1',    # 缩进错误
-            'E4',    # 导入错误
-            'F821',  # 未定义的名称
-            'F822',  # 未定义的名称在 __all__ 中
-            'F823',  # 局部变量在赋值前使用
-            'F401',  # 导入但未使用（可能影响代码运行）
-            'E999',  # 语法错误
-        }
-        
         critical_lines = []
         for line in lint_errors.strip().split('\n'):
             # 检查是否包含关键错误代码
-            for error_code in critical_error_codes:
+            for error_code in CRITICAL_LINT_ERROR_CODES:
                 if f" {error_code}" in line:
                     critical_lines.append(line)
                     break
@@ -1251,21 +975,11 @@ class PureGeminiCompiler:
     
     def _run_tests(self, code_dir: Path) -> tuple[bool, Optional[str]]:
         """运行单元测试"""
-        logger.info("=" * 80)
-        logger.info("TEST EXECUTION DETAILS:")
-        logger.info(f"  1. Code directory (absolute): {code_dir.resolve()}")
-        logger.info(f"  2. Expected test location (absolute): {(code_dir / 'tests').resolve()}")
-        
         # 查找实际的项目目录
         project_dir = self._find_project_directory(code_dir)
         if project_dir and project_dir != code_dir:
-            logger.info(f"  3. Found project directory (absolute): {project_dir.resolve()}")
-            logger.info(f"  4. Using test location (absolute): {(project_dir / 'tests').resolve()}")
+            logger.info(f"Found project directory: {project_dir}")
             code_dir = project_dir
-        else:
-            logger.info(f"  3. Using original code_dir for tests")
-        
-        logger.info("=" * 80)
         
         try:
             test_dir = code_dir / "tests"
@@ -1311,29 +1025,12 @@ class PureGeminiCompiler:
             
             if error_count > 20:
                 logger.warning(f"Too many lint errors ({error_count}), will fix only critical ones")
-                prompt = f"""在当前目录中有 Python 代码需要修复 lint 错误。
-
-错误信息（前20个）：
-{chr(10).join(error_lines[:20])}
-...还有 {error_count - 20} 个错误
-
-请只修复以下类型的关键错误：
-1. 语法错误（E9xx）
-2. 缩进错误（E1xx）
-3. 导入错误（E4xx）
-4. 未定义变量（F821）
-
-暂时忽略格式化相关的错误（如行太长、空格问题等），这些可以后续用自动化工具处理。
-"""
+                prompt = LINT_FIX_MANY_ERRORS_PROMPT.format(
+                    errors=chr(10).join(error_lines[:20]),
+                    remaining_count=error_count - 20
+                )
             else:
-                prompt = f"""在当前目录中有 Python 代码需要修复 lint 错误。
-
-错误信息：
-{error_msg}
-
-请修复所有 flake8 报告的问题，确保代码符合 PEP 8 规范。
-重点修复会影响代码运行的错误，格式问题可以快速修复。
-"""
+                prompt = LINT_FIX_FEW_ERRORS_PROMPT.format(errors=error_msg)
         elif error_type == "startup":
             # error_type == "startup" 时，error_msg 已经是完整的修复提示词
             prompt = error_msg
@@ -1348,185 +1045,20 @@ class PureGeminiCompiler:
     
     def _get_framework_for_platform(self) -> str:
         """获取平台对应的框架"""
-        frameworks = {
-            "fastapi": "FastAPI",
-            "django": "Django",
-            "flask": "Flask",
-            "spring": "Spring Boot",
-            "express": "Express.js"
-        }
-        return frameworks.get(self.config.target_platform.lower(), "FastAPI")
+        return PLATFORM_FRAMEWORKS.get(self.config.target_platform.lower(), "FastAPI")
     
     def _get_orm_for_platform(self) -> str:
         """获取平台对应的 ORM"""
-        orms = {
-            "fastapi": "SQLAlchemy 2.0",
-            "django": "Django ORM",
-            "flask": "SQLAlchemy 2.0",
-            "spring": "JPA/Hibernate",
-            "express": "Sequelize or TypeORM"
-        }
-        return orms.get(self.config.target_platform.lower(), "SQLAlchemy")
+        return PLATFORM_ORMS.get(self.config.target_platform.lower(), "SQLAlchemy")
     
     def _get_validation_lib_for_platform(self) -> str:
         """获取平台对应的验证库"""
-        validators = {
-            "fastapi": "Pydantic v2",
-            "django": "Django Forms/Serializers",
-            "flask": "Marshmallow or Pydantic",
-            "spring": "Bean Validation",
-            "express": "Joi or Yup"
-        }
-        return validators.get(self.config.target_platform.lower(), "Pydantic")
+        return PLATFORM_VALIDATORS.get(self.config.target_platform.lower(), "Pydantic")
     
     def _get_test_framework_for_platform(self) -> str:
         """获取平台对应的测试框架"""
-        tests = {
-            "fastapi": "pytest",
-            "django": "Django TestCase + pytest",
-            "flask": "pytest",
-            "spring": "JUnit 5",
-            "express": "Jest or Mocha"
-        }
-        return tests.get(self.config.target_platform.lower(), "pytest")
+        return PLATFORM_TEST_FRAMEWORKS.get(self.config.target_platform.lower(), "pytest")
     
-    def _get_fix_guidelines(self) -> str:
-        """获取代码修复指南"""
-        return """
-## 重要提示：常见问题和解决方案
-
-### 1. 网络请求问题
-- 使用 curl 测试本地服务时，必须添加 `--noproxy localhost` 参数
-  ```bash
-  curl --noproxy localhost http://localhost:8000/api/v1/users
-  ```
-
-### 2. Python/FastAPI 常见问题
-- **循环导入**：使用 TYPE_CHECKING 和前向引用
-- **Pydantic v2**：使用 `model_config` 而不是内部 `Config` 类
-- **日期类型**：SQLAlchemy 使用 `Date`，Pydantic 使用 `date`
-- **异步函数**：FastAPI 路由应使用 `async def`
-
-### 3. 项目结构
-- 所有代码必须放在 `app/` 目录下
-- 使用绝对导入：`from app.models import User`
-- 确保所有目录都有 `__init__.py` 文件
-
-### 4. 依赖管理
-- 确保 requirements.txt 包含所有必要的包
-- 使用最新版本的库语法
-
-### 5. FastAPI 配置
-- 如果使用自定义 API 路径前缀（如 `/api/v1`），OpenAPI 文档路径会相应改变
-- 例如：`openapi_url=f"{settings.API_V1_STR}/openapi.json"` 会使文档位于 `/api/v1/openapi.json`
-- 测试时注意使用正确的路径，不要测试默认的 `/openapi.json`
-"""
-    
-    def _create_project_gemini_md(self, code_dir: Path) -> None:
-        """为生成的项目创建 GEMINI.md 文件
-        
-        注意：这个文件是为了指导 Gemini CLI 修复生成的代码，
-        包含的是通用的 Python/FastAPI 编程知识，而不是 PIM Compiler 特定的知识。
-        """
-        gemini_md_content = f"""# GEMINI.md
-
-This file provides guidance for working with this generated project.
-
-## Generated Project Context
-
-This is a generated FastAPI project. 
-- Source: {code_dir.name}.md
-- Platform: FastAPI with SQLAlchemy and Pydantic v2
-- Database: SQLite for development, PostgreSQL for production
-
-## Common Issues and Solutions
-
-### 1. Import Errors
-- Check if `__init__.py` files exist in all packages
-- Ensure all models/schemas are exported in their `__init__.py`
-- Use correct import paths (relative vs absolute)
-
-### 2. Circular Import Issues
-```python
-from __future__ import annotations
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from .other_module import OtherClass
-```
-
-### 3. Missing Dependencies
-Check requirements.txt and install missing packages:
-```bash
-pip install python-multipart  # Often needed for FastAPI
-```
-
-### 4. Database Issues
-- Date fields should use `date` type, not `str`
-- Enums should match between models and schemas
-- Foreign keys should reference existing tables
-
-### 5. Pydantic v2
-Use ConfigDict instead of Config class:
-```python
-from pydantic import ConfigDict
-model_config = ConfigDict(from_attributes=True)
-```
-
-### 6. Testing
-When testing endpoints, use:
-```bash
-curl --noproxy localhost http://localhost:8100/endpoint
-```
-
-## Fix Priority
-1. Syntax errors (blocks execution)
-2. Import errors (blocks module loading)
-3. Type errors (may cause runtime failures)
-4. Lint warnings (code quality)
-
-## Project Structure
-Always maintain this structure:
-```
-app/
-├── api/
-│   └── v1/
-│       ├── api.py          # Router aggregation
-│       └── endpoints/      # Individual endpoints
-├── core/
-│   ├── config.py          # Settings
-│   └── security.py        # Auth logic
-├── crud/                  # Database operations
-├── db/
-│   ├── base.py           # Import all models
-│   └── session.py        # Database session
-├── models/               # SQLAlchemy models
-├── schemas/              # Pydantic schemas
-└── main.py               # FastAPI app
-```
-
-## Quick Start
-```bash
-# Install dependencies
-pip install -r requirements.txt
-pip install python-multipart
-
-# Initialize database
-python -c "from sqlalchemy import create_engine; from app.db.base import Base; from app.core.config import settings; engine = create_engine(settings.DATABASE_URL); Base.metadata.create_all(bind=engine)"
-
-# Start application
-uvicorn app.main:app --host 0.0.0.0 --port 8100
-```
-
-## Debug Tips
-- Check logs: `tail -f server.log`
-- Test imports: `python -c "from app.models import User"`
-- List routes: `python -c "from app.main import app; print([r.path for r in app.routes])"`
-"""
-        
-        gemini_md_path = code_dir / "GEMINI.md"
-        gemini_md_path.write_text(gemini_md_content, encoding='utf-8')
-        logger.info(f"Created GEMINI.md for generated project at {gemini_md_path}")
     
     def _run_application(self, code_dir: Path) -> Dict[str, Any]:
         """运行生成的应用程序，包含修复反馈循环"""
@@ -1659,35 +1191,6 @@ uvicorn app.main:app --host 0.0.0.0 --port 8100
                     "expected_status": [200]
                 })
             
-            # 对于 FastAPI，尝试检测可用的端点
-            if self.config.target_platform.lower() == "fastapi":
-                # 尝试获取 OpenAPI schema
-                try:
-                    response = subprocess.run(
-                        f"curl --noproxy localhost -s http://localhost:{port}/api/v1/openapi.json",
-                        shell=True,
-                        capture_output=True,
-                        text=True,
-                        timeout=5
-                    )
-                    if response.returncode == 0 and response.stdout:
-                        # 简单解析找到端点
-                        if "patients" in response.stdout:
-                            test_cases.append({
-                                "name": "List patients",
-                                "method": "GET",
-                                "url": f"http://localhost:{port}/api/v1/patients/",
-                                "expected_status": [200]
-                            })
-                        if "doctors" in response.stdout:
-                            test_cases.append({
-                                "name": "List doctors",
-                                "method": "GET",
-                                "url": f"http://localhost:{port}/api/v1/doctors/",
-                                "expected_status": [200, 500]  # 可能有依赖问题
-                            })
-                except:
-                    logger.warning("Could not fetch OpenAPI schema")
             
             # 执行测试
             for test in test_cases:
@@ -1864,51 +1367,21 @@ uvicorn app.main:app --host 0.0.0.0 --port 8100
                                     attempt: int, fix_history: List[Dict], project_dir: Path) -> str:
         """生成应用启动修复提示词"""
         # 分析错误类型
-        error_types = []
         error_text = "\n".join(errors) + "\n" + log_content
+        error_types = self._categorize_errors(error_text)
         
-        if "ImportError" in error_text:
-            error_types.append("导入错误")
-        if "ModuleNotFoundError" in error_text:
-            error_types.append("模块未找到")
-        if "SyntaxError" in error_text:
-            error_types.append("语法错误")
-        if "AttributeError" in error_text:
-            error_types.append("属性错误")
-        if "cannot import name" in error_text:
-            error_types.append("循环导入或名称错误")
-        if "Connection refused" in error_text:
-            error_types.append("端口占用或服务未启动")
-        
-        if not error_types:
-            error_types.append("未知错误")
-        
-        prompt = f"""FastAPI 应用启动失败，需要修复错误。
-
-这是第 {attempt} 次尝试（最多 10 次）。
-
-错误信息：
-{error_text}
-
-错误类型分析：
-{', '.join(error_types)}
-
-{self._get_fix_guidelines()}
-
-请分析错误原因并修复代码，重点关注：
-1. 导入错误 - 检查模块路径和 __init__.py 文件
-2. 循环导入 - 使用 TYPE_CHECKING 和前向引用
-3. 缺失的模块 - 检查所有文件是否创建
-4. 属性错误 - 检查类和函数定义
-5. 配置错误 - 检查 config.py 和环境变量
-
-当前工作目录的绝对路径是: {project_dir.resolve()}
-"""
+        prompt = STARTUP_FIX_PROMPT.format(
+            attempt=attempt,
+            error_text=error_text,
+            error_types=', '.join(error_types),
+            project_dir=project_dir.resolve()
+        )
         
         # 如果有修复历史，添加上下文
         if fix_history:
-            prompt += "\n\n之前的修复尝试：\n"
+            history_text = ""
             for fix in fix_history[-2:]:  # 只包含最近2次历史
-                prompt += f"- 第 {fix['attempt']} 次尝试: {'成功' if fix['success'] else '失败'}\n"
+                history_text += f"- 第 {fix['attempt']} 次尝试: {'成功' if fix['success'] else '失败'}\n"
+            prompt += FIX_HISTORY_APPEND.format(fix_history=history_text)
         
         return prompt
