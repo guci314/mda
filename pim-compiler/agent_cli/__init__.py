@@ -12,9 +12,12 @@ Agent CLI - 通用的 LLM Agent 命令行工具
 
 from .core import (
     AgentCLI,
-    ExecutionPlan,
     Action,
     ActionType,
+    Task,
+    Step,
+    StepStatus,
+    TaskStatus,
     Tool,
     FileReader,
     FileWriter,
@@ -26,9 +29,12 @@ __version__ = "2.0.0"
 __author__ = "PIM Compiler Team"
 __all__ = [
     "AgentCLI",
-    "ExecutionPlan",
     "Action",
     "ActionType",
+    "Task",
+    "Step",
+    "StepStatus",
+    "TaskStatus",
     "Tool",
     "FileReader",
     "FileWriter",

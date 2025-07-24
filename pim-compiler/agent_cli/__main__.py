@@ -6,6 +6,10 @@ Agent CLI 命令行入口
 import sys
 import argparse
 from pathlib import Path
+from dotenv import load_dotenv
+
+# 加载环境变量
+load_dotenv()
 
 from .core import AgentCLI, LLMConfig
 from .setup import setup_provider, show_providers, show_prices

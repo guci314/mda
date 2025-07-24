@@ -11,9 +11,12 @@ requires-python = ">=3.8"
 dependencies = [
     "langchain-openai>=0.0.5",
     "langchain-core>=0.1.0",
+    "langchain-community>=0.0.10",
+    "langchain-experimental>=0.0.47",
     "pydantic>=2.0",
     "requests",
     "pathlib",
+    "python-dotenv>=1.0.0",
 ]
 
 [project.optional-dependencies]

@@ -9,7 +9,7 @@ import time
 import logging
 from pathlib import Path
 from typing import List, Dict, Any, Optional, Tuple
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 from abc import ABC, abstractmethod
 
@@ -18,9 +18,19 @@ from langchain_core.messages import SystemMessage, HumanMessage
 from langchain_core.output_parsers import StrOutputParser
 from pydantic import SecretStr
 
+# 导入工具执行器
+try:
+    from .executors import LangChainToolExecutor, ToolExecutionResult  # type: ignore
+    from .tools import get_all_tools, get_tools_description  # type: ignore
+    USE_LANGCHAIN_TOOLS = True
+except ImportError:
+    USE_LANGCHAIN_TOOLS = False
+
 # 设置日志
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+# 设置调试级别以查看详细信息
+logger.setLevel(logging.DEBUG)
 
 
 @dataclass
@@ -29,7 +39,7 @@ class LLMConfig:
     api_key: str
     base_url: str
     model: str
-    provider: str = "openai"  # openai, deepseek, qwen, glm, moonshot
+    provider: str = "openai"  # openai, deepseek, qwen, glm, moonshot, openrouter
     temperature: float = 0.3
     max_tokens: Optional[int] = None
     
@@ -63,7 +73,12 @@ class LLMConfig:
             "moonshot": {
                 "api_key": os.getenv("MOONSHOT_API_KEY"),
                 "base_url": "https://api.moonshot.cn/v1",
-                "model": os.getenv("MOONSHOT_MODEL", "kimi-k2-0711-preview"),
+                "model": os.getenv("MOONSHOT_MODEL", "moonshot-v1-8k"),
+            },
+            "openrouter": {
+                "api_key": os.getenv("OPENROUTER_API_KEY"),
+                "base_url": "https://openrouter.ai/api/v1",
+                "model": os.getenv("OPENROUTER_MODEL", "google/gemini-2.5-flash"),
             }
         }
         
@@ -89,36 +104,188 @@ class ActionType(Enum):
     ANALYZE = "analyze"
     GENERATE = "generate"
     VALIDATE = "validate"
+    EXECUTE = "execute"
     COMPLETE = "complete"
+
+
+class StepStatus(Enum):
+    """步骤状态"""
+    PENDING = "pending"
+    IN_PROGRESS = "in_progress"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    SKIPPED = "skipped"
+
+
+class TaskStatus(Enum):
+    """任务状态"""
+    PENDING = "pending"
+    PLANNING = "planning"
+    EXECUTING = "executing"
+    COMPLETED = "completed"
+    FAILED = "failed"
 
 
 @dataclass
 class Action:
-    """动作定义"""
+    """动作定义 - 执行的最小单元"""
     type: ActionType
     description: str
     params: Optional[Dict[str, Any]] = None
     result: Any = None
     error: Optional[str] = None
+    start_time: Optional[float] = None
+    end_time: Optional[float] = None
+    
+    @property
+    def duration(self) -> Optional[float]:
+        """执行时长"""
+        if self.start_time and self.end_time:
+            return self.end_time - self.start_time
+        return None
+    
+    @property
+    def is_successful(self) -> bool:
+        """是否成功"""
+        return self.result is not None and self.error is None
 
 
 @dataclass
-class ExecutionPlan:
-    """执行计划"""
-    goal: str
-    steps: List[str]
-    current_step: int = 0
+class Step:
+    """步骤定义 - 任务的逻辑单元"""
+    name: str
+    description: str
+    status: StepStatus = StepStatus.PENDING
+    actions: List[Action] = field(default_factory=list)
+    start_time: Optional[float] = None
+    end_time: Optional[float] = None
+    iteration_count: int = 0
+    max_iterations: int = 5
     
-    def get_current_step(self) -> Optional[str]:
-        if self.current_step < len(self.steps):
-            return self.steps[self.current_step]
+    
+    def add_action(self, action: Action) -> None:
+        """添加动作"""
+        self.actions.append(action)
+    
+    def start(self) -> None:
+        """开始执行"""
+        self.status = StepStatus.IN_PROGRESS
+        self.start_time = time.time()
+        self.iteration_count += 1
+    
+    def complete(self) -> None:
+        """完成步骤"""
+        self.status = StepStatus.COMPLETED
+        self.end_time = time.time()
+    
+    def fail(self, error: Optional[str] = None) -> None:
+        """标记失败"""
+        self.status = StepStatus.FAILED
+        self.end_time = time.time()
+        if error and self.actions:
+            self.actions[-1].error = error
+    
+    @property
+    def duration(self) -> Optional[float]:
+        """执行时长"""
+        if self.start_time and self.end_time:
+            return self.end_time - self.start_time
         return None
     
-    def advance(self):
-        self.current_step += 1
+    @property
+    def is_completed(self) -> bool:
+        """是否完成"""
+        return self.status == StepStatus.COMPLETED
     
-    def is_complete(self) -> bool:
-        return self.current_step >= len(self.steps)
+    @property
+    def should_skip(self) -> bool:
+        """是否应该跳过（超过最大迭代次数）"""
+        return self.iteration_count >= self.max_iterations
+
+
+@dataclass
+class Task:
+    """任务定义 - 顶层执行单元"""
+    description: str
+    goal: str
+    status: TaskStatus = TaskStatus.PENDING
+    steps: List[Step] = field(default_factory=list)
+    current_step_index: int = 0
+    context: Dict[str, Any] = field(default_factory=dict)
+    start_time: Optional[float] = None
+    end_time: Optional[float] = None
+    
+    
+    def add_step(self, step: Step) -> None:
+        """添加步骤"""
+        self.steps.append(step)
+    
+    def start(self) -> None:
+        """开始任务"""
+        self.status = TaskStatus.EXECUTING
+        self.start_time = time.time()
+    
+    def complete(self) -> None:
+        """完成任务"""
+        self.status = TaskStatus.COMPLETED
+        self.end_time = time.time()
+    
+    def fail(self, error: Optional[str] = None) -> None:
+        """任务失败"""
+        self.status = TaskStatus.FAILED
+        self.end_time = time.time()
+    
+    @property
+    def current_step(self) -> Optional[Step]:
+        """当前步骤"""
+        if 0 <= self.current_step_index < len(self.steps):
+            return self.steps[self.current_step_index]
+        return None
+    
+    def advance_step(self) -> bool:
+        """前进到下一步"""
+        if self.current_step_index < len(self.steps) - 1:
+            self.current_step_index += 1
+            return True
+        return False
+    
+    @property
+    def is_completed(self) -> bool:
+        """是否完成"""
+        return all(step.is_completed for step in self.steps)
+    
+    @property
+    def duration(self) -> Optional[float]:
+        """执行时长"""
+        if self.start_time and self.end_time:
+            return self.end_time - self.start_time
+        return None
+    
+    def get_summary(self) -> Dict[str, Any]:
+        """获取任务摘要"""
+        total_actions = sum(len(step.actions) for step in self.steps)
+        completed_steps = sum(1 for step in self.steps if step.is_completed)
+        
+        return {
+            "description": self.description,
+            "status": self.status.value,
+            "duration": self.duration,
+            "total_steps": len(self.steps),
+            "completed_steps": completed_steps,
+            "total_actions": total_actions,
+            "steps_summary": [
+                {
+                    "name": step.name,
+                    "status": step.status.value,
+                    "actions": len(step.actions),
+                    "duration": step.duration
+                }
+                for step in self.steps
+            ]
+        }
+
+
+# ExecutionPlan 已被 Task/Step/Action 架构替代
 
 
 class Tool(ABC):
@@ -192,35 +359,62 @@ class FileLister(Tool):
 class AgentCLI:
     """通用 Agent CLI 实现"""
     
-    def __init__(self, llm_config: Optional[LLMConfig] = None, working_dir: str = "."):
+    def __init__(self, llm_config: Optional[LLMConfig] = None, working_dir: str = ".", 
+                 enable_symbolic_fallback: bool = True, use_langchain_tools: bool = True):
         self.working_dir = Path(working_dir)
+        self.enable_symbolic_fallback = enable_symbolic_fallback  # 是否启用符号主义回退
+        self.use_langchain_tools = use_langchain_tools and USE_LANGCHAIN_TOOLS  # 是否使用 LangChain 工具
         
         # 初始化 LLM
         if not llm_config:
             llm_config = LLMConfig.from_env()
         
         self.llm_config = llm_config
-        self.llm = ChatOpenAI(
-            api_key=SecretStr(llm_config.api_key) if llm_config.api_key else None,
-            base_url=llm_config.base_url,
-            model=llm_config.model,
-            temperature=llm_config.temperature
-        )
+        # OpenRouter 需要特殊的 headers
+        if llm_config.provider == "openrouter":
+            self.llm = ChatOpenAI(
+                api_key=SecretStr(llm_config.api_key) if llm_config.api_key else None,
+                base_url=llm_config.base_url,
+                model=llm_config.model,
+                temperature=llm_config.temperature,
+                default_headers={
+                    "HTTP-Referer": "https://github.com/pim-compiler",
+                    "X-Title": "PIM Compiler Agent CLI"
+                }
+            )
+        else:
+            self.llm = ChatOpenAI(
+                api_key=SecretStr(llm_config.api_key) if llm_config.api_key else None,
+                base_url=llm_config.base_url,
+                model=llm_config.model,
+                temperature=llm_config.temperature
+            )
         # 设置 max_tokens（如果提供）
         if llm_config.max_tokens is not None:
             self.llm.max_tokens = llm_config.max_tokens
+        else:
+            # 默认限制响应长度，避免生成过长内容
+            self.llm.max_tokens = 1000
         self.output_parser = StrOutputParser()
         
         # 初始化工具
-        self.tools = {
-            "read_file": FileReader(),
-            "write_file": FileWriter(),
-            "list_files": FileLister()
-        }
+        if self.use_langchain_tools:
+            # 使用 LangChain 工具执行器
+            self.tool_executor = LangChainToolExecutor()
+            logger.info("Using LangChain tools for execution")
+        else:
+            # 使用传统工具
+            self.tools = {
+                "read_file": FileReader(),
+                "write_file": FileWriter(),
+                "list_files": FileLister()
+            }
+            self.tool_executor = None
+            logger.info("Using legacy tools for execution")
         
         # 执行上下文
         self.context: Dict[str, Any] = {}
-        self.action_history: List[Action] = []
+        self.current_task: Optional[Task] = None
         self.max_iterations = 50
     
     def _call_llm(self, messages: List[Any]) -> str:
@@ -232,58 +426,183 @@ class AgentCLI:
             logger.error(f"LLM call failed: {e}")
             raise
     
+    def _call_llm_json(self, messages: List[Any]) -> dict:
+        """调用 LLM 并强制返回 JSON 格式"""
+        try:
+            # 修改系统消息，强调返回JSON
+            if messages and isinstance(messages[0], SystemMessage):
+                messages[0].content += "\n\n重要：必须返回纯JSON格式，不要包含markdown标记或其他文本。"
+            
+            response = self.llm.invoke(messages)
+            response_text = self.output_parser.invoke(response)
+            
+            # 清理响应文本
+            response_text = response_text.strip()
+            
+            # 移除可能的 markdown 代码块标记
+            if response_text.startswith("```json"):
+                response_text = response_text[7:]
+            if response_text.startswith("```"):
+                response_text = response_text[3:]
+            if response_text.endswith("```"):
+                response_text = response_text[:-3]
+            response_text = response_text.strip()
+            
+            # 尝试解析 JSON
+            try:
+                return json.loads(response_text)
+            except json.JSONDecodeError as e:
+                logger.warning(f"Failed to parse JSON response: {e}")
+                logger.debug(f"Response text: {response_text[:200]}...")
+                
+                # 尝试提取 JSON 部分
+                import re
+                # 更精确的 JSON 提取模式
+                json_patterns = [
+                    r'\{[^{}]*\{[^{}]*\}[^{}]*\}',  # 嵌套的 JSON
+                    r'\{[^}]+\}',  # 简单的 JSON
+                    r'\{[\s\S]*\}'  # 任意 JSON
+                ]
+                
+                for pattern in json_patterns:
+                    json_match = re.search(pattern, response_text)
+                    if json_match:
+                        try:
+                            return json.loads(json_match.group())
+                        except:
+                            continue
+                
+                # 如果还是失败，返回错误信息
+                return {"error": "Failed to parse JSON", "raw_response": response_text}
+                
+        except Exception as e:
+            logger.error(f"LLM JSON call failed: {e}")
+            # 回退到普通调用
+            try:
+                response = self._call_llm(messages)
+                response = response.strip()
+                # 尝试清理和解析
+                if response.startswith("```"):
+                    response = response.split("```")[1]
+                return json.loads(response)
+            except:
+                return {"error": str(e), "raw_response": response if 'response' in locals() else ""}
+    
     def think(self, context: str, current_step: str) -> str:
         """思考当前任务"""
         messages = [
-            SystemMessage(content="你是一个任务执行助手，需要分析当前状态并决定下一步行动。"),
-            HumanMessage(content=f"""当前上下文：
-{context}
+            SystemMessage(content="你是一个高效的任务执行助手。请用1-2句话说明下一步行动。不要分析，直接说要做什么。"),
+            HumanMessage(content=f"""任务：{self.context.get('task', '未知')}
+当前步骤：{current_step}
 
-当前执行步骤：{current_step}
-
-请分析当前状态，并说明下一步应该做什么。注意查看上下文中的 'task' 字段了解整体任务目标。""")
+直接说明下一步行动（20字以内）：""")
         ]
         
         return self._call_llm(messages)
     
-    def plan(self, task: str) -> ExecutionPlan:
-        """制定任务执行计划"""
-        messages = [
-            SystemMessage(content="""你是一个任务规划专家。请将复杂任务分解为具体的执行步骤。
-每个步骤应该是一个明确的、可执行的动作。
-返回 JSON 格式的步骤列表。"""),
-            HumanMessage(content=f"""请为以下任务制定执行计划：
-{task}
+    def plan(self, task_description: str) -> Task:
+        """制定任务执行计划 - 使用LLM进行智能规划"""
+        system_prompt = """你是一个任务规划专家。请生成最简洁、高效的执行计划。
 
-返回格式：
-{{
-    "steps": ["步骤1", "步骤2", "步骤3", ...]
-}}""")
+重要原则：
+1. 只包含必要的步骤，避免冗余
+2. 简单任务（如打招呼、简单计算）只需1个步骤
+3. 每个步骤必须有明确的输出
+4. 不要生成"分析"、"理解"、"准备"等无实际产出的步骤
+
+任务复杂度判断：
+- 简单任务（1步）：打招呼、简单计算、单一操作
+- 中等任务（2-3步）：读取文件并处理、简单的代码生成
+- 复杂任务（3-5步）：系统设计、多文件操作、完整功能实现
+
+返回 JSON 格式：
+{
+    "goal": "任务的最终目标",
+    "steps": [
+        {
+            "name": "步骤名称（动词+名词）",
+            "description": "具体要做什么",
+            "expected_output": "产出什么"
+        }
+    ],
+    "estimated_complexity": "low|medium|high"
+}"""
+        
+        human_prompt = f"""请为以下任务制定最简洁的执行计划：
+{task_description}
+
+记住：如果是简单任务，只生成1个步骤即可。"""
+        
+        # 输出计划提示词到日志
+        logger.debug("=== Planning Prompt ===")
+        logger.debug(f"System: {system_prompt}")
+        logger.debug(f"Human: {human_prompt}")
+        logger.debug("======================")
+        
+        messages = [
+            SystemMessage(content=system_prompt),
+            HumanMessage(content=human_prompt)
         ]
         
-        response = self._call_llm(messages)
+        # 使用 JSON 格式调用
+        plan_data = self._call_llm_json(messages)
         
-        try:
-            # 尝试解析 JSON
-            plan_data = json.loads(response)
-            steps = plan_data.get("steps", [])
-        except json.JSONDecodeError:
-            # 如果不是 JSON，尝试从文本中提取步骤
-            logger.warning("Failed to parse JSON, extracting steps from text")
+        # 输出计划结果到日志
+        logger.info("=== Planning Result ===")
+        logger.info(f"Plan data: {json.dumps(plan_data, indent=2, ensure_ascii=False)}")
+        logger.info("======================")
+        
+        # 提取步骤
+        if "steps" in plan_data:
+            steps = plan_data["steps"]
+        else:
+            # 如果没有步骤，尝试从 raw_response 中提取
             steps = []
-            for line in response.split('\n'):
-                line = line.strip()
-                if line and (line[0].isdigit() or line.startswith('-')):
-                    # 移除数字和符号前缀
-                    step = line.lstrip('0123456789.- \t')
-                    if step:
-                        steps.append(step)
+            if "raw_response" in plan_data:
+                logger.warning("Failed to get structured steps, extracting from text")
+                response = plan_data["raw_response"]
+                for line in response.split('\n'):
+                    line = line.strip()
+                    if line and (line[0].isdigit() or line.startswith('-')):
+                        # 移除数字和符号前缀
+                        step = line.lstrip('0123456789.- \t')
+                        if step:
+                            steps.append(step)
         
         if not steps:
-            # 使用默认步骤
-            steps = self._get_default_steps(task)
+            if self.enable_symbolic_fallback:
+                # 使用默认步骤
+                steps = self._get_default_steps(task_description)
+            else:
+                # 纯连接主义模式：创建一个通用步骤
+                logger.warning("No steps from LLM and symbolic fallback is disabled, using generic step")
+                steps = ["执行任务"]
         
-        return ExecutionPlan(goal=task, steps=steps)
+        # 创建任务对象
+        goal = plan_data.get("goal", task_description) if isinstance(plan_data, dict) else task_description
+        new_task = Task(
+            description=task_description,
+            goal=goal
+        )
+        
+        # 将步骤添加到任务
+        for step_info in steps:
+            if isinstance(step_info, dict):
+                # 如果是字典格式，提取详细信息
+                step_name = step_info.get("name", "未命名步骤")
+                step_desc = step_info.get("description", step_name)
+            else:
+                # 如果是字符串格式
+                step_name = str(step_info)
+                step_desc = step_name
+                
+            step = Step(
+                name=step_name,
+                description=step_desc
+            )
+            new_task.add_step(step)
+        
+        return new_task
     
     def _get_default_steps(self, task: str) -> List[str]:
         """获取默认步骤"""
@@ -327,7 +646,7 @@ class AgentCLI:
     def analyze_content(self, content: str, instruction: str) -> Dict[str, Any]:
         """分析内容"""
         messages = [
-            SystemMessage(content="你是一个代码分析专家，擅长分析和理解各种格式的技术文档。"),
+            SystemMessage(content="你是一个代码分析专家，擅长分析和理解各种格式的技术文档。请始终以JSON格式返回分析结果。"),
             HumanMessage(content=f"""{instruction}
 
 内容：
@@ -336,22 +655,14 @@ class AgentCLI:
 请以 JSON 格式返回分析结果。""")
         ]
         
-        response = self._call_llm(messages)
-        
-        try:
-            return json.loads(response)
-        except json.JSONDecodeError:
-            return {"raw_response": response}
+        # 使用 JSON 格式调用
+        return self._call_llm_json(messages)
     
     def generate_code(self, prompt: str, context: Optional[Dict[str, Any]] = None) -> str:
         """生成代码"""
-        system_prompt = """你是一个专业的代码生成专家，擅长生成高质量的 Python 代码。
-生成的代码应该：
-1. 遵循 PEP 8 规范
-2. 包含适当的类型注解
-3. 有清晰的注释
-4. 处理错误情况
-5. 使用现代 Python 特性（3.8+）"""
+        system_prompt = """你是一个专业的代码生成专家。请生成简洁、高质量的代码。
+要求：遵循 PEP 8，包含类型注解，适当注释，处理错误。
+重要：保持代码简洁，避免过度设计。每个函数不超过20行。"""
         
         user_prompt = prompt
         if context:
@@ -373,37 +684,49 @@ class AgentCLI:
         logger.info(f"Using LLM provider: {self.llm_config.provider}")
         logger.info(f"Model: {self.llm_config.model}")
         
-        # 初始化上下文，存储原始任务
-        self.context = {
+        # 1. 创建任务并制定执行计划
+        logger.info("Creating execution plan...")
+        self.current_task = self.plan(task)
+        self.current_task.context = {
             "task": task,
             "task_description": task
         }
+        self.context = self.current_task.context
         
-        # 1. 制定执行计划
-        logger.info("Creating execution plan...")
-        plan = self.plan(task)
-        logger.info(f"Execution plan created with {len(plan.steps)} steps:")
-        for i, step in enumerate(plan.steps):
-            logger.info(f"  Step {i+1}: {step}")
+        logger.info(f"Execution plan created with {len(self.current_task.steps)} steps:")
+        for i, step in enumerate(self.current_task.steps):
+            logger.info(f"  Step {i+1}: {step.name}")
         
-        # 2. 执行计划
+        # 2. 开始执行任务
+        self.current_task.start()
         iteration = 0
-        while not plan.is_complete() and iteration < self.max_iterations:
+        
+        while not self.current_task.is_completed and iteration < self.max_iterations:
             iteration += 1
-            current_step = plan.get_current_step()
+            current_step = self.current_task.current_step
             if not current_step:
                 break
                 
+            # 检查当前步骤的迭代次数
+            if current_step.should_skip:
+                logger.warning(f"Step '{current_step.name}' exceeded max iterations, advancing to next step")
+                current_step.status = StepStatus.SKIPPED
+                self.current_task.advance_step()
+                continue
+                
             logger.info(f"\n{'='*60}")
-            logger.info(f"Iteration {iteration}: {current_step}")
+            logger.info(f"Iteration {iteration}: {current_step.name}")
             logger.info(f"{'='*60}")
             
             try:
+                # 开始执行步骤
+                current_step.start()
+                
                 # 思考当前步骤
-                thought = self._think(current_step)
+                thought = self._think(current_step.name)
                 
                 # 决定动作
-                action = self._decide_action(thought, current_step)
+                action = self._decide_action(thought, current_step.name)
                 
                 # 执行动作
                 result = self._execute_action(action)
@@ -411,32 +734,39 @@ class AgentCLI:
                 
                 # 更新上下文
                 self._update_context(action)
+                self.current_task.context.update(self.context)
                 
-                # 记录动作
-                self.action_history.append(action)
+                # 记录动作到步骤
+                current_step.add_action(action)
                 
                 # 判断是否可以进入下一步
-                if self._should_advance(action, current_step):
-                    plan.advance()
-                    logger.info(f"✓ Step completed: {current_step}")
+                if self._should_advance(action, current_step.name):
+                    current_step.complete()
+                    logger.info(f"✓ Step completed: {current_step.name}")
+                    self.current_task.advance_step()
                     
             except Exception as e:
                 logger.error(f"Action failed: {e}")
-                action.error = str(e)
-                self.action_history.append(action)
+                if 'action' in locals():
+                    action.error = str(e)
+                    current_step.add_action(action)
                 
                 # 尝试恢复或跳过
                 if self._can_recover(e):
                     logger.info("Attempting to recover...")
                     continue
                 else:
+                    current_step.fail(str(e))
+                    self.current_task.fail(f"Step '{current_step.name}' failed: {str(e)}")
                     return False, f"Task failed: {str(e)}"
         
         # 3. 检查是否完成
-        if plan.is_complete():
+        if self.current_task.is_completed:
+            self.current_task.complete()
             logger.info("\n✅ Task completed successfully!")
             return True, "Task completed"
         else:
+            self.current_task.fail("Max iterations reached")
             logger.warning("\n⚠️ Task did not complete within iteration limit")
             return False, "Max iterations reached"
     
@@ -448,12 +778,148 @@ class AgentCLI:
         return thought
     
     def _decide_action(self, thought: str, step: str) -> Action:
-        """基于思考决定动作"""
-        # 根据步骤内容决定动作类型
+        """基于LLM推理决定动作 - 连接主义方法"""
+        # 获取可用工具描述（如果使用 LangChain）
+        tools_desc = ""
+        if self.use_langchain_tools and self.tool_executor is not None:
+            tools_desc = "\n\n" + self.tool_executor.format_tools_for_prompt()
+        
+        # 使用LLM来决定应该执行什么动作
+        if self.use_langchain_tools and tools_desc:
+            # 使用 LangChain 工具的提示
+            prompt_content = f"""根据当前步骤选择合适的工具。
+
+{tools_desc}
+
+重要提示：
+1. 仔细阅读步骤描述，从中提取所需的参数值
+2. 对于 write_file 工具，必须从步骤描述中提取文件内容作为 content 参数
+3. 确保所有必需参数都有具体的值，不要留空
+
+根据上述工具，决定使用哪个工具和参数。
+
+返回JSON格式：
+{{
+    "tool_name": "工具名称",
+    "description": "要做什么",
+    "params": {{"参数名": "参数值"}}
+}}"""
+        else:
+            # 传统动作的提示
+            prompt_content = f"""快速决定下一个动作。
+
+动作类型：
+- GENERATE: 生成内容（最常用）
+- READ_FILE: 读取文件
+- WRITE_FILE: 保存结果
+- ANALYZE: 分析已有内容
+
+返回JSON：
+{{
+    "action_type": "动作类型",
+    "description": "做什么",
+    "params": {{}}
+}}"""
+        
+        human_content = f"""步骤：{step}
+任务：{self.context.get('task', '未知')}
+
+决定动作（大多数情况使用GENERATE）："""
+        
+        messages = [
+            SystemMessage(content=prompt_content),
+            HumanMessage(content=human_content)
+        ]
+        
+        # 输出决策提示词到日志
+        logger.debug("=== Decision Prompt ===")
+        logger.debug(f"System: {prompt_content}")
+        logger.debug(f"Human: {human_content}")
+        logger.debug("=======================")
+        
+        # 使用 JSON 格式调用
+        decision = self._call_llm_json(messages)
+        
+        # 输出决策结果到日志
+        logger.info(f"Decision result: {json.dumps(decision, indent=2, ensure_ascii=False)}")
+        
+        try:
+            # 检查是否有错误
+            if "error" in decision:
+                raise ValueError(f"LLM returned error: {decision.get('error')}")
+                
+            # 根据LLM的决策创建动作
+            if self.use_langchain_tools and "tool_name" in decision:
+                # LangChain 工具模式
+                tool_name = decision.get("tool_name", "")
+                # 映射工具名到动作类型
+                tool_to_action = {
+                    "read_file": ActionType.READ_FILE,
+                    "write_file": ActionType.WRITE_FILE,
+                    "list_files": ActionType.LIST_FILES,
+                    "analyze": ActionType.ANALYZE,
+                    "generate": ActionType.GENERATE,
+                    "python_repl": ActionType.EXECUTE,
+                    "bash": ActionType.EXECUTE,
+                }
+                action_type = tool_to_action.get(tool_name, ActionType.GENERATE)
+            else:
+                # 传统动作模式
+                action_type_map = {
+                    "READ_FILE": ActionType.READ_FILE,
+                    "WRITE_FILE": ActionType.WRITE_FILE,
+                    "ANALYZE": ActionType.ANALYZE,
+                    "GENERATE": ActionType.GENERATE,
+                    "VALIDATE": ActionType.VALIDATE,
+                    "LIST_FILES": ActionType.LIST_FILES,
+                    "THINK": ActionType.THINK
+                }
+                
+                action_type_str = decision.get("action_type", "GENERATE")
+                action_type = action_type_map.get(action_type_str, ActionType.GENERATE)
+            
+            # 如果需要文件路径但未提供，使用启发式方法
+            params = decision.get("params", {})
+            if action_type == ActionType.READ_FILE and "file_path" not in params:
+                if "params" not in decision:
+                    decision["params"] = {}
+                decision["params"]["file_path"] = self._extract_file_path(thought, step)
+            elif action_type == ActionType.WRITE_FILE:
+                # 对于 write_file，不要覆盖 LLM 已经生成的参数
+                # 只在 content 为空时才尝试从上下文获取
+                if "content" not in params or not params["content"]:
+                    params["content"] = self.context.get("generated_content", "")
+                    logger.debug(f"Content was empty, using context: {params['content'][:100]}...")
+            
+            return Action(
+                type=action_type,
+                description=decision.get("description", step),
+                params=decision.get("params", {})
+            )
+            
+        except (json.JSONDecodeError, KeyError) as e:
+            if self.enable_symbolic_fallback:
+                logger.warning(f"Failed to parse LLM decision, falling back to symbolic approach: {e}")
+                # 混合策略：LLM推理失败时使用符号推理作为后备
+                return self._decide_action_symbolic(thought, step)
+            else:
+                logger.error(f"Failed to parse LLM decision and symbolic fallback is disabled: {e}")
+                # 返回一个默认的生成动作
+                return Action(
+                    type=ActionType.GENERATE,
+                    description=f"执行步骤：{step}（LLM决策失败）",
+                    params={
+                        "prompt": f"由于LLM决策失败，请基于当前步骤执行：{step}",
+                        "context": self.context
+                    }
+                )
+    
+    def _decide_action_symbolic(self, thought: str, step: str) -> Action:
+        """符号主义决策方法 - 作为后备策略"""
         step_lower = step.lower()
         
-        if "读取" in step and ("文件" in step or "pim" in step):
-            # 从思考中提取文件路径
+        # 基于关键词的简单规则
+        if any(word in step_lower for word in ["读取", "加载", "获取"]) and any(word in step_lower for word in ["文件", "pim", "psm"]):
             file_path = self._extract_file_path(thought, step)
             return Action(
                 type=ActionType.READ_FILE,
@@ -461,51 +927,18 @@ class AgentCLI:
                 params={"file_path": file_path}
             )
         
-        elif "分析" in step or "解析" in step:
-            # 如果是分析需求或设计相关的分析
-            if "需求" in step or "目标" in step:
-                return Action(
-                    type=ActionType.ANALYZE,
-                    description="分析任务需求",
-                    params={
-                        "content": self.context.get("task", ""),
-                        "instruction": f"请分析任务需求：{self.context.get('task', '')}，并提取关键需求点和目标。"
-                    }
-                )
-            else:
-                return Action(
-                    type=ActionType.ANALYZE,
-                    description="分析内容结构",
-                    params={
-                        "content": self.context.get("file_content", ""),
-                        "instruction": f"请分析以下内容并提取关键信息。{step}"
-                    }
-                )
-        
-        elif "设计" in step or "定义" in step:
-            # 设计相关的步骤，使用生成动作
-            if "架构" in step:
-                prompt = "基于需求分析，设计系统架构，包括主要组件、层次结构和交互关系"
-            elif "数据模型" in step:
-                prompt = "基于需求分析，定义数据模型，包括实体、属性和关系"
-            elif "功能" in step:
-                prompt = "基于需求分析，设计核心功能模块和接口"
-            else:
-                prompt = f"执行设计任务：{step}"
-            
+        elif any(word in step_lower for word in ["分析", "解析", "理解", "提取"]):
+            content = self.context.get("file_content", self.context.get("task", ""))
             return Action(
-                type=ActionType.GENERATE,
-                description=step,
+                type=ActionType.ANALYZE,
+                description="分析内容",
                 params={
-                    "prompt": prompt,
-                    "context": self.context
+                    "content": content,
+                    "instruction": step
                 }
             )
         
-        elif "生成" in step:
-            return self._create_generate_action(step)
-        
-        elif "写入" in step or "保存" in step:
+        elif any(word in step_lower for word in ["写入", "保存", "输出", "导出"]):
             file_path = self._extract_output_path(step)
             return Action(
                 type=ActionType.WRITE_FILE,
@@ -516,57 +949,145 @@ class AgentCLI:
                 }
             )
         
-        elif "理解" in step or "制定" in step or "实施" in step or "验证" in step:
-            # 通用任务步骤，使用生成动作
+        else:
+            # 默认使用生成动作
             return Action(
                 type=ActionType.GENERATE,
                 description=step,
                 params={
-                    "prompt": f"基于任务：{self.context.get('task', '')}，执行步骤：{step}",
+                    "prompt": f"执行步骤：{step}。任务：{self.context.get('task', '')}",
                     "context": self.context
                 }
             )
-        
-        else:
-            # 默认为思考动作
-            return Action(
-                type=ActionType.THINK,
-                description="继续分析和思考",
-                params={}
-            )
     
     def _create_generate_action(self, step: str) -> Action:
-        """创建生成动作"""
-        step_lower = step.lower()
+        """创建生成动作 - 使用LLM决定生成策略"""
+        # 使用LLM来理解需要生成什么
+        messages = [
+            SystemMessage(content="""你是一个代码生成专家。基于当前步骤和上下文，决定具体的生成策略。
+
+请返回JSON格式的生成策略：
+{
+    "prompt": "详细的生成提示词",
+    "focus": "生成的重点内容",
+    "constraints": ["约束条件1", "约束条件2"],
+    "expected_output": "期望的输出格式或内容"
+}"""),
+            HumanMessage(content=f"""当前步骤：{step}
+
+当前上下文：
+- 任务：{self.context.get('task', '未知')}
+- 已分析内容：{'有' if self.context.get('analysis') else '无'}
+- 已有文件内容：{'有' if self.context.get('file_content') else '无'}
+- 已生成内容长度：{len(self.context.get('generated_content', ''))} 字符
+
+请决定生成策略。""")
+        ]
         
-        # 根据步骤内容决定生成什么
-        prompt_map = {
-            ("sqlalchemy", "数据模型"): "基于分析结果生成 SQLAlchemy 数据模型",
-            ("pydantic", "schema"): "基于分析结果生成 Pydantic Schema 定义",
-            ("crud",): "基于数据模型生成 CRUD 操作接口",
-            ("api", "endpoint", "rest"): "基于 CRUD 接口生成 REST API 端点",
-            ("组合", "psm"): "将所有生成的代码组合成完整的 PSM 文档",
-        }
+        # 使用 JSON 格式调用
+        strategy = self._call_llm_json(messages)
         
-        prompt = step  # 默认使用步骤作为提示
-        for keywords, custom_prompt in prompt_map.items():
-            if any(keyword in step_lower for keyword in keywords):
-                prompt = custom_prompt
-                break
-        
-        return Action(
-            type=ActionType.GENERATE,
-            description=f"生成: {step}",
-            params={
-                "prompt": prompt,
-                "context": self.context.get("analysis", {})
-            }
-        )
+        try:
+            # 检查是否有错误
+            if "error" in strategy:
+                raise ValueError(f"LLM returned error: {strategy.get('error')}")
+                
+            # 构建完整的生成提示
+            prompt = strategy.get("prompt", f"基于当前上下文，{step}")
+            if strategy.get("constraints"):
+                prompt += "\n\n约束条件：\n" + "\n".join(f"- {c}" for c in strategy["constraints"])
+            if strategy.get("expected_output"):
+                prompt += f"\n\n期望输出：{strategy['expected_output']}"
+            
+            return Action(
+                type=ActionType.GENERATE,
+                description=f"生成: {step}",
+                params={
+                    "prompt": prompt,
+                    "context": self.context,
+                    "focus": strategy.get("focus", "")
+                }
+            )
+            
+        except (json.JSONDecodeError, KeyError) as e:
+            if self.enable_symbolic_fallback:
+                logger.warning(f"Failed to parse generation strategy, using simple approach: {e}")
+                # 后备方案：使用简单的生成策略
+                return Action(
+                    type=ActionType.GENERATE,
+                    description=f"生成: {step}",
+                    params={
+                        "prompt": f"基于当前上下文，{step}。任务背景：{self.context.get('task', '')}",
+                        "context": self.context
+                    }
+                )
+            else:
+                logger.error(f"Failed to parse generation strategy and symbolic fallback is disabled: {e}")
+                # 返回基本的生成动作
+                return Action(
+                    type=ActionType.GENERATE,
+                    description=f"生成: {step}（策略生成失败）",
+                    params={
+                        "prompt": f"请执行步骤：{step}",
+                        "context": self.context
+                    }
+                )
     
     def _execute_action(self, action: Action) -> Any:
         """执行动作"""
         logger.info(f"Executing: {action.type.value} - {action.description}")
         
+        action.start_time = time.time()
+        
+        try:
+            if self.use_langchain_tools and self.tool_executor:
+                # 使用 LangChain 工具执行
+                result = self._execute_with_langchain(action)
+            else:
+                # 使用传统方式执行
+                result = self._execute_legacy(action)
+            
+            action.end_time = time.time()
+            return result
+            
+        except Exception as e:
+            action.end_time = time.time()
+            action.error = str(e)
+            raise
+    
+    def _execute_with_langchain(self, action: Action) -> Any:
+        """使用 LangChain 工具执行动作"""
+        # 映射动作类型到工具名称
+        tool_mapping = {
+            ActionType.READ_FILE: "read_file",
+            ActionType.WRITE_FILE: "write_file",
+            ActionType.LIST_FILES: "list_files",
+            ActionType.ANALYZE: "analyze",
+            ActionType.GENERATE: "generate",
+            ActionType.EXECUTE: "python_repl",
+        }
+        
+        tool_name = tool_mapping.get(action.type)
+        
+        if tool_name:
+            # 使用 LangChain 工具执行
+            if self.tool_executor is not None:
+                result = self.tool_executor.execute(tool_name, action.params or {})
+                if result.success:
+                    return result.output
+                else:
+                    raise Exception(result.error or "Tool execution failed")
+            else:
+                raise Exception("Tool executor not initialized")
+        
+        elif action.type == ActionType.THINK:
+            return "Continuing analysis..."
+        
+        else:
+            return None
+    
+    def _execute_legacy(self, action: Action) -> Any:
+        """使用传统方式执行动作"""
         if action.type == ActionType.READ_FILE:
             tool = self.tools["read_file"]
             return tool.execute(action.params or {})
@@ -624,7 +1145,8 @@ class AgentCLI:
         if action.result and not action.error:
             # 特定动作类型的判断
             if action.type in [ActionType.READ_FILE, ActionType.ANALYZE, 
-                             ActionType.GENERATE, ActionType.WRITE_FILE]:
+                             ActionType.GENERATE, ActionType.WRITE_FILE,
+                             ActionType.EXECUTE, ActionType.LIST_FILES]:
                 return True
         
         # 思考动作通常不推进步骤
@@ -672,22 +1194,40 @@ class AgentCLI:
     
     def get_execution_summary(self) -> Dict[str, Any]:
         """获取执行摘要"""
-        return {
-            "total_actions": len(self.action_history),
-            "successful_actions": sum(1 for a in self.action_history if not a.error),
-            "failed_actions": sum(1 for a in self.action_history if a.error),
-            "action_types": {
-                action_type.value: sum(1 for a in self.action_history if a.type == action_type)
-                for action_type in ActionType
-            },
-            "context_keys": list(self.context.keys()),
-            "execution_log": [
-                {
-                    "type": action.type.value,
-                    "description": action.description,
-                    "success": action.error is None,
-                    "error": action.error
-                }
-                for action in self.action_history
-            ]
-        }
+        if self.current_task:
+            # 使用任务的摘要
+            task_summary = self.current_task.get_summary()
+            
+            # 添加动作类型统计
+            action_types = {}
+            for action_type in ActionType:
+                action_types[action_type.value] = 0
+            
+            total_actions = 0
+            successful_actions = 0
+            failed_actions = 0
+            
+            for step in self.current_task.steps:
+                for action in step.actions:
+                    total_actions += 1
+                    if action.is_successful:
+                        successful_actions += 1
+                    else:
+                        failed_actions += 1
+                    action_types[action.type.value] += 1
+            
+            task_summary["action_types"] = action_types
+            task_summary["successful_actions"] = successful_actions
+            task_summary["failed_actions"] = failed_actions
+            task_summary["context_keys"] = list(self.current_task.context.keys())
+            
+            return task_summary
+        else:
+            # 没有任务时返回空摘要
+            return {
+                "total_actions": 0,
+                "successful_actions": 0,
+                "failed_actions": 0,
+                "action_types": {action_type.value: 0 for action_type in ActionType},
+                "context_keys": list(self.context.keys())
+            }
