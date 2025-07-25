@@ -7,6 +7,7 @@ from pathlib import Path
 import json
 import subprocess
 import sys
+import os
 
 from langchain.tools import StructuredTool
 from pydantic import BaseModel, Field
@@ -158,16 +159,31 @@ def run_python_func(code: str) -> str:
 
 
 def run_bash_func(command: str, cwd: Optional[str] = None) -> str:
-    """执行 Bash 命令"""
+    """执行 Bash 命令 - 修复了大括号扩展问题"""
     try:
-        result = subprocess.run(
-            command,
-            shell=True,
-            cwd=cwd,
-            capture_output=True,
-            text=True,
-            timeout=30
-        )
+        # 检测是否包含大括号扩展
+        if '{' in command and '}' in command and ',' in command:
+            # 使用 bash -c 确保大括号扩展正常工作
+            # 使用 /bin/bash 而不是默认的 /bin/sh
+            result = subprocess.run(
+                ['/bin/bash', '-c', command],
+                cwd=cwd,
+                capture_output=True,
+                text=True,
+                timeout=30,
+                env={**os.environ, 'SHELL': '/bin/bash'}  # 确保使用 bash
+            )
+        else:
+            # 普通命令直接执行
+            result = subprocess.run(
+                command,
+                shell=True,
+                cwd=cwd,
+                capture_output=True,
+                text=True,
+                timeout=30,
+                executable='/bin/bash'  # 明确指定使用 bash
+            )
         
         output = result.stdout
         if result.stderr:

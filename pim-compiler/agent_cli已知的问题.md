@@ -1,9 +1,23 @@
 # Agent CLI 已知的问题
 
-## 1. 领域污染问题
+## 重要说明：Agent CLI 的发展方向
+
+**Agent CLI 当前主要服务于软件开发领域，但架构设计应支持领域无关的扩展。**
+
+### 现状
+- 当前实现深度耦合软件开发领域
+- 规划提示词和执行器都是硬编码的
+- 缺乏插件机制支持其他领域
+
+### 未来方向
+- **领域无关的核心框架**：认知和决策机制应与具体领域解耦
+- **插件化架构**：规划器和执行器通过插件方式加载
+- **可扩展性**：轻松支持新领域而无需修改核心代码
+
+## 1. 架构设计问题
 
 ### 问题描述
-AgentCLI 应该是一个领域无关的通用认知框架，但目前存在严重的领域污染问题。
+虽然 Agent CLI 是软件开发领域专用的，但当前实现仍存在一些架构问题。
 
 ### 具体表现
 
@@ -253,6 +267,133 @@ agent.registry.register_domain_tools(DataAnalysisTools)
 2. 提供迁移工具帮助用户升级
 3. 在过渡期同时支持新旧两种方式
 
-## 7. 总结
+## 7. 未来改进方向：插件化架构
 
-当前 AgentCLI 的领域污染问题严重影响了其作为通用认知框架的定位。通过构建工具注册表和插件架构，可以彻底解决这一问题，使 AgentCLI 成为真正领域无关的智能代理框架。这不仅能提高框架的通用性和可维护性，还能为未来的扩展奠定坚实基础。
+### 7.1 规划器插件化
+将任务规划提示词抽象为插件：
+
+```python
+# planner_plugin.py
+class PlannerPlugin:
+    def get_system_prompt(self) -> str:
+        """返回规划器的系统提示词"""
+        pass
+    
+    def get_step_template(self) -> str:
+        """返回步骤模板，定义什么是有效的步骤"""
+        pass
+    
+    def validate_step(self, step: Step) -> bool:
+        """验证步骤是否符合领域要求"""
+        pass
+```
+
+#### 软件开发领域插件示例
+```python
+class SoftwareDevelopmentPlanner(PlannerPlugin):
+    def get_system_prompt(self):
+        return """将任务分解为软件开发里程碑：
+        - 领域模型定义
+        - 服务层实现
+        - API 接口开发
+        - 测试覆盖
+        每个步骤必须是可验证的交付物..."""
+```
+
+#### 数据分析领域插件示例
+```python
+class DataAnalysisPlanner(PlannerPlugin):
+    def get_system_prompt(self):
+        return """将任务分解为数据分析阶段：
+        - 数据采集和清洗
+        - 探索性数据分析
+        - 特征工程
+        - 模型训练
+        - 结果可视化..."""
+```
+
+### 7.2 执行器插件化
+将工具集合抽象为插件：
+
+```python
+# executor_plugin.py
+class ExecutorPlugin:
+    def get_tools(self) -> List[Tool]:
+        """返回领域特定的工具集"""
+        pass
+    
+    def get_tool_descriptions(self) -> str:
+        """返回工具使用说明"""
+        pass
+```
+
+### 7.3 插件管理器
+```python
+class PluginManager:
+    def __init__(self):
+        self.planner_plugins = {}
+        self.executor_plugins = {}
+    
+    def register_domain(self, domain: str, 
+                       planner: PlannerPlugin,
+                       executor: ExecutorPlugin):
+        """注册领域插件"""
+        self.planner_plugins[domain] = planner
+        self.executor_plugins[domain] = executor
+    
+    def get_planner(self, domain: str) -> PlannerPlugin:
+        """获取领域规划器"""
+        return self.planner_plugins.get(domain)
+```
+
+### 7.4 使用示例
+```python
+# 软件开发领域
+agent = AgentCLI(domain="software_development")
+
+# 数据分析领域
+agent = AgentCLI(domain="data_analysis")
+
+# 自定义领域
+plugin_manager.register_domain(
+    "medical_diagnosis",
+    MedicalDiagnosisPlanner(),
+    MedicalDiagnosisExecutor()
+)
+agent = AgentCLI(domain="medical_diagnosis")
+```
+
+## 8. 实施路线图
+
+### 第一阶段：抽象核心框架（1-2周）
+1. 提取领域无关的认知和决策机制
+2. 定义插件接口规范
+3. 保持向后兼容性
+
+### 第二阶段：实现插件机制（2-3周）
+1. 实现插件加载器
+2. 将现有软件开发功能重构为默认插件
+3. 创建插件开发文档
+
+### 第三阶段：扩展新领域（持续）
+1. 开发数据分析插件
+2. 开发运维自动化插件
+3. 鼓励社区贡献插件
+
+## 9. 预期收益
+
+1. **通用性**：一个框架支持多个领域
+2. **可扩展性**：新领域只需开发插件
+3. **可维护性**：核心框架与领域逻辑分离
+4. **社区生态**：插件机制促进社区贡献
+
+## 10. 总结
+
+Agent CLI 应该向**领域无关的智能代理框架**发展，通过插件化架构实现：
+
+1. **核心框架领域无关**：专注于认知、决策和执行的通用机制
+2. **领域知识插件化**：规划器和执行器作为可替换的插件
+3. **生态系统构建**：支持社区开发各种领域插件
+4. **保持专业性**：每个领域插件都能提供专业级的支持
+
+这种架构既保证了通用性，又不失各领域的专业深度。

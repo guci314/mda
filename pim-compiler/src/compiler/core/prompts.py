@@ -3,7 +3,7 @@
 """
 
 # PSM 生成提示词模板
-PSM_GENERATION_PROMPT = """将 {pim_file} 文件中的 PIM 转换为 {platform} 平台的 PSM。生成 {psm_file} 文件。
+PSM_GENERATION_PROMPT = """将 {pim_file} 文件中的 PIM 转换为 {platform} 平台的 PSM，并直接创建 {psm_file} 文件。不要询问，直接生成完整的PSM文档。
 
 技术栈：
 - 框架：{framework}
@@ -37,7 +37,9 @@ PSM 文档结构要求：
    - 事务处理
    - 错误处理
 
-输出格式：Markdown 文档，使用代码块标注语言类型。"""
+输出格式：Markdown 文档，使用代码块标注语言类型。
+
+重要：直接生成完整的PSM文档内容到 {psm_file} 文件中，不要只是描述计划或询问确认。"""
 
 # 代码生成提示词
 CODE_GENERATION_PROMPT = "根据 {psm_file} 文件生成 FastAPI 代码。参考 GEMINI_KNOWLEDGE.md 中的规范。创建所有必要的文件和文件夹。"
@@ -118,6 +120,12 @@ STARTUP_FIX_PROMPT = """FastAPI 应用启动失败，需要修复错误。参考
 3. 缺失的模块 - 检查所有文件是否创建
 4. 属性错误 - 检查类和函数定义
 5. 配置错误 - 检查 config.py 和环境变量
+
+重要提示：
+- 如果错误是端口占用（address already in use），你可以：
+  1. 修改应用使用的端口（推荐）
+  2. 使用命令 'kill -9 $(lsof -ti:端口号)' 杀死占用端口的进程（仅当确认是自己启动的进程时）
+- 你有权限杀死自己启动的进程来解决端口占用问题
 
 当前工作目录的绝对路径是: {project_dir}
 """

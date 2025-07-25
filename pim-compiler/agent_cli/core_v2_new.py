@@ -20,6 +20,20 @@ from langchain_core.messages import SystemMessage, HumanMessage
 from langchain_core.output_parsers import StrOutputParser
 from pydantic import SecretStr
 
+# 导入上下文压缩器
+try:
+    from .context_compressor import ThreeLayerContextCompressor
+    COMPRESSION_AVAILABLE = True
+except ImportError:
+    COMPRESSION_AVAILABLE = False
+
+# 导入诊断日志器
+try:
+    from .enhanced_logging import init_diagnostic_logger, get_diagnostic_logger
+    DIAGNOSTIC_LOGGING_AVAILABLE = True
+except ImportError:
+    DIAGNOSTIC_LOGGING_AVAILABLE = False
+
 logger = logging.getLogger(__name__)
 
 # 定义提示词
@@ -86,12 +100,20 @@ class AgentCLI_V2:
         llm_config: LLMConfig,
         use_langchain_tools: bool = True,
         enable_dynamic_planning: bool = True,
-        max_actions_per_step: int = 10  # 防止无限循环
+        max_actions_per_step: int = 10,  # 防止无限循环
+        enable_context_compression: bool = True,  # 启用上下文压缩
+        context_size_limit: int = 30 * 1024,  # 30KB 触发压缩
+        recent_file_window: int = 3,  # 保护最近的3个文件
+        enable_diagnostic_logging: bool = True,  # 启用诊断日志
+        diagnostic_log_file: str = "agent_cli_diagnostics.log"  # 诊断日志文件
     ):
         self.llm_config = llm_config
         self.use_langchain_tools = use_langchain_tools
         self.enable_dynamic_planning = enable_dynamic_planning
         self.max_actions_per_step = max_actions_per_step
+        self.enable_context_compression = enable_context_compression and COMPRESSION_AVAILABLE
+        self.context_size_limit = context_size_limit
+        self.recent_file_window = recent_file_window
         
         # 初始化 LLM 客户端
         if llm_config.provider == "openrouter":
@@ -118,9 +140,27 @@ class AgentCLI_V2:
         
         # 初始化执行器
         self.executor = LangChainToolExecutor()
+        
+        # 初始化压缩器（如果启用）
+        self.context_compressor = None
+        if self.enable_context_compression:
+            self.context_compressor = ThreeLayerContextCompressor(
+                llm_client=self.llm_client,
+                context_size_limit=context_size_limit,
+                recent_file_window=recent_file_window
+            )
+            logger.info(f"Context compression enabled (limit: {context_size_limit} bytes)")
             
         # 上下文
-        self.context: Dict[str, Any] = {}
+        self.context: Dict[str, Any] = {
+            "file_contents": {}  # 改进的文件存储策略
+        }
+        
+        # 初始化诊断日志器
+        self.diagnostic_logger = None
+        if enable_diagnostic_logging and DIAGNOSTIC_LOGGING_AVAILABLE:
+            self.diagnostic_logger = init_diagnostic_logger(diagnostic_log_file)
+            logger.info(f"Diagnostic logging enabled: {diagnostic_log_file}")
         self.steps: List[Step] = []
         self.current_step_index: int = 0
         
@@ -128,6 +168,10 @@ class AgentCLI_V2:
         """执行任务"""
         logger.info(f"Starting task: {task}")
         self.context["task"] = task
+        
+        # 记录诊断日志
+        if self.diagnostic_logger:
+            self.diagnostic_logger.log_task(task)
         
         try:
             # 1. 创建初始计划
@@ -149,10 +193,20 @@ class AgentCLI_V2:
                     
                 self.current_step_index += 1
                 
+            # 诊断日志 - 生成总结
+            if self.diagnostic_logger:
+                self.diagnostic_logger.log_summary()
+                
             return True, "Task completed successfully"
             
         except Exception as e:
             logger.error(f"Task execution failed: {e}", exc_info=True)
+            
+            # 诊断日志 - 错误
+            if self.diagnostic_logger:
+                self.diagnostic_logger.log_error("Task execution failed", e)
+                self.diagnostic_logger.log_summary()
+                
             return False, str(e)
             
     def _execute_step(self, step: Step) -> bool:
@@ -162,6 +216,12 @@ class AgentCLI_V2:
         logger.info(f"Description: {step.description}")
         logger.info(f"Expected output: {step.expected_output}")
         logger.info(f"{'='*60}")
+        
+        # 诊断日志 - 步骤开始
+        if self.diagnostic_logger:
+            self.diagnostic_logger.log_step_start(
+                step.name, step.description, step.expected_output
+            )
         
         step.status = StepStatus.IN_PROGRESS
         action_count = 0
@@ -182,6 +242,13 @@ class AgentCLI_V2:
             )
             
             logger.info(f"\nAction {action_count + 1}: {action.tool_name} - {action.description}")
+            
+            # 诊断日志 - 动作
+            if self.diagnostic_logger:
+                self.diagnostic_logger.log_action(
+                    action_count + 1, action.tool_name, 
+                    action.description, action.params
+                )
             
             try:
                 if self.use_langchain_tools:
@@ -204,13 +271,53 @@ class AgentCLI_V2:
                 action.success = True
                 logger.info(f"✓ Action completed successfully")
                 
+                # 诊断日志 - 动作结果
+                if self.diagnostic_logger:
+                    self.diagnostic_logger.log_action_result(
+                        True, action.result
+                    )
+                
                 # 更新上下文
                 self._update_context_from_action(action)
+                
+                # 检查并压缩上下文（如果需要）
+                if self.enable_context_compression and self.context_compressor:
+                    if self.context_compressor.should_compress(self.context):
+                        logger.info("Context size exceeded limit, compressing...")
+                        original_context = self.context.copy()
+                        self.context = self.context_compressor.compress_with_attention(
+                            self.context,
+                            task=self.context.get("task", ""),
+                            step_plan=self.steps,
+                            current_step=step,
+                            current_action=action.description
+                        )
+                        # 保存压缩统计
+                        stats = self.context_compressor.get_compression_stats(
+                            original_context, self.context
+                        )
+                        self.context["_compression_stats"] = stats
+                        logger.info(f"Compression completed: {stats['space_saved_percentage']:.1f}% saved")
+                        
+                        # 诊断日志 - 压缩
+                        if self.diagnostic_logger:
+                            self.diagnostic_logger.log_context_compression(
+                                stats['original_size'],
+                                stats['compressed_size'],
+                                stats['space_saved_percentage']
+                            )
                 
             except Exception as e:
                 logger.error(f"✗ Action failed: {e}")
                 action.result = str(e)
                 action.success = False
+                
+                # 诊断日志 - 动作失败
+                if self.diagnostic_logger:
+                    self.diagnostic_logger.log_action_result(
+                        False, None, str(e)
+                    )
+                
                 step.status = StepStatus.FAILED
                 return False
                 
@@ -226,8 +333,17 @@ class AgentCLI_V2:
         # 检查是否因为达到最大动作数而退出
         if action_count >= self.max_actions_per_step:
             logger.warning(f"Reached maximum actions ({self.max_actions_per_step}) for step")
+            if self.diagnostic_logger:
+                self.diagnostic_logger.log_warning(
+                    f"Step '{step.name}' reached maximum actions limit ({self.max_actions_per_step})"
+                )
             
         step.status = StepStatus.COMPLETED
+        
+        # 诊断日志 - 步骤结束
+        if self.diagnostic_logger:
+            self.diagnostic_logger.log_step_end(step.name, step.status.value)
+            
         return True
         
     def _action_decider(self, step: Step) -> Optional[Dict]:
@@ -369,6 +485,14 @@ null"""
             
             logger.info(f"Step completion decision: {decision}")
             
+            # 诊断日志 - 步骤决策
+            if self.diagnostic_logger:
+                self.diagnostic_logger.log_step_decision(
+                    decision.get("completed", False),
+                    decision.get("reason", ""),
+                    decision.get("missing")
+                )
+            
             return decision.get("completed", False)
             
         except Exception as e:
@@ -381,11 +505,12 @@ null"""
         logger.info("Creating execution plan...")
         
         try:
-            response = self.llm_client.generate(
-                system_prompt=PLANNER_SYSTEM_PROMPT,
-                human_prompt=PLANNER_HUMAN_PROMPT.format(task=task),
-                temperature=0
-            )
+            messages = [
+                SystemMessage(content=PLANNER_SYSTEM_PROMPT),
+                HumanMessage(content=PLANNER_HUMAN_PROMPT.format(task=task))
+            ]
+            response = self.llm_client.invoke(messages)
+            response = response.content if hasattr(response, 'content') else str(response)
             
             # 解析计划
             plan_text = response.strip()
@@ -487,13 +612,44 @@ null"""
         
     def _update_context_from_action(self, action: Action):
         """根据动作结果更新上下文"""
-        # 如果是读取文件，保存内容到上下文
+        import time
+        
+        # 如果是读取文件，保存内容到文件字典
         if action.tool_name == "read_file" and action.success:
-            self.context["last_file_content"] = action.result
-            self.context["last_file_path"] = action.params.get("path", "")
+            file_path = action.params.get("path", action.params.get("file_path", ""))
+            if file_path:
+                # 使用改进的存储策略
+                if "file_contents" not in self.context:
+                    self.context["file_contents"] = {}
+                    
+                self.context["file_contents"][file_path] = {
+                    "content": action.result,
+                    "timestamp": time.time(),
+                    "size": len(action.result) if action.result else 0
+                }
+                
+                # 仍然保留最后文件信息以保持兼容性
+                self.context["last_file_content"] = action.result
+                self.context["last_file_path"] = file_path
+                
+                logger.debug(f"Stored file content: {file_path} ({len(action.result)} bytes)")
             
         # 如果是写入文件，记录已创建的文件
         elif action.tool_name == "write_file" and action.success:
             if "created_files" not in self.context:
                 self.context["created_files"] = []
-            self.context["created_files"].append(action.params.get("path", ""))
+            file_path = action.params.get("path", action.params.get("file_path", ""))
+            if file_path:
+                self.context["created_files"].append(file_path)
+                
+    def get_context_size(self) -> int:
+        """获取当前上下文大小"""
+        if self.context_compressor:
+            return self.context_compressor._calculate_context_size(self.context)
+        return 0
+        
+    def get_compression_stats(self) -> Optional[Dict[str, Any]]:
+        """获取压缩统计信息"""
+        if self.context.get("_compressed") and self.context.get("_compression_stats"):
+            return self.context["_compression_stats"]
+        return None

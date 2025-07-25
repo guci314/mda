@@ -427,7 +427,7 @@ logger.error(f"Failed to create user: {str(e)}")
 
 推荐测试的端点：
 - `/docs` - Swagger UI 文档页面（应返回 200）
-- `/api/v1/openapi.json` - OpenAPI 规范文件（应返回 200）
+- `/openapi.json` - OpenAPI 规范文件（应返回 200）
 - 实际的 API 端点（如 `/api/v1/users`、`/api/v1/patients` 等）
 
 ### 11.2 测试示例
@@ -435,7 +435,7 @@ logger.error(f"Failed to create user: {str(e)}")
 # 正确的测试端点
 test_endpoints = [
     "/docs",
-    "/api/v1/openapi.json",
+    "/openapi.json",
     "/api/v1/users",
     "/api/v1/patients"
 ]

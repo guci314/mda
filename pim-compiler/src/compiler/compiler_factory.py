@@ -4,8 +4,8 @@
 from pathlib import Path
 from typing import Optional
 
-from compiler.config import CompilerConfig
-from compiler.core.pure_gemini_compiler import PureGeminiCompiler
+from .config import CompilerConfig
+from .core.pure_gemini_compiler import PureGeminiCompiler
 from utils.logger import get_logger
 
 logger = get_logger(__name__)

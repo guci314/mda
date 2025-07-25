@@ -15,7 +15,7 @@ from collections import namedtuple
 # 加载环境变量
 load_dotenv()
 
-from compiler.config import CompilerConfig
+from ..config import CompilerConfig
 from utils.logger import get_logger
 from .error_pattern_cache import ErrorPatternCache
 from .incremental_fixer import IncrementalFixer
@@ -38,10 +38,7 @@ from .prompts import (
     PLATFORM_TEST_FRAMEWORKS
 )
 
-# 导入独立的 PSM 生成函数
-import sys
-sys.path.append(str(Path(__file__).parent.parent.parent.parent))
-from psm_generator import generate_psm
+# 不再需要导入独立的 PSM 生成函数，直接使用 Gemini CLI
 
 logger = get_logger(__name__)
 
@@ -61,6 +58,7 @@ class CompilationResult:
     test_results: Optional[Dict[str, Any]] = None
     app_results: Optional[Dict[str, Any]] = None
     statistics: Optional[Dict[str, int]] = None
+    message: Optional[str] = None
 
 
 class PureGeminiCompiler:
@@ -192,13 +190,29 @@ class PureGeminiCompiler:
             
             # 步骤 3: 运行测试和修复（如果启用）
             test_results = None
+            test_failed = False
             if self.config.auto_test:
                 logger.info("Step 3: Running tests and auto-fixing...")
                 test_results = self._run_tests_and_fix(code_dir)
+                
+                # 检查测试是否通过
+                if test_results and self.config.fail_on_test_failure:
+                    tests_info = test_results.get("tests", {})
+                    if not tests_info.get("passed", False):
+                        test_failed = True
+                        logger.error("Tests failed and fail_on_test_failure is True")
+                        return CompilationResult(
+                            success=False,
+                            pim_file=pim_file,
+                            psm_file=psm_file,
+                            code_dir=code_dir,
+                            test_results=test_results,
+                            error=f"Tests failed after {tests_info.get('attempts', 0)} attempts. {tests_info.get('final_error', 'Unit tests did not pass.')}"
+                        )
             
             # 步骤 4: 运行应用程序
             app_results = None
-            if self.config.auto_test:  # 只有在测试启用时才运行应用
+            if self.config.auto_test and not test_failed:  # 只有在测试通过时才运行应用
                 logger.info("Step 4: Starting application...")
                 app_results = self._run_application(code_dir)
                 
@@ -206,25 +220,71 @@ class PureGeminiCompiler:
                 if app_results and app_results.get("success") and app_results.get("port"):
                     logger.info("Step 5: Testing REST endpoints...")
                     rest_results = self._test_rest_endpoints(code_dir, app_results["port"])
-                    app_results["rest_tests"] = rest_results
+                    # 转换为标准格式以便后续处理
+                    app_results["rest_tests"] = {
+                        "passed": rest_results.get("endpoints_passed", 0),
+                        "failed": rest_results.get("endpoints_tested", 0) - rest_results.get("endpoints_passed", 0),
+                        "total": rest_results.get("endpoints_tested", 0),
+                        "success": rest_results.get("success", False),
+                        "details": rest_results.get("test_details", [])
+                    }
                 else:
                     logger.warning("Skipping REST endpoint tests - application not running")
             
             # 计算总编译时间
             compilation_time = (datetime.now() - start_time).total_seconds()
             
-            logger.info(f"Compilation completed successfully in {compilation_time:.2f}s")
+            # 判断编译是否真正成功
+            compilation_success = True
+            success_message = "Compilation completed successfully"
+            
+            # 检查测试结果
+            if test_results:
+                tests_info = test_results.get("tests", {})
+                if not tests_info.get("passed", False):
+                    compilation_success = False
+                    success_message = "Compilation completed with test failures"
+            
+            # 检查应用启动结果
+            if app_results and not app_results.get("success", False):
+                compilation_success = False
+                success_message = "Compilation completed but application failed to start"
+            
+            # 检查REST端点测试结果
+            if app_results and app_results.get("rest_tests"):
+                rest_tests = app_results["rest_tests"]
+                total_tests = rest_tests.get("total", 0)
+                passed_tests = rest_tests.get("passed", 0)
+                failed_tests = rest_tests.get("failed", 0)
+                
+                # 确保total正确计算
+                if total_tests == 0 and (passed_tests > 0 or failed_tests > 0):
+                    total_tests = passed_tests + failed_tests
+                    rest_tests["total"] = total_tests
+                
+                if total_tests > 0:
+                    pass_rate = passed_tests / total_tests
+                    if pass_rate < self.config.min_test_pass_rate:
+                        compilation_success = False
+                        success_message = f"Compilation completed but REST tests pass rate ({pass_rate:.1%}) below threshold ({self.config.min_test_pass_rate:.1%})"
+            
+            if compilation_success:
+                logger.info(f"{success_message} in {compilation_time:.2f}s")
+            else:
+                logger.warning(f"{success_message} in {compilation_time:.2f}s")
+            
             logger.info(f"Generated {file_count} files ({len(py_files)} Python files)")
             
             return CompilationResult(
-                success=True,
+                success=compilation_success,
                 pim_file=pim_file,
                 psm_file=psm_file,
                 code_dir=code_dir,
                 compilation_time=compilation_time,
                 test_results=test_results,
                 app_results=app_results,
-                statistics=statistics
+                statistics=statistics,
+                message=success_message
             )
             
         except Exception as e:
@@ -236,40 +296,82 @@ class PureGeminiCompiler:
             )
     
     def _generate_psm(self, pim_file: Path, psm_file: Path, work_dir: Path) -> bool:
-        """使用独立的 generate_psm 函数生成 PSM"""
-        logger.info(f"Generating PSM from {pim_file.name} using DeepSeek LLM")
+        """使用 Gemini CLI 生成 PSM"""
+        logger.info(f"Generating PSM from {pim_file.name} using Gemini CLI")
+        
+        platform = self.config.target_platform
+        framework = self._get_framework_for_platform()
         
         # 确保 PIM 文件存在
         if not pim_file.exists():
             logger.error(f"PIM file not found: {pim_file}")
             return False
         
+        # 将 PIM 文件复制到工作目录，确保 Gemini 可以访问
+        work_pim_file = work_dir / pim_file.name
         try:
-            # 读取 PIM 内容
-            pim_content = pim_file.read_text(encoding='utf-8')
-            logger.info(f"Read PIM file: {pim_file.name}, size: {len(pim_content)} bytes")
-            
-            # 调用 generate_psm 函数
-            logger.info("Calling generate_psm function...")
-            psm_content = generate_psm(pim_content)
-            logger.info(f"PSM generated successfully, size: {len(psm_content)} bytes")
-            
-            # 写入 PSM 文件
-            psm_file.parent.mkdir(parents=True, exist_ok=True)
-            psm_file.write_text(psm_content, encoding='utf-8')
-            logger.info(f"PSM written to: {psm_file}")
-            
-            return True
-            
-        except ValueError as e:
-            logger.error(f"PSM validation error: {e}")
-            return False
-        except RuntimeError as e:
-            logger.error(f"PSM generation runtime error: {e}")
-            return False
+            # 只有当源文件和目标文件不同时才复制
+            if pim_file.resolve() != work_pim_file.resolve():
+                shutil.copy2(pim_file, work_pim_file)
+                logger.info(f"Copied PIM file to work directory: {work_pim_file}")
+            else:
+                logger.info(f"PIM file already in work directory: {work_pim_file}")
         except Exception as e:
-            logger.error(f"Unexpected error during PSM generation: {e}")
+            logger.error(f"Failed to copy PIM file to work directory: {e}")
             return False
+        
+        prompt = PSM_GENERATION_PROMPT.format(
+            pim_file=work_pim_file.name,
+            platform=platform,
+            psm_file=psm_file.name,
+            framework=framework,
+            orm=self._get_orm_for_platform(),
+            validation_lib=self._get_validation_lib_for_platform()
+        )
+        
+        # 重试机制：最多尝试3次
+        max_attempts = 3
+        success = False
+        
+        for attempt in range(1, max_attempts + 1):
+            logger.info(f"PSM generation attempt {attempt}/{max_attempts}")
+            
+            # 执行 Gemini CLI
+            success = self._execute_gemini_cli(prompt, work_dir, timeout=300)  # 5分钟超时
+            
+            # 检查 PSM 文件是否生成
+            if success and psm_file.exists():
+                logger.info(f"PSM file generated successfully on attempt {attempt}")
+                break
+            elif success and not psm_file.exists():
+                # 命令成功但文件未创建，可能在其他位置
+                logger.warning(f"Command succeeded but PSM file not found at expected location (attempt {attempt})")
+                # 这里会在后续的代码中搜索文件
+                break
+            else:
+                logger.warning(f"PSM generation failed on attempt {attempt}")
+                if attempt < max_attempts:
+                    logger.info(f"Waiting 5 seconds before retry...")
+                    time.sleep(5)
+        
+        logger.info(f"PSM generation result: {success}")
+        logger.info(f"Expected PSM file: {psm_file}")
+        logger.info(f"PSM file exists: {psm_file.exists()}")
+        
+        # 检查PSM文件是否被创建
+        if success and not psm_file.exists():
+            logger.warning("PSM file not created at expected location")
+            # 检查最常见的备选位置
+            alt_psm = work_dir / f"{pim_file.stem}_psm_psm.md"
+            if alt_psm.exists():
+                logger.info(f"Found PSM file at {alt_psm}, moving to {psm_file}")
+                shutil.move(str(alt_psm), str(psm_file))
+                return True
+            
+            logger.error("PSM file was not created")
+            return False
+            
+        return success
     
     def _generate_code(self, psm_file: Path, code_dir: Path, work_dir: Path) -> bool:
         """使用 Gemini CLI 生成代码"""
@@ -815,10 +917,23 @@ class PureGeminiCompiler:
             
             # 解析错误
             errors = fixer.parse_pytest_output(test_errors or "")
+            logger.info(f"Parsed {len(errors)} test errors from pytest output")
+            
+            # 记录部分pytest输出以便调试
+            if test_errors and len(test_errors) > 0:
+                logger.info(f"Pytest output preview (first 500 chars): {test_errors[:500]}...")
+            
             file_errors = fixer.group_errors_by_file(errors)
+            logger.info(f"Grouped errors into {len(file_errors)} files")
+            
             files_to_fix = fixer.prioritize_files(file_errors)
             
             logger.info(f"Found {len(files_to_fix)} files to fix")
+            if len(files_to_fix) == 0 and len(errors) > 0:
+                logger.warning(f"Found {len(errors)} test errors but could not map them to source files")
+                # 记录一些错误细节以帮助调试
+                for i, error in enumerate(errors[:3]):  # 只记录前3个
+                    logger.info(f"Error {i+1}: {error.file_path}::{error.test_name} - {error.error_type}")
             
             # 创建修复批次
             batches = fixer.create_fix_batch(files_to_fix, batch_size=2)
@@ -958,23 +1073,107 @@ class PureGeminiCompiler:
             logger.info("Running pytest...")
             
             result = subprocess.run(
-                ["python", "-m", "pytest", "tests/", "-v"],
+                ["python", "-m", "pytest", "tests/", "-v", "--tb=short", "--no-header", "-s"],
                 capture_output=True,
                 text=True,
                 cwd=code_dir
             )
             
             error_output = result.stdout + "\n" + result.stderr if result.returncode != 0 else None
+            
+            # 检查是否是 pytest 启动失败
+            if result.returncode != 0 and error_output:
+                if "ImportError: cannot import name 'FixtureDef' from 'pytest'" in error_output:
+                    logger.warning("pytest version compatibility issue detected")
+                    # 尝试修复 pytest 版本问题
+                    if self._fix_pytest_version(code_dir):
+                        logger.info("Fixed pytest version, retrying tests...")
+                        # 重新运行测试
+                        result = subprocess.run(
+                            ["python", "-m", "pytest", "tests/", "-v", "--tb=short", "--no-header", "-s"],
+                            capture_output=True,
+                            text=True,
+                            cwd=code_dir
+                        )
+                        error_output = result.stdout + "\n" + result.stderr if result.returncode != 0 else None
+                elif "ModuleNotFoundError" in error_output and "pytest" in error_output:
+                    logger.warning("pytest not installed or broken")
+                    # 标记为环境问题，让上层处理
+                    return False, "ENVIRONMENT_ERROR: pytest installation issue"
+            
             if result.returncode == 0:
                 logger.info("Tests passed successfully")
+                logger.info(f"Test output: {result.stdout[:200]}..." if result.stdout else "No stdout")
             else:
-                logger.warning("Tests failed")
+                logger.warning(f"Tests failed with return code: {result.returncode}")
+                logger.info(f"Test stdout length: {len(result.stdout) if result.stdout else 0}")
+                logger.info(f"Test stderr length: {len(result.stderr) if result.stderr else 0}")
+                if error_output:
+                    logger.info(f"Combined error output length: {len(error_output)}")
             
             return result.returncode == 0, error_output
                 
         except FileNotFoundError:
             logger.warning("pytest not found, skipping tests")
             return True, None
+    
+    def _fix_pytest_version(self, code_dir: Path) -> bool:
+        """修复 pytest 版本兼容性问题"""
+        try:
+            requirements_file = code_dir / "requirements.txt"
+            if not requirements_file.exists():
+                logger.error("requirements.txt not found")
+                return False
+            
+            # 读取当前内容
+            content = requirements_file.read_text(encoding='utf-8')
+            lines = content.split('\n')
+            
+            # 查找并更新 pytest 版本
+            updated = False
+            new_lines = []
+            for line in lines:
+                if line.strip().startswith('pytest'):
+                    # 确保使用兼容的版本
+                    new_lines.append('pytest==7.4.3')
+                    updated = True
+                else:
+                    new_lines.append(line)
+            
+            # 如果没有找到 pytest，添加它
+            if not updated:
+                # 在其他测试依赖之前添加
+                for i, line in enumerate(new_lines):
+                    if 'httpx' in line or 'test' in line.lower():
+                        new_lines.insert(i, 'pytest==7.4.3')
+                        updated = True
+                        break
+                if not updated:
+                    new_lines.append('pytest==7.4.3')
+            
+            # 写回文件
+            requirements_file.write_text('\n'.join(new_lines), encoding='utf-8')
+            logger.info("Updated pytest version in requirements.txt")
+            
+            # 尝试安装正确版本的 pytest
+            logger.info("Installing correct pytest version...")
+            result = subprocess.run(
+                ["pip", "install", "pytest==7.4.3", "--force-reinstall"],
+                capture_output=True,
+                text=True,
+                cwd=code_dir
+            )
+            
+            if result.returncode == 0:
+                logger.info("Successfully installed pytest 7.4.3")
+                return True
+            else:
+                logger.error(f"Failed to install pytest: {result.stderr}")
+                return False
+                
+        except Exception as e:
+            logger.error(f"Error fixing pytest version: {e}")
+            return False
     
     def _fix_with_gemini(self, code_dir: Path, error_msg: str, error_type: str, timeout: Optional[int] = None) -> bool:
         """使用 Gemini CLI 修复错误
@@ -1137,22 +1336,14 @@ class PureGeminiCompiler:
                 }
             ]
             
-            # 对于 FastAPI，添加版本化的 OpenAPI 路径测试
-            if self.config.target_platform.lower() == "fastapi":
-                test_cases.append({
-                    "name": "OpenAPI schema (versioned)",
-                    "method": "GET",
-                    "url": f"http://localhost:{port}/api/v1/openapi.json",
-                    "expected_status": [200]
-                })
-            else:
-                # 其他框架可能使用默认路径
-                test_cases.append({
-                    "name": "OpenAPI schema",
-                    "method": "GET",
-                    "url": f"http://localhost:{port}/openapi.json",
-                    "expected_status": [200]
-                })
+            # 添加 OpenAPI 路径测试
+            # FastAPI 默认的 OpenAPI 路径是 /openapi.json
+            test_cases.append({
+                "name": "OpenAPI schema",
+                "method": "GET",
+                "url": f"http://localhost:{port}/openapi.json",
+                "expected_status": [200]
+            })
             
             
             # 执行测试

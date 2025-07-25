@@ -58,35 +58,52 @@ def print_result(result):
     """打印编译结果"""
     if result.success:
         print("\n✅ 编译成功！")
+    else:
+        # 显示更详细的失败信息
+        if hasattr(result, 'message') and result.message:
+            print(f"\n❌ {result.message}")
+        elif result.error:
+            print(f"\n❌ 编译失败: {result.error}")
+        else:
+            print("\n❌ 编译失败！")
+    
+    # 无论成功还是失败都显示生成的文件
+    if result.psm_file or result.code_dir:
         print(f"\n📁 生成的文件:")
-        print(f"   - PSM 文件: {result.psm_file}")
-        print(f"   - 代码目录: {result.code_dir}")
-        
-        if result.statistics:
-            print(f"\n📊 统计信息:")
-            print(f"   - 总文件数: {result.statistics['total_files']}")
-            print(f"   - Python 文件: {result.statistics['python_files']}")
-            print(f"   - PSM 生成时间: {result.statistics['psm_generation_time']}秒")
-            print(f"   - 代码生成时间: {result.statistics['code_generation_time']}秒")
-            print(f"   - 总编译时间: {result.compilation_time:.1f}秒")
-        
-        if result.test_results:
-            print(f"\n🧪 测试结果:")
-            print(f"   - Lint: {'✅ 通过' if result.test_results['lint']['passed'] else '❌ 失败'}")
-            if result.test_results['lint']['fixed']:
-                print(f"     (已自动修复)")
-            print(f"   - 单元测试: {'✅ 通过' if result.test_results['tests']['passed'] else '❌ 失败'}")
-            if result.test_results['tests']['fixed']:
-                print(f"     (已自动修复)")
-        
+        if result.psm_file:
+            print(f"   - PSM 文件: {result.psm_file}")
+        if result.code_dir:
+            print(f"   - 代码目录: {result.code_dir}")
+    
+    if result.statistics:
+        print(f"\n📊 统计信息:")
+        print(f"   - 总文件数: {result.statistics['total_files']}")
+        print(f"   - Python 文件: {result.statistics['python_files']}")
+        print(f"   - PSM 生成时间: {result.statistics['psm_generation_time']}秒")
+        print(f"   - 代码生成时间: {result.statistics['code_generation_time']}秒")
+        print(f"   - 总编译时间: {result.compilation_time:.1f}秒")
+    
+    if result.test_results:
+        print(f"\n🧪 测试结果:")
+        print(f"   - Lint: {'✅ 通过' if result.test_results['lint']['passed'] else '❌ 失败'}")
+        if result.test_results.get('lint', {}).get('fixed'):
+            print(f"     (已自动修复)")
+        print(f"   - 单元测试: {'✅ 通过' if result.test_results['tests']['passed'] else '❌ 失败'}")
+        if result.test_results.get('tests', {}).get('fixed'):
+            print(f"     (已自动修复)")
+    
+    # 显示应用运行结果
+    if hasattr(result, 'app_results') and result.app_results:
+        if result.app_results.get('rest_tests'):
+            rest_tests = result.app_results['rest_tests']
+            print(f"   - REST 端点: {rest_tests.get('passed', 0)}/{rest_tests.get('total', 0)} 通过")
+    
+    # 只有成功时才显示下一步
+    if result.success and result.code_dir:
         print(f"\n💡 下一步:")
         print(f"   cd {result.code_dir}")
         print(f"   pip install -r requirements.txt")
         print(f"   python main.py  # 或查看 README.md")
-    else:
-        print("\n❌ 编译失败！")
-        if result.error:
-            print(f"\n错误信息: {result.error}")
 
 
 def main():

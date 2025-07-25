@@ -1,0 +1,74 @@
+{
+  "total_duration": 603.2071900367737,
+  "total_llm_calls": 0,
+  "steps": 8,
+  "total_actions": 25,
+  "files_read_count": {},
+  "repeated_reads": {},
+  "performance_by_step": {
+    "解析PSM文档并生成项目结构": {
+      "duration": 62.65294432640076,
+      "actions": 6,
+      "llm_calls": 0,
+      "files_read": 0,
+      "files_written": 0,
+      "errors": 0
+    },
+    "生成数据模型层代码": {
+      "duration": 25.11095643043518,
+      "actions": 1,
+      "llm_calls": 0,
+      "files_read": 0,
+      "files_written": 0,
+      "errors": 0
+    },
+    "生成控制器层代码": {
+      "duration": 85.58504438400269,
+      "actions": 1,
+      "llm_calls": 0,
+      "files_read": 0,
+      "files_written": 0,
+      "errors": 0
+    },
+    "生成服务层代码": {
+      "duration": 41.57984757423401,
+      "actions": 1,
+      "llm_calls": 0,
+      "files_read": 0,
+      "files_written": 0,
+      "errors": 0
+    },
+    "生成API集成层": {
+      "duration": 64.68603730201721,
+      "actions": 3,
+      "llm_calls": 0,
+      "files_read": 0,
+      "files_written": 0,
+      "errors": 0
+    },
+    "生成前端视图层": {
+      "duration": 142.12111353874207,
+      "actions": 4,
+      "llm_calls": 0,
+      "files_read": 0,
+      "files_written": 0,
+      "errors": 0
+    },
+    "系统验证测试": {
+      "duration": 36.98163843154907,
+      "actions": 4,
+      "llm_calls": 0,
+      "files_read": 0,
+      "files_written": 0,
+      "errors": 0
+    },
+    "生成部署配置": {
+      "duration": 92.341317653656,
+      "actions": 5,
+      "llm_calls": 0,
+      "files_read": 0,
+      "files_written": 0,
+      "errors": 0
+    }
+  }
+}

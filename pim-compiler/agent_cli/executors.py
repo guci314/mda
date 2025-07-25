@@ -34,6 +34,40 @@ class LangChainToolExecutor:
         self.tools = {tool.name: tool for tool in get_all_tools()}
         logger.info(f"Initialized LangChainToolExecutor with {len(self.tools)} tools")
     
+    def _map_parameters(self, tool_name: str, parameters: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        映射参数名称以匹配 LangChain 工具的期望
+        
+        Args:
+            tool_name: 工具名称
+            parameters: 原始参数
+            
+        Returns:
+            映射后的参数
+        """
+        # 复制参数以避免修改原始数据
+        mapped_params = parameters.copy()
+        
+        # 文件路径参数映射
+        if tool_name in ["read_file", "write_file"]:
+            if "file_path" in mapped_params:
+                mapped_params["path"] = mapped_params.pop("file_path")
+        
+        # 目录路径参数映射
+        if tool_name == "list_files":
+            if "dir_path" in mapped_params:
+                mapped_params["path"] = mapped_params.pop("dir_path")
+        
+        # Python REPL 参数映射
+        if tool_name == "python_repl":
+            # python_repl 工具期望 'code' 参数，但有时会传入 'input'
+            if "input" in mapped_params and "code" not in mapped_params:
+                mapped_params["code"] = mapped_params.pop("input")
+            # 保持向后兼容性 - 如果传入的就是 'code'，不做修改
+        
+        logger.debug(f"Parameter mapping for {tool_name}: {parameters} -> {mapped_params}")
+        return mapped_params
+    
     def execute(self, tool_name: str, parameters: Dict[str, Any]) -> ToolExecutionResult:
         """
         执行指定的工具
@@ -56,9 +90,12 @@ class LangChainToolExecutor:
                     tool_name=tool_name
                 )
             
+            # 映射参数
+            mapped_parameters = self._map_parameters(tool_name, parameters)
+            
             # 执行工具
-            logger.info(f"Executing tool '{tool_name}' with parameters: {parameters}")
-            result = tool.run(parameters)
+            logger.info(f"Executing tool '{tool_name}' with parameters: {mapped_parameters}")
+            result = tool.run(mapped_parameters)
             
             return ToolExecutionResult(
                 success=True,

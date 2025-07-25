@@ -1,0 +1,9 @@
+{
+  "core_features": [],
+  "models": [
+    "User",
+    "BlogPost",
+    "Comment"
+  ],
+  "apis": []
+}

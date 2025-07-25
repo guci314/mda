@@ -32,6 +32,8 @@ class CompilerConfig:
     auto_fix_lint: bool = True  # 是否自动修复 lint 错误
     auto_fix_tests: bool = True  # 是否自动修复测试错误
     lint_fix_mode: str = "critical"  # lint 修复模式: "all" (修复所有), "critical" (只修复关键错误), "skip" (跳过修复)
+    fail_on_test_failure: bool = True  # 测试失败时是否让编译失败（默认True）
+    min_test_pass_rate: float = 1.0  # 最低测试通过率（0.0-1.0），低于此值编译失败
     
     # 代码生成选项
     generate_tests: bool = True  # 是否生成单元测试
@@ -64,6 +66,8 @@ class CompilerConfig:
             "auto_fix_lint": self.auto_fix_lint,
             "auto_fix_tests": self.auto_fix_tests,
             "lint_fix_mode": self.lint_fix_mode,
+            "fail_on_test_failure": self.fail_on_test_failure,
+            "min_test_pass_rate": self.min_test_pass_rate,
             "generate_tests": self.generate_tests,
             "generate_docs": self.generate_docs,
             "max_retries": self.max_retries,
