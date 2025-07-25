@@ -38,6 +38,11 @@ from .prompts import (
     PLATFORM_TEST_FRAMEWORKS
 )
 
+# 导入独立的 PSM 生成函数
+import sys
+sys.path.append(str(Path(__file__).parent.parent.parent.parent))
+from psm_generator import generate_psm
+
 logger = get_logger(__name__)
 
 # 定义命令结果类型
@@ -231,82 +236,40 @@ class PureGeminiCompiler:
             )
     
     def _generate_psm(self, pim_file: Path, psm_file: Path, work_dir: Path) -> bool:
-        """使用 Gemini CLI 生成 PSM"""
-        logger.info(f"Generating PSM from {pim_file.name} in {work_dir}")
-        
-        platform = self.config.target_platform
-        framework = self._get_framework_for_platform()
+        """使用独立的 generate_psm 函数生成 PSM"""
+        logger.info(f"Generating PSM from {pim_file.name} using DeepSeek LLM")
         
         # 确保 PIM 文件存在
         if not pim_file.exists():
             logger.error(f"PIM file not found: {pim_file}")
             return False
         
-        # 将 PIM 文件复制到工作目录，确保 Gemini 可以访问
-        work_pim_file = work_dir / pim_file.name
         try:
-            # 只有当源文件和目标文件不同时才复制
-            if pim_file.resolve() != work_pim_file.resolve():
-                shutil.copy2(pim_file, work_pim_file)
-                logger.info(f"Copied PIM file to work directory: {work_pim_file}")
-            else:
-                logger.info(f"PIM file already in work directory: {work_pim_file}")
+            # 读取 PIM 内容
+            pim_content = pim_file.read_text(encoding='utf-8')
+            logger.info(f"Read PIM file: {pim_file.name}, size: {len(pim_content)} bytes")
+            
+            # 调用 generate_psm 函数
+            logger.info("Calling generate_psm function...")
+            psm_content = generate_psm(pim_content)
+            logger.info(f"PSM generated successfully, size: {len(psm_content)} bytes")
+            
+            # 写入 PSM 文件
+            psm_file.parent.mkdir(parents=True, exist_ok=True)
+            psm_file.write_text(psm_content, encoding='utf-8')
+            logger.info(f"PSM written to: {psm_file}")
+            
+            return True
+            
+        except ValueError as e:
+            logger.error(f"PSM validation error: {e}")
+            return False
+        except RuntimeError as e:
+            logger.error(f"PSM generation runtime error: {e}")
+            return False
         except Exception as e:
-            logger.error(f"Failed to copy PIM file to work directory: {e}")
+            logger.error(f"Unexpected error during PSM generation: {e}")
             return False
-        
-        prompt = PSM_GENERATION_PROMPT.format(
-            pim_file=work_pim_file.name,
-            platform=platform,
-            psm_file=psm_file.name,
-            framework=framework,
-            orm=self._get_orm_for_platform(),
-            validation_lib=self._get_validation_lib_for_platform()
-        )
-        
-        # 重试机制：最多尝试3次
-        max_attempts = 3
-        success = False
-        
-        for attempt in range(1, max_attempts + 1):
-            logger.info(f"PSM generation attempt {attempt}/{max_attempts}")
-            
-            # 执行 Gemini CLI
-            success = self._execute_gemini_cli(prompt, work_dir, timeout=300)  # 恢复到5分钟超时
-            
-            # 检查 PSM 文件是否生成
-            if success and psm_file.exists():
-                logger.info(f"PSM file generated successfully on attempt {attempt}")
-                break
-            elif success and not psm_file.exists():
-                # 命令成功但文件未创建，可能在其他位置
-                logger.warning(f"Command succeeded but PSM file not found at expected location (attempt {attempt})")
-                # 这里会在后续的代码中搜索文件
-                break
-            else:
-                logger.warning(f"PSM generation failed on attempt {attempt}")
-                if attempt < max_attempts:
-                    logger.info(f"Waiting 5 seconds before retry...")
-                    time.sleep(5)
-        
-        logger.info(f"PSM generation result: {success}")
-        logger.info(f"Expected PSM file: {psm_file}")
-        logger.info(f"PSM file exists: {psm_file.exists()}")
-        
-        # 检查PSM文件是否被创建
-        if success and not psm_file.exists():
-            logger.warning("PSM file not created at expected location")
-            # 检查最常见的备选位置
-            alt_psm = work_dir / f"{pim_file.stem}_psm_psm.md"
-            if alt_psm.exists():
-                logger.info(f"Found PSM file at {alt_psm}, moving to {psm_file}")
-                shutil.move(str(alt_psm), str(psm_file))
-                return True
-            
-            logger.error("PSM file was not created")
-            return False
-            
-        return success
     
     def _generate_code(self, psm_file: Path, code_dir: Path, work_dir: Path) -> bool:
         """使用 Gemini CLI 生成代码"""

@@ -824,7 +824,7 @@ class AgentCLI:
         human_content = f"""步骤：{step}
 任务：{self.context.get('task', '未知')}
 
-决定动作（大多数情况使用GENERATE）："""
+请根据步骤描述选择合适的工具："""
         
         messages = [
             SystemMessage(content=prompt_content),
