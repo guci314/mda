@@ -1,0 +1,12 @@
+{
+  "generation_time": "2025-07-27T06:20:50.915851",
+  "platform": "fastapi",
+  "duration_seconds": 145.00585460662842,
+  "chapters": [
+    "domain",
+    "service",
+    "api",
+    "config"
+  ],
+  "success": true
+}

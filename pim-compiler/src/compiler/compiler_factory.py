@@ -6,6 +6,7 @@ from typing import Optional
 
 from .config import CompilerConfig
 from .core.pure_gemini_compiler import PureGeminiCompiler
+from .core.configurable_compiler import ConfigurableCompiler
 from utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -27,16 +28,29 @@ class CompilerFactory:
         if config is None:
             config = CompilerConfig()
         
-        logger.info(f"Creating Pure Gemini compiler with configuration:")
-        logger.info(f"  - Target platform: {config.target_platform}")
-        logger.info(f"  - Output directory: {config.output_dir}")
-        logger.info(f"  - Gemini model: {config.gemini_model}")
-        logger.info(f"  - Auto test: {config.auto_test}")
-        logger.info(f"  - Auto fix lint: {config.auto_fix_lint}")
-        logger.info(f"  - Auto fix tests: {config.auto_fix_tests}")
-        
-        # 使用纯 Gemini 编译器
-        return PureGeminiCompiler(config)
+        # 检查是否指定了 generator_type
+        if hasattr(config, 'generator_type') and config.generator_type and config.generator_type != 'gemini-cli':
+            logger.info(f"Creating Configurable compiler with generator: {config.generator_type}")
+            logger.info(f"  - Target platform: {config.target_platform}")
+            logger.info(f"  - Output directory: {config.output_dir}")
+            logger.info(f"  - Generator type: {config.generator_type}")
+            logger.info(f"  - Auto test: {config.auto_test}")
+            logger.info(f"  - Auto fix lint: {config.auto_fix_lint}")
+            logger.info(f"  - Auto fix tests: {config.auto_fix_tests}")
+            
+            # 使用可配置编译器（支持多种生成器）
+            return ConfigurableCompiler(config)
+        else:
+            logger.info(f"Creating Pure Gemini compiler with configuration:")
+            logger.info(f"  - Target platform: {config.target_platform}")
+            logger.info(f"  - Output directory: {config.output_dir}")
+            logger.info(f"  - Gemini model: {config.gemini_model}")
+            logger.info(f"  - Auto test: {config.auto_test}")
+            logger.info(f"  - Auto fix lint: {config.auto_fix_lint}")
+            logger.info(f"  - Auto fix tests: {config.auto_fix_tests}")
+            
+            # 默认使用纯 Gemini 编译器
+            return PureGeminiCompiler(config)
     
     @staticmethod
     def compile_file(

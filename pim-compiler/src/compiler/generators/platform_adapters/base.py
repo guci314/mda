@@ -3,7 +3,8 @@
 from abc import ABC, abstractmethod
 from typing import List, Dict, Any, Optional
 
-from ..psm_generator import PSMModel, PSMEntity, PSMService
+# from ..psm_generator import PSMModel, PSMEntity, PSMService
+from typing import Any
 from ..models import CodeFile
 
 

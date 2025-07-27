@@ -438,7 +438,7 @@ generated/{code_dir.name}/
                 return True, None
             
             result = subprocess.run(
-                ["python", "-m", "pytest", "tests/", "-v"],
+                ["python", "-m", "pytest", "tests/", "-v", "--no-cov", "-p", "no:warnings"],
                 capture_output=True,
                 text=True,
                 cwd=code_dir

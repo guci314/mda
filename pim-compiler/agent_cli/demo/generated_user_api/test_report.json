@@ -1,0 +1,63 @@
+{
+  "syntax_check": {
+    "models.py": {
+      "status": "failed",
+      "error": "  File \"generated_user_api/models.py\", line 3\n    以下是符合 FastAPI 最佳实践的完整数据模型代码，包含 SQLAlchemy ORM 模型和 Pydantic 模式：\n                               ^\nSyntaxError: invalid character '，' (U+FF0C)\n"
+    },
+    "services.py": {
+      "status": "failed",
+      "error": "  File \"generated_user_api/services.py\", line 3\n    下面是一个基于 FastAPI 的 UserService 服务层实现，包含 CRUD 操作、错误处理、async/await 模式以及类型注解。\n                                       ^\nSyntaxError: invalid character '，' (U+FF0C)\n"
+    },
+    "api.py": {
+      "status": "failed",
+      "error": "  File \"generated_user_api/api.py\", line 3\n    下面是一个基于 FastAPI 的 UserService RESTful API 实现，包含了请求/响应模型验证、错误处理和适当的 HTTP 状态码。\n                                                ^\nSyntaxError: invalid character '，' (U+FF0C)\n"
+    },
+    "main.py": {
+      "status": "passed",
+      "error": null
+    }
+  },
+  "import_check": {
+    "models.py": {
+      "status": "failed",
+      "output": "Import failed: invalid character '，' (U+FF0C) (models.py, line 3)\n",
+      "error": ""
+    },
+    "services.py": {
+      "status": "failed",
+      "output": "Import failed: invalid character '，' (U+FF0C) (services.py, line 3)\n",
+      "error": ""
+    },
+    "api.py": {
+      "status": "failed",
+      "output": "Import failed: invalid character '，' (U+FF0C) (api.py, line 3)\n",
+      "error": ""
+    },
+    "main.py": {
+      "status": "failed",
+      "output": "Import failed: invalid character '，' (U+FF0C) (api.py, line 3)\n",
+      "error": ""
+    }
+  },
+  "test_execution": {
+    "test_services.py": {
+      "status": "failed",
+      "output": "============================= test session starts ==============================\nplatform linux -- Python 3.10.12, pytest-7.4.3, pluggy-1.6.0 -- /usr/bin/python\ncachedir: .pytest_cache\nPyQt5 5.15.9 -- Qt runtime 5.15.2 -- Qt compiled 5.15.2\nbenchmark: 5.1.0 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/guci/aiProjects/mda/pim-compiler\nconfigfile: pytest.ini\nplugins: qt-4.4.0, django-4.11.1, benchmark-5.1.0, env-1.1.5, langsmith-0.3.44, anyio-3.7.1, devtools-0.12.2, cov-6.2.1, timeout-2.3.1\ncollecting ... collected 0 items / 1 error\n\n==================================== ERRORS ====================================\n_____ ERROR collecting agent_cli/demo/generated_user_api/test_services.py ______\n/home/guci/.local/lib/python3.10/site-packages/_pytest/python.py:617: in _importtestmodule\n    mod = import_path(self.path, mode=importmode, root=self.config.rootpath)\n/home/guci/.local/lib/python3.10/site-packages/_pytest/pathlib.py:567: in import_path\n    importlib.import_module(module_name)\n/usr/lib/python3.10/importlib/__init__.py:126: in import_module\n    return _bootstrap._gcd_import(name[level:], package, level)\n<frozen importlib._bootstrap>:1050: in _gcd_import\n    ???\n<frozen importlib._bootstrap>:1027: in _find_and_load\n    ???\n<frozen importlib._bootstrap>:1006: in _find_and_load_unlocked\n    ???\n<frozen importlib._bootstrap>:688: in _load_unlocked\n    ???\n/home/guci/.local/lib/python3.10/site-packages/_pytest/assertion/rewrite.py:177: in exec_module\n    source_stat, co = _rewrite_test(fn, self.config)\n/home/guci/.local/lib/python3.10/site-packages/_pytest/assertion/rewrite.py:359: in _rewrite_test\n    tree = ast.parse(source, filename=strfn)\n/usr/lib/python3.10/ast.py:50: in parse\n    return compile(source, filename, mode, flags,\nE     File \"/home/guci/aiProjects/mda/pim-compiler/agent_cli/demo/generated_user_api/test_services.py\", line 3\nE       下面是为 `UserService` 生成的完整测试代码，包含单元测试和集成测试，使用 pytest 框架，并包含 fixtures 和 mock。\nE                                   ^\nE   SyntaxError: invalid character '，' (U+FF0C)\n=========================== short test summary info ============================\nERROR test_services.py\n!!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!\n=============================== 1 error in 0.40s ===============================\n",
+      "error": "",
+      "return_code": 2
+    },
+    "test_api.py": {
+      "status": "failed",
+      "output": "============================= test session starts ==============================\nplatform linux -- Python 3.10.12, pytest-7.4.3, pluggy-1.6.0 -- /usr/bin/python\ncachedir: .pytest_cache\nPyQt5 5.15.9 -- Qt runtime 5.15.2 -- Qt compiled 5.15.2\nbenchmark: 5.1.0 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/guci/aiProjects/mda/pim-compiler\nconfigfile: pytest.ini\nplugins: qt-4.4.0, django-4.11.1, benchmark-5.1.0, env-1.1.5, langsmith-0.3.44, anyio-3.7.1, devtools-0.12.2, cov-6.2.1, timeout-2.3.1\ncollecting ... collected 0 items / 1 error\n\n==================================== ERRORS ====================================\n________ ERROR collecting agent_cli/demo/generated_user_api/test_api.py ________\n/home/guci/.local/lib/python3.10/site-packages/_pytest/python.py:617: in _importtestmodule\n    mod = import_path(self.path, mode=importmode, root=self.config.rootpath)\n/home/guci/.local/lib/python3.10/site-packages/_pytest/pathlib.py:567: in import_path\n    importlib.import_module(module_name)\n/usr/lib/python3.10/importlib/__init__.py:126: in import_module\n    return _bootstrap._gcd_import(name[level:], package, level)\n<frozen importlib._bootstrap>:1050: in _gcd_import\n    ???\n<frozen importlib._bootstrap>:1027: in _find_and_load\n    ???\n<frozen importlib._bootstrap>:1006: in _find_and_load_unlocked\n    ???\n<frozen importlib._bootstrap>:688: in _load_unlocked\n    ???\n/home/guci/.local/lib/python3.10/site-packages/_pytest/assertion/rewrite.py:186: in exec_module\n    exec(co, module.__dict__)\ntest_api.py:4: in <module>\n    from main import app\nmain.py:3: in <module>\n    from api import router\nE     File \"/home/guci/aiProjects/mda/pim-compiler/agent_cli/demo/generated_user_api/api.py\", line 3\nE       下面是一个基于 FastAPI 的 UserService RESTful API 实现，包含了请求/响应模型验证、错误处理和适当的 HTTP 状态码。\nE                                                   ^\nE   SyntaxError: invalid character '，' (U+FF0C)\n=========================== short test summary info ============================\nERROR test_api.py\n!!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!\n=============================== 1 error in 1.61s ===============================\n",
+      "error": "",
+      "return_code": 2
+    }
+  },
+  "api_validation": {
+    "status": "failed",
+    "output": "API validation failed: invalid character '，' (U+FF0C) (api.py, line 3)\n",
+    "error": ""
+  },
+  "overall_status": "failed",
+  "timestamp": "2025-07-26T05:52:31.331816"
+}

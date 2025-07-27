@@ -10,6 +10,14 @@ import json
 from langchain.tools import StructuredTool
 from agent_cli.tools import get_tool_by_name, get_all_tools, get_tools_description
 
+# 导入参数映射
+try:
+    from .tool_param_mapping import map_tool_params
+except ImportError:
+    # 如果导入失败，使用恒等映射
+    def map_tool_params(tool_name: str, params: dict) -> dict:
+        return params
+
 
 logger = logging.getLogger(__name__)
 
@@ -52,17 +60,23 @@ class LangChainToolExecutor:
         if tool_name in ["read_file", "write_file"]:
             if "file_path" in mapped_params:
                 mapped_params["path"] = mapped_params.pop("file_path")
+            elif "filename" in mapped_params:
+                mapped_params["path"] = mapped_params.pop("filename")
         
         # 目录路径参数映射
         if tool_name == "list_files":
             if "dir_path" in mapped_params:
                 mapped_params["path"] = mapped_params.pop("dir_path")
+            elif "directory" in mapped_params:
+                mapped_params["path"] = mapped_params.pop("directory")
         
         # Python REPL 参数映射
         if tool_name == "python_repl":
-            # python_repl 工具期望 'code' 参数，但有时会传入 'input'
+            # python_repl 工具期望 'code' 参数，但有时会传入 'input' 或 'command'
             if "input" in mapped_params and "code" not in mapped_params:
                 mapped_params["code"] = mapped_params.pop("input")
+            elif "command" in mapped_params and "code" not in mapped_params:
+                mapped_params["code"] = mapped_params.pop("command")
             # 保持向后兼容性 - 如果传入的就是 'code'，不做修改
         
         logger.debug(f"Parameter mapping for {tool_name}: {parameters} -> {mapped_params}")

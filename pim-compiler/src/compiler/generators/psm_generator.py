@@ -4,7 +4,8 @@ from typing import Dict, Any, List
 from dataclasses import dataclass
 from datetime import datetime
 
-from core.models import PIMModel, Entity, Service, Attribute
+# from core.models import PIMModel, Entity, Service, Attribute
+# 暂时注释掉，因为这个文件当前没有被使用
 
 
 @dataclass
@@ -35,15 +36,15 @@ class PSMService:
     platform_config: Dict[str, Any]
 
 
-@dataclass
-class PSMModel:
-    """Platform-specific model"""
-    platform: str
-    base_model: PIMModel
-    entities: List[PSMEntity]
-    services: List[PSMService]
-    platform_config: Dict[str, Any]
-    generated_at: datetime
+# @dataclass
+# class PSMModel:
+#     """Platform-specific model"""
+#     platform: str
+#     base_model: PIMModel
+#     entities: List[PSMEntity]
+#     services: List[PSMService]
+#     platform_config: Dict[str, Any]
+#     generated_at: datetime
 
 
 class PSMGenerator:

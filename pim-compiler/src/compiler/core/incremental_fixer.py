@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import List, Dict, Tuple, Optional
 from dataclasses import dataclass
 import subprocess
-from utils.logger import get_logger
+from ...utils.logger import get_logger
 
 logger = get_logger(__name__)
 

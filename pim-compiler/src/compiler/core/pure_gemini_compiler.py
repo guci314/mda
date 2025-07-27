@@ -16,7 +16,7 @@ from collections import namedtuple
 load_dotenv()
 
 from ..config import CompilerConfig
-from utils.logger import get_logger
+from ...utils.logger import get_logger
 from .error_pattern_cache import ErrorPatternCache
 from .incremental_fixer import IncrementalFixer
 from .prompts import (
@@ -1073,7 +1073,7 @@ class PureGeminiCompiler:
             logger.info("Running pytest...")
             
             result = subprocess.run(
-                ["python", "-m", "pytest", "tests/", "-v", "--tb=short", "--no-header", "-s"],
+                ["python", "-m", "pytest", "tests/", "-v", "--tb=short", "--no-header", "-s", "-p", "no:cacheprovider", "-p", "no:warnings", "--no-cov"],
                 capture_output=True,
                 text=True,
                 cwd=code_dir
@@ -1090,7 +1090,7 @@ class PureGeminiCompiler:
                         logger.info("Fixed pytest version, retrying tests...")
                         # 重新运行测试
                         result = subprocess.run(
-                            ["python", "-m", "pytest", "tests/", "-v", "--tb=short", "--no-header", "-s"],
+                            ["python", "-m", "pytest", "tests/", "-v", "--tb=short", "--no-header", "-s", "-p", "no:cacheprovider", "-p", "no:warnings", "--no-cov"],
                             capture_output=True,
                             text=True,
                             cwd=code_dir

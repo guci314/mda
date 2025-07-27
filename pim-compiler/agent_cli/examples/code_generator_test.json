@@ -1,0 +1,120 @@
+{
+  "name": "code_generator_test_suite",
+  "description": "代码生成智能体测试套件",
+  "agent_name": "code_generator",
+  "tags": ["code_generation", "python", "unit_test"],
+  "setup": {
+    "action": "shell",
+    "command": "mkdir -p test_output"
+  },
+  "teardown": {
+    "action": "shell",
+    "command": "rm -rf test_output"
+  },
+  "test_cases": [
+    {
+      "name": "test_fibonacci_function",
+      "description": "测试生成斐波那契函数",
+      "input": {
+        "task": "generate",
+        "language": "python",
+        "description": "生成一个递归的斐波那契函数，函数名为 fibonacci，参数为 n"
+      },
+      "expected_output": {
+        "status": "success",
+        "language": "python"
+      },
+      "expected_actions": [
+        "analyze_requirements",
+        "generate_code*",
+        "validate_syntax"
+      ],
+      "timeout": 30,
+      "tags": ["basic", "function"]
+    },
+    {
+      "name": "test_class_generation",
+      "description": "测试生成Python类",
+      "input": {
+        "task": "generate",
+        "language": "python",
+        "description": "生成一个简单的 Person 类，包含 name 和 age 属性，以及一个 greet 方法"
+      },
+      "expected_output": {
+        "status": "success",
+        "language": "python"
+      },
+      "expected_actions": [
+        "analyze_requirements",
+        "design_class_structure",
+        "generate_code*",
+        "validate_syntax"
+      ],
+      "timeout": 30,
+      "tags": ["intermediate", "class"]
+    },
+    {
+      "name": "test_error_handling",
+      "description": "测试错误处理",
+      "input": {
+        "task": "generate",
+        "language": "unknown_language",
+        "description": "生成代码"
+      },
+      "expected_output": {
+        "status": "error",
+        "error": "*unsupported*"
+      },
+      "expected_actions": [
+        "analyze_requirements",
+        "handle_error"
+      ],
+      "timeout": 15,
+      "tags": ["error", "edge_case"]
+    },
+    {
+      "name": "test_complex_algorithm",
+      "description": "测试生成复杂算法",
+      "input": {
+        "task": "generate",
+        "language": "python",
+        "description": "生成一个二分查找算法，函数名为 binary_search，接收排序数组和目标值"
+      },
+      "expected_output": {
+        "status": "success",
+        "language": "python"
+      },
+      "expected_actions": [
+        "analyze_requirements",
+        "design_algorithm",
+        "generate_code*",
+        "add_comments",
+        "validate_syntax"
+      ],
+      "timeout": 45,
+      "tags": ["advanced", "algorithm"]
+    },
+    {
+      "name": "test_async_function",
+      "description": "测试生成异步函数",
+      "input": {
+        "task": "generate",
+        "language": "python",
+        "description": "生成一个异步函数 fetch_data，使用 aiohttp 从 URL 获取数据"
+      },
+      "expected_output": {
+        "status": "success",
+        "language": "python",
+        "has_imports": true
+      },
+      "expected_actions": [
+        "analyze_requirements",
+        "identify_dependencies",
+        "generate_code*",
+        "validate_syntax"
+      ],
+      "timeout": 30,
+      "tags": ["advanced", "async"]
+    }
+  ]
+}

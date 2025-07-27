@@ -1,0 +1,13 @@
+{
+  "project_name": "file_organizer",
+  "created_at": "2025-07-26T07:10:05.024851",
+  "files": {
+    "cli.py": "file_organizer/cli.py",
+    "core.py": "file_organizer/core.py",
+    "utils.py": "file_organizer/utils.py",
+    "setup.py": "file_organizer/setup.py",
+    "test_cli.py": "file_organizer/test_cli.py",
+    "README.md": "file_organizer/README.md"
+  },
+  "total_interactions": 7
+}

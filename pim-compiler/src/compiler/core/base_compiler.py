@@ -300,7 +300,7 @@ class BaseCompiler(ABC):
         """运行 Python 测试"""
         try:
             result = subprocess.run(
-                ['python', '-m', 'pytest', test_file, '-v'],
+                ['python', '-m', 'pytest', test_file, '-v', '--no-cov', '-p', 'no:warnings'],
                 capture_output=True,
                 text=True,
                 check=False
@@ -313,7 +313,7 @@ class BaseCompiler(ABC):
                     if self._fix_with_gemini(test_file, result.stdout, 'pytest failures'):
                         # 重新运行测试
                         result = subprocess.run(
-                            ['python', '-m', 'pytest', test_file, '-v'],
+                            ['python', '-m', 'pytest', test_file, '-v', '--no-cov', '-p', 'no:warnings'],
                             capture_output=True,
                             text=True,
                             check=False

@@ -18,6 +18,9 @@ class CompilerConfig:
     target_platform: str = "fastapi"  # 目标平台: fastapi, django, flask, spring, express
     output_dir: Path = field(default_factory=lambda: Path("./output"))
     
+    # 生成器配置
+    generator_type: str = field(default_factory=lambda: os.getenv("CODE_GENERATOR_TYPE", "gemini-cli"))  # 生成器类型: gemini-cli, react-agent, autogen
+    
     # Gemini 配置
     gemini_model: str = field(default_factory=lambda: os.getenv("GEMINI_MODEL", "gemini-2.0-flash-exp"))
     gemini_api_key: Optional[str] = field(default_factory=lambda: os.getenv("GEMINI_API_KEY"))
@@ -34,6 +37,7 @@ class CompilerConfig:
     lint_fix_mode: str = "critical"  # lint 修复模式: "all" (修复所有), "critical" (只修复关键错误), "skip" (跳过修复)
     fail_on_test_failure: bool = True  # 测试失败时是否让编译失败（默认True）
     min_test_pass_rate: float = 1.0  # 最低测试通过率（0.0-1.0），低于此值编译失败
+    enable_coverage: bool = False  # 是否启用测试覆盖率（默认False）
     
     # 代码生成选项
     generate_tests: bool = True  # 是否生成单元测试
@@ -58,6 +62,7 @@ class CompilerConfig:
         return {
             "target_platform": self.target_platform,
             "output_dir": str(self.output_dir),
+            "generator_type": self.generator_type,
             "gemini_model": self.gemini_model,
             "enable_cache": self.enable_cache,
             "verbose": self.verbose,
@@ -68,6 +73,7 @@ class CompilerConfig:
             "lint_fix_mode": self.lint_fix_mode,
             "fail_on_test_failure": self.fail_on_test_failure,
             "min_test_pass_rate": self.min_test_pass_rate,
+            "enable_coverage": self.enable_coverage,
             "generate_tests": self.generate_tests,
             "generate_docs": self.generate_docs,
             "max_retries": self.max_retries,

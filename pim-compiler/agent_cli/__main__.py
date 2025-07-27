@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Agent CLI v2 命令行入口 - 支持动态执行架构
+Agent CLI v3 命令行入口 - 支持任务分类和自适应规划
 支持直接运行: python -m agent_cli
 """
 import sys
@@ -11,8 +11,9 @@ from dotenv import load_dotenv
 # 加载环境变量
 load_dotenv()
 
-# 使用新架构
-from .core_v2_new import AgentCLI_V2
+# 使用最新 v3 增强版架构
+from .core_v3_enhanced import AgentCLI_V3_Enhanced
+from .core_v2_improved import AgentCLI_V2_Improved
 from .core import LLMConfig
 from .setup import setup_provider, show_providers, show_prices
 
@@ -21,7 +22,7 @@ def main():
     """主函数"""
     parser = argparse.ArgumentParser(
         prog="agent_cli",
-        description="Agent CLI v2 - 支持动态执行架构的 LLM Agent"
+        description="Agent CLI v3 - 支持任务分类和自适应规划的智能 LLM Agent"
     )
     
     subparsers = parser.add_subparsers(dest="command", help="可用命令")
@@ -43,6 +44,9 @@ def main():
     run_parser.add_argument("-v", "--verbose", action="store_true", help="详细输出")
     run_parser.add_argument("--max-actions", type=int, default=10, help="每个步骤最大动作数")
     run_parser.add_argument("--no-dynamic", action="store_true", help="禁用动态计划调整")
+    run_parser.add_argument("--use-v2", action="store_true", help="使用 v2 版本而不是 v3")
+    run_parser.add_argument("--no-classification", action="store_true", help="禁用任务分类")
+    run_parser.add_argument("--no-query-opt", action="store_true", help="禁用查询优化")
     
     # convert 命令 - PIM 到 PSM 转换
     convert_parser = subparsers.add_parser("convert", help="转换 PIM 到 PSM")
@@ -100,18 +104,37 @@ def main():
             else:
                 config = LLMConfig.from_env()
             
-            # 使用 v2 架构
-            cli = AgentCLI_V2(
-                llm_config=config,
-                max_actions_per_step=args.max_actions,
-                enable_dynamic_planning=not args.no_dynamic
-            )
+            # 根据参数选择版本
+            if args.use_v2:
+                # 使用 v2 版本
+                cli = AgentCLI_V2_Improved(
+                    llm_config=config,
+                    max_actions_per_step=args.max_actions,
+                    enable_dynamic_planning=not args.no_dynamic
+                )
+                version_info = "v2.2 改进版 (增强动态执行架构)"
+            else:
+                # 使用 v3 版本（默认）
+                cli = AgentCLI_V3_Enhanced(
+                    llm_config=config,
+                    max_actions_per_step=args.max_actions,
+                    enable_dynamic_planning=not args.no_dynamic,
+                    enable_task_classification=not args.no_classification,
+                    enable_adaptive_planning=not args.no_classification,
+                    enable_query_optimization=not args.no_query_opt
+                )
+                version_info = "v3.0 增强版 (智能任务分类+自适应规划)"
             
-            print(f"使用 Agent CLI v2 (动态执行架构)")
+            print(f"使用 Agent CLI {version_info}")
             print(f"提供商: {config.provider}")
             print(f"模型: {config.model}")
             print(f"每步骤最大动作数: {args.max_actions}")
             print(f"动态计划: {'启用' if not args.no_dynamic else '禁用'}")
+            
+            if not args.use_v2:
+                print(f"任务分类: {'启用' if not args.no_classification else '禁用'}")
+                print(f"查询优化: {'启用' if not args.no_query_opt else '禁用'}")
+            
             print("")
             
             # 执行任务
@@ -157,19 +180,24 @@ def main():
         task = f"将 {input_path} 中的 PIM 转换为 {args.target} 平台的 PSM，输出到 {output_path}"
         
         try:
-            # 创建 CLI (v2)
+            # 创建 CLI (默认使用 v3)
             if args.provider:
                 config = LLMConfig.from_env(args.provider)
             else:
                 config = LLMConfig.from_env()
                 
-            cli = AgentCLI_V2(llm_config=config)
+            cli = AgentCLI_V3_Enhanced(
+                llm_config=config,
+                enable_task_classification=True,
+                enable_adaptive_planning=True,
+                enable_query_optimization=True
+            )
             
             print(f"开始转换: {input_path} -> {output_path}")
             print(f"目标平台: {args.target}")
             print(f"使用提供商: {config.provider}")
             print(f"使用模型: {config.model}")
-            print(f"使用架构: Agent CLI v2 (动态执行)")
+            print(f"使用架构: Agent CLI v3.0 增强版 (智能任务分类)")
             
             success, message = cli.execute_task(task)
             

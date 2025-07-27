@@ -1,0 +1,176 @@
+{
+  "psm_file": "example_user_psm.md",
+  "output_dir": "generated_user_api",
+  "platform": "FastAPI",
+  "plan": {
+    "psm_summary": "基于FastAPI平台的代码生成",
+    "target_platform": "FastAPI",
+    "steps": [
+      {
+        "step_number": 1,
+        "name": "初始化项目结构",
+        "description": "创建项目目录和基础文件",
+        "input_required": [
+          "platform",
+          "project_name"
+        ],
+        "output_files": [
+          "__init__.py",
+          "README.md"
+        ],
+        "dependencies": []
+      },
+      {
+        "step_number": 2,
+        "name": "生成依赖配置",
+        "description": "创建requirements.txt和配置文件",
+        "input_required": [
+          "platform",
+          "dependencies"
+        ],
+        "output_files": [
+          "requirements.txt",
+          "config.py"
+        ],
+        "dependencies": [
+          1
+        ]
+      },
+      {
+        "step_number": 3,
+        "name": "生成数据模型",
+        "description": "根据实体生成模型代码",
+        "input_required": [
+          "entities"
+        ],
+        "output_files": [
+          "models.py",
+          "schemas.py"
+        ],
+        "dependencies": [
+          1
+        ]
+      },
+      {
+        "step_number": 4,
+        "name": "生成服务层",
+        "description": "生成业务逻辑服务",
+        "input_required": [
+          "services",
+          "models"
+        ],
+        "output_files": [
+          "services.py"
+        ],
+        "dependencies": [
+          3
+        ]
+      },
+      {
+        "step_number": 5,
+        "name": "生成API路由",
+        "description": "生成API端点和路由",
+        "input_required": [
+          "services",
+          "platform"
+        ],
+        "output_files": [
+          "api.py",
+          "main.py"
+        ],
+        "dependencies": [
+          4
+        ]
+      },
+      {
+        "step_number": 6,
+        "name": "生成测试代码",
+        "description": "生成单元测试和集成测试",
+        "input_required": [
+          "services",
+          "api"
+        ],
+        "output_files": [
+          "test_services.py",
+          "test_api.py"
+        ],
+        "dependencies": [
+          5
+        ]
+      },
+      {
+        "step_number": 7,
+        "name": "验证生成代码",
+        "description": "运行测试验证生成代码的正确性",
+        "input_required": [
+          "test_files",
+          "generated_code"
+        ],
+        "output_files": [
+          "test_report.json",
+          "validation_results.md"
+        ],
+        "dependencies": [
+          6
+        ]
+      }
+    ]
+  },
+  "results": [
+    {
+      "step": 1,
+      "status": "completed",
+      "files_generated": [
+        "__init__.py",
+        "README.md"
+      ]
+    },
+    {
+      "step": 2,
+      "status": "completed",
+      "files_generated": [
+        "requirements.txt",
+        "config.py"
+      ]
+    },
+    {
+      "step": 3,
+      "status": "completed",
+      "files_generated": [
+        "models.py",
+        "schemas.py"
+      ]
+    },
+    {
+      "step": 4,
+      "status": "completed",
+      "files_generated": [
+        "services.py"
+      ]
+    },
+    {
+      "step": 5,
+      "status": "completed",
+      "files_generated": [
+        "api.py",
+        "main.py"
+      ]
+    },
+    {
+      "step": 6,
+      "status": "completed",
+      "files_generated": [
+        "test_services.py",
+        "test_api.py"
+      ]
+    },
+    {
+      "step": 7,
+      "status": "completed",
+      "files_generated": [
+        "test_report.json",
+        "validation_results.md"
+      ]
+    }
+  ]
+}

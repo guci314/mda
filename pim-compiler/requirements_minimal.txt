@@ -1,0 +1,10 @@
+# 最小化的兼容版本
+langchain==0.1.0
+langchain-openai==0.0.2
+pydantic==1.10.15
+fastapi==0.68.0
+uvicorn==0.15.0
+sqlalchemy==1.4.22
+python-dotenv>=0.19.0
+httpx>=0.23.0
+tenacity>=8.0.0

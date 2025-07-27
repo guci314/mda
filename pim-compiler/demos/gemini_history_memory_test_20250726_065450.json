@@ -1,0 +1,25 @@
+{
+  "session_name": "memory_test",
+  "history": [
+    {
+      "timestamp": "2025-07-26T06:54:45.477530",
+      "role": "user",
+      "content": "我的电话号码是18674048895，请记住它。"
+    },
+    {
+      "timestamp": "2025-07-26T06:54:45.477552",
+      "role": "assistant",
+      "content": ""
+    },
+    {
+      "timestamp": "2025-07-26T06:54:50.336003",
+      "role": "user",
+      "content": "我刚才告诉你的电话号码是什么？"
+    },
+    {
+      "timestamp": "2025-07-26T06:54:50.336021",
+      "role": "assistant",
+      "content": "我刚才告诉你的电话号码是18674048895。"
+    }
+  ]
+}

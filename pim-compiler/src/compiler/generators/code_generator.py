@@ -3,7 +3,7 @@
 from typing import List, Dict, Any, Optional
 from datetime import datetime
 
-from .psm_generator import PSMModel, PSMEntity, PSMService
+# from .psm_generator import PSMModel, PSMEntity, PSMService
 from .platform_adapters import get_platform_adapter
 from .models import CodeFile, CodePackage
 

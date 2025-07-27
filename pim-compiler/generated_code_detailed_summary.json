@@ -1,0 +1,9 @@
+{
+  "scenario": "detailed",
+  "psm_file": "test_psm_detailed.md",
+  "output_dir": "generated_code_detailed",
+  "status": "success",
+  "log_file": "code_gen_detailed_20250726_212703.log",
+  "completion_time": 208.86449003219604,
+  "final_response": "项目代码已成功生成在 `generated_code_detailed` 目录下，并包含完整的 FastAPI 用户管理系统实现。以下是项目结构和文件生成情况的总结：\n\n### 项目结构\n```\ngenerated_code_detailed/\n├── README.md\n└── user_management/\n    ├── __init__.py\n    ├── main.py\n    ├── config.py\n    ├── database.py\n    ├── requirements.txt\n    ├── models/\n    │   ├── __init__.py\n    │   └── user.py\n    ├── schemas/\n    │   ├── __init__.py\n    │   └── user.py\n    ├── services/\n    │   ├── __init__.py\n    │   └── user.py\n    └── api/\n        ├── __init__.py\n        └── routes/\n            ├── __init__.py\n            └── users.py\n```\n\n### 关键文件说明\n1. **`requirements.txt`**：项目依赖文件。\n2. **`config.py`**：配置文件，包含数据库 URL 和密钥。\n3. **`database.py`**：数据库配置和会话管理。\n4. **`models/user.py`**：用户数据模型。\n5. **`schemas/user.py`**：Pydantic 模型，用于请求和响应验证。\n6. **`services/user.py`**：用户业务逻辑。\n7. **`api/routes/users.py`**：用户 API 路由。\n8. **`main.py`**：FastAPI 主入口文件。\n\n### 运行说明\n1. 安装依赖：\n   ```bash\n   pip install -r user_management/requirements.txt\n   ```\n2. 启动服务：\n   ```bash\n   cd user_management\n   uvicorn main:app --reload\n   ```\n3. 访问 API 文档：\n   - Swagger UI: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)\n   - ReDoc: [http://127.0.0.1:8000/redoc](http://127.0.0.1:8000/redoc)\n\n### 注意事项\n- 确保创建 `.env` 文件以配置环境变量。\n- 数据库文件 (`user_management.db`) 会在首次运行时自动创建。\n\n如需进一步调整或扩展功能，请随时告知！"
+}

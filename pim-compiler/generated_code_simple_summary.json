@@ -1,0 +1,9 @@
+{
+  "scenario": "simple",
+  "psm_file": "test_psm_simple.md",
+  "output_dir": "generated_code_simple",
+  "status": "success",
+  "log_file": "code_gen_simple_20250726_212658.log",
+  "completion_time": 129.9828543663025,
+  "final_response": "已成功生成完整的 FastAPI 项目代码，并创建了以下文件和目录结构：\n\n```\ngenerated_code_simple/\n├── app/\n│   ├── models/\n│   │   └── user.py\n│   ├── schemas/\n│   │   └── user.py\n│   ├── services/\n│   │   └── user.py\n│   ├── api/\n│   │   └── users.py\n│   ├── database.py\n│   └── main.py\n├── requirements.txt\n└── README.md\n```\n\n### 项目说明\n1. **模型层**：定义了 `User` 实体，包含数据库表结构。\n2. **Schema 层**：使用 Pydantic 定义了请求和响应模型。\n3. **服务层**：实现了用户相关的业务逻辑（如创建、查询、更新、删除用户）。\n4. **API 层**：定义了 FastAPI 的路由和端点。\n5. **数据库配置**：使用 SQLite 作为数据库，并配置了 SQLAlchemy 的会话管理。\n6. **主程序**：初始化 FastAPI 应用并包含路由。\n\n### 如何运行\n1. 安装依赖：\n   ```bash\n   pip install -r requirements.txt\n   ```\n2. 启动服务：\n   ```bash\n   uvicorn app.main:app --reload\n   ```\n3. 访问 API 文档：\n   - Swagger UI: `http://127.0.0.1:8000/docs`\n   - ReDoc: `http://127.0.0.1:8000/redoc`\n\n项目已准备好运行，请按照 README.md 中的说明操作。"
+}
