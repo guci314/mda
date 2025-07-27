@@ -29,17 +29,40 @@ os.environ.pop('all_proxy', None)
 
 # 直接复制ReactAgentGenerator的代码，避免导入问题
 from typing import Dict, Any, List, Optional
+from enum import Enum
 from langchain_openai import ChatOpenAI
 from langchain.agents import AgentExecutor, create_tool_calling_agent
-from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.tools import tool
 from langchain_community.cache import SQLiteCache
 from langchain_core.globals import set_llm_cache
+from langchain.memory import (
+    ConversationBufferMemory,
+    ConversationSummaryBufferMemory,
+    ConversationBufferWindowMemory,
+)
+from langchain_community.chat_message_histories import (
+    SQLChatMessageHistory,
+)
 from pydantic import BaseModel, Field
+
+# 导入 DeepSeek token 计数修复
+try:
+    from deepseek_token_counter import patch_deepseek_token_counting
+except ImportError:
+    logger.warning("deepseek_token_counter not found, token counting may fail")
+    patch_deepseek_token_counting = None
 
 # 设置缓存 - 使用绝对路径确保缓存生效
 cache_path = os.path.join(os.path.dirname(__file__), ".langchain.db")
 set_llm_cache(SQLiteCache(database_path=cache_path))
+
+# 记忆级别枚举
+class MemoryLevel(str, Enum):
+    """记忆级别"""
+    NONE = "none"              # 无记忆 - 快速简单
+    SMART = "summary_buffer"   # 智能缓冲 - 平衡方案
+    PRO = "sqlite"            # 持久存储 - 专业项目
 
 # 工具定义
 class FileInput(BaseModel):
@@ -57,18 +80,33 @@ class InstallInput(BaseModel):
     requirements_file: str = Field(default="requirements.txt", description="依赖文件路径")
 
 class GeneratorConfig:
-    def __init__(self, platform, output_dir, additional_config=None):
+    def __init__(self, platform, output_dir, additional_config=None, 
+                 memory_level=MemoryLevel.SMART, session_id=None, 
+                 max_token_limit=30000, db_path=None,
+                 knowledge_file="先验知识.md"):  # 增加到 30K tokens
         self.platform = platform
         self.output_dir = output_dir
         self.additional_config = additional_config or {}
+        # 记忆配置
+        self.memory_level = memory_level
+        self.session_id = session_id or f"session_{int(time.time())}"
+        self.max_token_limit = max_token_limit  # 默认 30K，约占用一半的上下文窗口
+        self.db_path = db_path or os.path.join(os.path.dirname(__file__), "memory.db")
+        # 知识文件路径
+        self.knowledge_file = knowledge_file
 
 class ReactAgentGenerator:
-    """React Agent 代码生成器"""
+    """React Agent 代码生成器 - 支持三级记忆"""
     
     def __init__(self, config: GeneratorConfig):
         self.config = config
         self.output_dir = Path(config.output_dir)
         self.llm = self._create_llm()
+        self.memory = self._create_memory()
+        self.prior_knowledge = self._load_prior_knowledge()
+        logger.info(f"ReactAgent initialized with memory level: {config.memory_level}")
+        if self.prior_knowledge:
+            logger.info(f"Loaded prior knowledge from: {config.knowledge_file}")
         
     def _create_llm(self):
         """创建语言模型"""
@@ -77,13 +115,82 @@ class ReactAgentGenerator:
             raise ValueError("DEEPSEEK_API_KEY not set")
         
         # 创建ChatOpenAI实例  
-        return ChatOpenAI(
+        llm = ChatOpenAI(
             model="deepseek-chat",
             api_key=api_key,
             base_url="https://api.deepseek.com/v1",
             temperature=0,  # 设置为0以确保输出一致，充分利用缓存
             max_tokens=4000
         )
+        
+        # 应用 DeepSeek token 计数修复（可通过环境变量禁用）
+        if patch_deepseek_token_counting and not os.environ.get('DISABLE_TOKEN_PATCH'):
+            try:
+                llm = patch_deepseek_token_counting(llm)
+                logger.info("Applied DeepSeek token counting patch")
+            except Exception as e:
+                logger.warning(f"Failed to apply token counting patch: {e}")
+        
+        return llm
+    
+    def _create_memory(self):
+        """根据配置创建记忆系统"""
+        if self.config.memory_level == MemoryLevel.NONE:
+            logger.info("Memory disabled - using stateless mode")
+            return None
+            
+        elif self.config.memory_level == MemoryLevel.SMART:
+            # 在虚拟环境中使用窗口记忆避免token计数问题
+            k = min(50, self.config.max_token_limit // 600)  # 大约每条消息600 tokens
+            logger.info(f"Using smart memory (window buffer) with k={k} messages")
+            return ConversationBufferWindowMemory(
+                k=k,
+                memory_key="chat_history",
+                return_messages=True
+            )
+            
+        elif self.config.memory_level == MemoryLevel.PRO:
+            logger.info(f"Using persistent memory (SQLite) - session: {self.config.session_id}")
+            # 确保数据库目录存在
+            db_dir = os.path.dirname(self.config.db_path)
+            if db_dir:
+                os.makedirs(db_dir, exist_ok=True)
+                
+            message_history = SQLChatMessageHistory(
+                session_id=self.config.session_id,
+                connection_string=f"sqlite:///{self.config.db_path}"
+            )
+            return ConversationBufferMemory(
+                memory_key="chat_history",
+                chat_memory=message_history,
+                return_messages=True
+            )
+    
+    def _load_prior_knowledge(self) -> str:
+        """加载先验知识"""
+        knowledge_path = Path(self.config.knowledge_file)
+        if knowledge_path.exists():
+            try:
+                content = knowledge_path.read_text(encoding='utf-8')
+                # 转义单个大括号以避免被误认为是模板变量
+                # 只转义未成对的大括号
+                import re
+                # 先保护已经转义的大括号
+                content = content.replace('{{', '\x00DOUBLE_OPEN\x00')
+                content = content.replace('}}', '\x00DOUBLE_CLOSE\x00')
+                # 转义单个大括号
+                content = content.replace('{', '{{')
+                content = content.replace('}', '}}')
+                # 恢复已经转义的大括号
+                content = content.replace('\x00DOUBLE_OPEN\x00', '{{')
+                content = content.replace('\x00DOUBLE_CLOSE\x00', '}}')
+                return content
+            except Exception as e:
+                logger.warning(f"Failed to load prior knowledge: {e}")
+                return ""
+        else:
+            logger.info(f"No prior knowledge file found at: {knowledge_path}")
+            return ""
     
     def generate_psm(self, pim_content: str) -> str:
         """生成PSM"""
@@ -281,115 +388,76 @@ class ReactAgentGenerator:
             run_tests
         ]
         
-        # 系统提示词 - 包含正确的Python包结构和测试指导
-        system_prompt = f"""你是一个专业的 {self.config.platform} 开发专家。
+        # 系统提示词 - 领域无关的通用提示
+        system_prompt = f"""你是一个专业的软件开发助手。
 
-你的任务是根据 PSM（Platform Specific Model）生成完整的 {self.config.platform} 应用代码。
+你的任务是根据提供的规范生成高质量的代码。
 
-## 重要的Python包结构规则：
+## 可用工具
 
-1. **正确的Python包结构**：
-   - 每个Python目录都必须包含 `__init__.py` 文件（即使是空文件）
-   - 项目根目录应该包含 `__init__.py`
-   - 所有子目录（models/, services/, routers/, tests/ 等）都需要 `__init__.py`
-   
-2. **导入规则**：
-   - 在应用代码中使用相对导入：`from .models import User`
-   - 在测试代码中使用绝对导入：`from myapp.models import User`
-   - 或者创建 `setup.py` 文件支持 `pip install -e .` 安装
+你可以使用以下工具来完成任务：
+- write_file: 创建或修改文件
+- read_file: 读取文件内容  
+- create_directory: 创建目录结构
+- list_directory: 查看目录内容
+- install_dependencies: 安装项目依赖
+- run_tests: 执行测试验证
 
-3. **测试结构**：
-   - 测试文件应该使用绝对导入
-   - 测试运行时需要将项目根目录加入 PYTHONPATH
-   - 测试文件命名必须以 `test_` 开头
+## 工作原则
 
-## 示例项目结构：
-```
-myapp/
-├── __init__.py          # 必需！
-├── main.py
-├── models/
-│   ├── __init__.py      # 必需！
-│   └── user.py
-├── services/
-│   ├── __init__.py      # 必需！
-│   └── user_service.py
-├── routers/
-│   ├── __init__.py      # 必需！
-│   └── users.py
-├── tests/
-│   ├── __init__.py      # 必需！
-│   └── test_users.py
-├── requirements.txt
-└── setup.py             # 可选，但推荐
-```
+1. 仔细理解任务要求
+2. 按照最佳实践生成代码
+3. 确保代码结构清晰、可维护
+4. 编写必要的测试用例
+5. 验证生成的代码正确性
 
-## 测试文件示例：
-```python
-# tests/test_users.py
-import sys
-from pathlib import Path
+## 输出目录
 
-# 添加项目根目录到Python路径
-sys.path.insert(0, str(Path(__file__).parent.parent))
+所有文件操作都相对于: {self.output_dir}
+"""
 
-from myapp.main import app
-from fastapi.testclient import TestClient
+        # 如果有先验知识，添加到系统提示词中
+        if self.prior_knowledge:
+            system_prompt += f"""
 
-client = TestClient(app)
+## 领域知识
 
-def test_something():
-    response = client.get("/")
-    assert response.status_code == 200
-```
+以下是相关的领域知识和最佳实践，请在生成代码时严格遵循：
 
-## 或者使用 setup.py：
-```python
-# setup.py
-from setuptools import setup, find_packages
+{self.prior_knowledge}
+"""
 
-setup(
-    name="myapp",
-    version="0.1.0",
-    packages=find_packages(),
-    install_requires=[
-        # 从 requirements.txt 读取
-    ],
-)
-```
-
-## 工作流程：
-1. 创建完整的项目结构（包括所有 __init__.py 文件）
-2. 生成所有代码文件
-3. 确保测试文件使用正确的导入方式
-4. 创建 requirements.txt
-5. 使用 install_dependencies 工具安装项目依赖
-6. 使用 run_tests 工具运行测试
-7. 如果测试失败，分析错误并修复代码
-8. 重复步骤6-7直到所有测试通过
-
-## 注意事项：
-- 必须为每个Python包目录创建 __init__.py 文件
-- 测试必须能够正确导入应用代码
-- 如果遇到导入错误，检查是否缺少 __init__.py 文件
-- 确保测试使用正确的导入路径"""
-
-        # 创建prompt
-        prompt = ChatPromptTemplate.from_messages([
-            ("system", system_prompt),
+        # 创建prompt - 根据是否有记忆调整
+        messages = [("system", system_prompt)]
+        
+        # 如果启用了记忆，添加记忆占位符
+        if self.memory is not None:
+            messages.append(MessagesPlaceholder(variable_name="chat_history"))
+            
+        messages.extend([
             ("human", "{input}"),
             ("placeholder", "{agent_scratchpad}")
         ])
         
+        prompt = ChatPromptTemplate.from_messages(messages)
+        
         # 创建agent
         agent = create_tool_calling_agent(self.llm, tools, prompt)
-        executor = AgentExecutor(
-            agent=agent,
-            tools=tools,
-            verbose=True,
-            max_iterations=50,  # 增加迭代次数
-            handle_parsing_errors=True
-        )
+        
+        # 创建executor - 根据是否有记忆配置
+        executor_config = {
+            "agent": agent,
+            "tools": tools,
+            "verbose": True,
+            "max_iterations": 50,  # 增加迭代次数
+            "handle_parsing_errors": True
+        }
+        
+        # 如果有记忆，添加到executor
+        if self.memory is not None:
+            executor_config["memory"] = self.memory
+            
+        executor = AgentExecutor(**executor_config)
         
         # 执行生成
         input_prompt = f"""请根据以下PSM生成完整的{self.config.platform}应用代码：
@@ -408,14 +476,44 @@ setup(
 
 
 def main():
-    """主函数"""
+    """主函数 - 支持三级记忆配置"""
+    import argparse
+    
+    # 解析命令行参数
+    parser = argparse.ArgumentParser(description="ReactAgent Generator with Memory Support")
+    parser.add_argument("--memory", choices=["none", "smart", "pro"], 
+                       default="smart", help="Memory level: none, smart, or pro")
+    parser.add_argument("--session-id", type=str, help="Session ID for persistent memory")
+    parser.add_argument("--max-tokens", type=int, default=30000,
+                       help="Max token limit for smart memory (default: 30000, max: ~50000)")
+    parser.add_argument("--pim-file", type=str, 
+                       default="../models/domain/用户管理_pim.md", 
+                       help="Path to PIM file")
+    parser.add_argument("--output-dir", type=str, 
+                       default="output/react_agent_v3", 
+                       help="Output directory")
+    parser.add_argument("--knowledge-file", type=str,
+                       default="先验知识.md",
+                       help="Path to prior knowledge file")
+    args = parser.parse_args()
+    
     # 配置
-    pim_file = Path("../models/domain/用户管理_pim.md")
-    output_dir = Path("output/react_agent_v3")
+    pim_file = Path(args.pim_file)
+    output_dir = Path(args.output_dir)
+    
+    # 根据memory参数映射到MemoryLevel
+    memory_mapping = {
+        "none": MemoryLevel.NONE,
+        "smart": MemoryLevel.SMART,
+        "pro": MemoryLevel.PRO
+    }
+    memory_level = memory_mapping[args.memory]
     
     logger.info(f"Using generator: react-agent (v3)")
+    logger.info(f"Memory level: {args.memory}")
     logger.info(f"Target platform: fastapi")
     logger.info(f"Output directory: {output_dir}")
+    logger.info(f"Knowledge file: {args.knowledge_file}")
     
     # 检查PIM文件
     if not pim_file.exists():
@@ -428,11 +526,15 @@ def main():
     # 创建输出目录
     output_dir.mkdir(parents=True, exist_ok=True)
     
-    # 创建配置
+    # 创建配置 - 包含记忆配置和知识文件
     config = GeneratorConfig(
         platform="fastapi",
         output_dir=str(output_dir),
-        additional_config={}
+        additional_config={},
+        memory_level=memory_level,
+        session_id=args.session_id,
+        max_token_limit=args.max_tokens,
+        knowledge_file=args.knowledge_file
     )
     
     try:
@@ -473,6 +575,13 @@ def main():
         print(f"Generator: react-agent v3")
         print(f"Platform: fastapi")
         print(f"Output: {output_dir}")
+        print(f"\nMemory Configuration:")
+        print(f"  - Level: {args.memory}")
+        if args.memory == "smart":
+            print(f"  - Token limit: {config.max_token_limit}")
+        elif args.memory == "pro":
+            print(f"  - Session ID: {config.session_id}")
+            print(f"  - Database: {config.db_path}")
         print(f"\nStatistics:")
         print(f"  - PSM generation: {psm_time:.2f}s")
         print(f"  - Code generation & testing: {code_time:.2f}s")

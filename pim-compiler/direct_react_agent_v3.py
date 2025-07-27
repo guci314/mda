@@ -77,7 +77,7 @@ class ReactAgentGenerator:
             base_url="https://api.deepseek.com/v1",
             temperature=0,  # 设置为0以确保输出一致，充分利用缓存
             max_tokens=4000,
-            cache=True  # 显式启用缓存
+            # cache=True  # 显式启用缓存
         )
     
     def generate_psm(self, pim_content: str) -> str:

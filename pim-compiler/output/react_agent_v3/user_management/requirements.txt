@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+pydantic
+python-jose[cryptography]
+passlib
+motor
+pytest
+httpx
+email-validator
