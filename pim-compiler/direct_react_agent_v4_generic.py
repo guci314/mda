@@ -81,7 +81,7 @@ class SearchInput(BaseModel):
     directory: str = Field(default=".", description="搜索目录")
     file_type: Optional[str] = Field(default=None, description="文件类型过滤")
 
-class GeneratorConfig:
+class ReactAgentConfig:
     def __init__(self, output_dir, additional_config=None, 
                  memory_level=MemoryLevel.SMART, session_id=None, 
                  max_token_limit=30000, db_path=None,
@@ -101,7 +101,7 @@ class GeneratorConfig:
 class GenericReactAgent:
     """通用 React Agent - 领域无关"""
     
-    def __init__(self, config: GeneratorConfig):
+    def __init__(self, config: ReactAgentConfig):
         self.config = config
         self.output_dir = Path(config.output_dir)
         self.llm = self._create_llm()
@@ -455,7 +455,7 @@ def main():
     Path(args.output_dir).mkdir(parents=True, exist_ok=True)
     
     # 创建配置
-    config = GeneratorConfig(
+    config = ReactAgentConfig(
         output_dir=args.output_dir,
         additional_config={},
         memory_level=memory_level,

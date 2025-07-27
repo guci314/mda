@@ -4,7 +4,7 @@
 
 ## 核心文件
 
-### 1. `direct_react_agent_v4_generic.py`
+### 1. `react_agent.py`
 通用 React Agent 实现，特点：
 - 领域无关的系统提示词
 - 先验知识注入机制
@@ -39,10 +39,10 @@ FastAPI 代码生成的领域知识示例
 
 ### 1. 基本使用
 ```python
-from direct_react_agent_v4_generic import GenericReactAgent, GeneratorConfig, MemoryLevel
+from react_agent import GenericReactAgent, ReactAgentConfig, MemoryLevel
 
 # 创建配置
-config = GeneratorConfig(
+config = ReactAgentConfig(
     output_dir="output",
     memory_level=MemoryLevel.NONE,
     knowledge_file="先验知识.md"
@@ -67,10 +67,10 @@ print(result)
 ### 3. LangChain 集成
 ```python
 from langchain_agent_tool import create_langchain_tool
-from direct_react_agent_v4_generic import GenericReactAgent, GeneratorConfig
+from direct_react_agent_v4_generic import GenericReactAgent, ReactAgentConfig
 
 # 创建带规范的 Agent
-config = GeneratorConfig(
+config = ReactAgentConfig(
     output_dir="output",
     specification="专门生成 Python 代码的工具"
 )
@@ -84,16 +84,16 @@ tool = create_langchain_tool(agent)
 
 ```bash
 # 使用默认配置
-python direct_react_agent_v4_generic.py
+python react_agent.py
 
 # 自定义任务
-python direct_react_agent_v4_generic.py --task "创建一个博客系统"
+python react_agent.py --task "创建一个博客系统"
 
 # 使用不同的知识文件
-python direct_react_agent_v4_generic.py --knowledge-file django_knowledge.md
+python react_agent.py --knowledge-file django_knowledge.md
 
 # 启用持久化记忆
-python direct_react_agent_v4_generic.py --memory pro --session-id my_project
+python react_agent.py --memory pro --session-id my_project
 ```
 
 ## 记忆级别

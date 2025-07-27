@@ -13,7 +13,7 @@ os.environ.pop('http_proxy', None)
 os.environ.pop('https_proxy', None)
 os.environ.pop('all_proxy', None)
 
-from direct_react_agent_v4_generic import GenericReactAgent, GeneratorConfig, MemoryLevel
+from react_agent import GenericReactAgent, ReactAgentConfig, MemoryLevel
 
 
 class Tool:
@@ -24,7 +24,7 @@ class Tool:
         temp_dir = tempfile.mkdtemp()
         try:
             # 创建 agent
-            config = GeneratorConfig(
+            config = ReactAgentConfig(
                 output_dir=temp_dir,
                 memory_level=MemoryLevel.NONE
             )

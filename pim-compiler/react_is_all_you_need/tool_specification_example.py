@@ -11,7 +11,7 @@ os.environ.pop('https_proxy', None)
 os.environ.pop('all_proxy', None)
 
 from langchain_core.tools import tool
-from direct_react_agent_v4_generic import GenericReactAgent, GeneratorConfig, MemoryLevel
+from react_agent import GenericReactAgent, ReactAgentConfig, MemoryLevel
 
 
 # 方法1: 使用 @tool 装饰器
@@ -19,7 +19,7 @@ def method1_tool_decorator():
     """方法1: 通过 @tool 装饰器传递规范"""
     
     # 创建带规范的 agent
-    config = GeneratorConfig(
+    config = ReactAgentConfig(
         output_dir="output/method1",
         memory_level=MemoryLevel.NONE,
         specification="""FastAPI 代码生成器
@@ -54,7 +54,7 @@ def method2_structured_tool():
     
     # 创建多个不同规范的 agent
     agents = {
-        "frontend": GenericReactAgent(GeneratorConfig(
+        "frontend": GenericReactAgent(ReactAgentConfig(
             output_dir="output/frontend",
             memory_level=MemoryLevel.NONE,
             specification="""前端代码生成器
@@ -65,7 +65,7 @@ def method2_structured_tool():
 - 响应式设计
 - 状态管理"""
         )),
-        "backend": GenericReactAgent(GeneratorConfig(
+        "backend": GenericReactAgent(ReactAgentConfig(
             output_dir="output/backend",
             memory_level=MemoryLevel.NONE,
             specification="""后端服务生成器
@@ -76,7 +76,7 @@ def method2_structured_tool():
 - 认证授权
 - 微服务架构"""
         )),
-        "devops": GenericReactAgent(GeneratorConfig(
+        "devops": GenericReactAgent(ReactAgentConfig(
             output_dir="output/devops",
             memory_level=MemoryLevel.NONE,
             specification="""DevOps 配置生成器
@@ -151,7 +151,7 @@ def method3_custom_tool():
             return self._run(task)
     
     # 创建工具实例
-    config = GeneratorConfig(
+    config = ReactAgentConfig(
         output_dir="output/method3",
         memory_level=MemoryLevel.NONE,
         specification="""数据处理工具

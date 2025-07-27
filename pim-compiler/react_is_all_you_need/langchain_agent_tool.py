@@ -14,7 +14,7 @@ os.environ.pop('https_proxy', None)
 os.environ.pop('all_proxy', None)
 
 from langchain_core.tools import BaseTool, StructuredTool
-from direct_react_agent_v4_generic import GenericReactAgent, GeneratorConfig, MemoryLevel
+from react_agent import GenericReactAgent, ReactAgentConfig, MemoryLevel
 
 
 class AgentToolWrapper:
@@ -134,7 +134,7 @@ class GenericAgentTool(BaseTool):
 # 便捷函数：创建带有特定配置的工具
 def create_code_generation_tool(output_dir: str = "output/code_gen") -> StructuredTool:
     """创建代码生成专用工具"""
-    config = GeneratorConfig(
+    config = ReactAgentConfig(
         output_dir=output_dir,
         memory_level=MemoryLevel.NONE,
         knowledge_file="先验知识.md",
@@ -160,7 +160,7 @@ def create_code_generation_tool(output_dir: str = "output/code_gen") -> Structur
 
 def create_file_processing_tool(output_dir: str = "output/file_proc") -> StructuredTool:
     """创建文件处理专用工具"""
-    config = GeneratorConfig(
+    config = ReactAgentConfig(
         output_dir=output_dir,
         memory_level=MemoryLevel.NONE,
         specification="""文件处理工具
@@ -194,7 +194,7 @@ def example_langchain_integration():
     file_proc_tool = create_file_processing_tool()
     
     # 创建自定义工具
-    custom_config = GeneratorConfig(
+    custom_config = ReactAgentConfig(
         output_dir="output/custom",
         memory_level=MemoryLevel.SMART,
         specification="自定义任务执行工具，根据具体需求执行各种任务"
@@ -232,7 +232,7 @@ if __name__ == "__main__":
     
     # 1. 创建基本工具
     print("1. 创建基本工具:")
-    config = GeneratorConfig(
+    config = ReactAgentConfig(
         output_dir="output/test",
         memory_level=MemoryLevel.NONE
     )

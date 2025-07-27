@@ -1,8 +1,8 @@
 """React Is All You Need - 基于 React Agent 的通用任务执行框架"""
 
-from .direct_react_agent_v4_generic import (
+from .react_agent import (
     GenericReactAgent,
-    GeneratorConfig,
+    ReactAgentConfig,
     MemoryLevel
 )
 
@@ -19,7 +19,7 @@ from .langchain_agent_tool import (
 __version__ = "1.0.0"
 __all__ = [
     "GenericReactAgent",
-    "GeneratorConfig", 
+    "ReactAgentConfig", 
     "MemoryLevel",
     "Tool",
     "AgentToolWrapper",
