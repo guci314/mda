@@ -31,9 +31,14 @@ def method1_tool_decorator():
     agent = GenericReactAgent(config)
     
     # 使用 agent 的规范作为工具描述
-    @tool(name="fastapi_generator", description=agent.specification)
+    # 注意: @tool 装饰器会使用函数的 docstring 作为描述
+    @tool("fastapi_generator")
     def generate_fastapi_code(task: str) -> str:
-        """生成 FastAPI 代码"""
+        """FastAPI 代码生成器
+        
+功能：专门生成 FastAPI 应用代码
+支持：RESTful API、数据模型、认证、中间件
+输出：完整的 FastAPI 项目结构"""
         try:
             agent.execute_task(task)
             return "✅ FastAPI 代码生成成功"
@@ -130,7 +135,7 @@ def method3_custom_tool():
             """Pydantic 配置"""
             arbitrary_types_allowed = True
         
-        def __init__(self, agent: GenericReactAgent, name: str = None):
+        def __init__(self, agent: GenericReactAgent, name: Optional[str] = None):
             # 自动从 agent 获取规范作为描述
             super().__init__(
                 name=name or "generic_agent_tool",
@@ -141,8 +146,11 @@ def method3_custom_tool():
         def _run(self, task: str) -> str:
             """执行任务"""
             try:
-                self.agent.execute_task(task)
-                return "✅ 任务执行成功"
+                if self.agent:
+                    self.agent.execute_task(task)
+                    return "✅ 任务执行成功"
+                else:
+                    return "❌ Agent 未初始化"
             except Exception as e:
                 return f"❌ 执行失败: {str(e)}"
         
