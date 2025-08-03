@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             targetNamespace="http://agent.workflow">
+  
+  <process id="taskProcess" name="任务执行流程">
+    <startEvent id="start" name="开始">
+      <extensionElements>
+        <executionData>
+          <status>completed</status>
+          <startTime>2024-07-30T10:00:00</startTime>
+          <endTime>2024-07-30T10:00:01</endTime>
+          <output>Process started successfully</output>
+        </executionData>
+      </extensionElements>
+    </startEvent>
+    
+    <sequenceFlow id="flow1" sourceRef="start" targetRef="taskA"/>
+    
+    <task id="taskA" name="任务A">
+      <extensionElements>
+        <executionData>
+          <status>running</status>
+          <startTime>2024-07-30T10:00:02</startTime>
+          <logs>
+            <log time="2024-07-30T10:00:02">开始执行任务A</log>
+          </logs>
+        </executionData>
+      </extensionElements>
+    </task>
+    
+    <sequenceFlow id="flow2" sourceRef="taskA" targetRef="taskB"/>
+    
+    <task id="taskB" name="任务B"/>
+    
+    <sequenceFlow id="flow3" sourceRef="taskB" targetRef="end"/>
+    
+    <endEvent id="end" name="结束"/>
+  </process>
+</definitions>

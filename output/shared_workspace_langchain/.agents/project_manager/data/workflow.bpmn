@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL">
+  <process id="mathUtilsDevProcess" name="MathUtils 开发流程">
+    <startEvent id="start" name="开始"/>
+    
+    <!-- 初始化重试计数器 -->
+    <scriptTask id="initCounter" name="初始化计数器">
+      <script>retryCount = 0</script>
+    </scriptTask>
+    
+    <!-- 生成代码 -->
+    <serviceTask id="generateCode" name="生成 MathUtils 代码" implementation="code_generator">
+      <extensionElements>
+        <field name="task" stringValue="在 /home/guci/aiProjects/mda/output/shared_workspace_langchain/math_utils.py 创建 MathUtils 类，包含 add, subtract, multiply, divide, power 方法。请确保所有方法都有适当的类型检查和错误处理。"/>
+      </extensionElements>
+    </serviceTask>
+    
+    <!-- 运行测试 -->
+    <serviceTask id="runTests" name="运行测试验证" implementation="code_runner">
+      <extensionElements>
+        <field name="task" stringValue="运行测试验证 /home/guci/aiProjects/mda/output/shared_workspace_langchain/math_utils.py 中所有方法工作正常"/>
+      </extensionElements>
+    </serviceTask>
+    
+    <!-- 测试结果判断网关 -->
+    <exclusiveGateway id="testResult" name="测试是否通过？">
+      <incoming>fromRunTests</incoming>
+      <outgoing>testPassed</outgoing>
+      <outgoing>testFailed</outgoing>
+    </exclusiveGateway>
+    
+    <!-- 重试计数检查 -->
+    <exclusiveGateway id="checkRetry" name="是否超过3次？">
+      <incoming>testFailed</incoming>
+      <outgoing>canRetry</outgoing>
+      <outgoing>maxRetries</outgoing>
+    </exclusiveGateway>
+    
+    <!-- 增加重试计数 -->
+    <scriptTask id="incrementCounter" name="增加重试次数">
+      <script>retryCount += 1</script>
+    </scriptTask>
+    
+    <!-- 反馈错误给代码生成器 -->
+    <serviceTask id="feedbackError" name="反馈错误信息" implementation="code_generator">
+      <extensionElements>
+        <field name="task" expression="修复 /home/guci/aiProjects/mda/output/shared_workspace_langchain/math_utils.py 中的错误：${testErrors}"/>
+      </extensionElements>
+    </serviceTask>
+    
+    <!-- 代码审查 -->
+    <serviceTask id="reviewCode" name="审查代码质量" implementation="code_reviewer">
+      <extensionElements>
+        <field name="task" stringValue="审查 /home/guci/aiProjects/mda/output/shared_workspace_langchain/math_utils.py 的代码质量并打分（1-10分），请遵循'简洁输出加文档引用原则'"/>
+      </extensionElements>
+    </serviceTask>
+    
+    <!-- 打印错误信息 -->
+    <scriptTask id="printError" name="打印错误信息">
+      <script>print(f"经过3次尝试后仍然失败。最后的错误：${testErrors}")</script>
+    </scriptTask>
+    
+    <!-- 结束事件 -->
+    <endEvent id="successEnd" name="成功结束"/>
+    <endEvent id="failEnd" name="失败结束">
+      <errorEventDefinition errorRef="TestFailedError"/>
+    </endEvent>
+    
+    <!-- 流程连接 -->
+    <sequenceFlow id="flow1" sourceRef="start" targetRef="initCounter"/>
+    <sequenceFlow id="flow2" sourceRef="initCounter" targetRef="generateCode"/>
+    <sequenceFlow id="flow3" sourceRef="generateCode" targetRef="runTests"/>
+    <sequenceFlow id="fromRunTests" sourceRef="runTests" targetRef="testResult"/>
+    
+    <sequenceFlow id="testPassed" sourceRef="testResult" targetRef="reviewCode">
+      <conditionExpression>${testStatus == 'success'}</conditionExpression>
+    </sequenceFlow>
+    
+    <sequenceFlow id="testFailed" sourceRef="testResult" targetRef="checkRetry">
+      <conditionExpression>${testStatus == 'failed'}</conditionExpression>
+    </sequenceFlow>
+    
+    <sequenceFlow id="canRetry" sourceRef="checkRetry" targetRef="incrementCounter">
+      <conditionExpression>${retryCount < 3}</conditionExpression>
+    </sequenceFlow>
+    
+    <sequenceFlow id="flow4" sourceRef="incrementCounter" targetRef="feedbackError"/>
+    <sequenceFlow id="flow5" sourceRef="feedbackError" targetRef="runTests"/>
+    
+    <sequenceFlow id="maxRetries" sourceRef="checkRetry" targetRef="printError">
+      <conditionExpression>${retryCount >= 3}</conditionExpression>
+    </sequenceFlow>
+    
+    <sequenceFlow id="flow6" sourceRef="reviewCode" targetRef="successEnd"/>
+    <sequenceFlow id="flow7" sourceRef="printError" targetRef="failEnd"/>
+  </process>
+</definitions>

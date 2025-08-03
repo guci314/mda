@@ -6,7 +6,6 @@ from .react_agent import (
     MemoryLevel
 )
 
-from .agent_tool import Tool
 
 from .langchain_agent_tool import (
     AgentToolWrapper,
@@ -21,7 +20,6 @@ __all__ = [
     "GenericReactAgent",
     "ReactAgentConfig", 
     "MemoryLevel",
-    "Tool",
     "AgentToolWrapper",
     "create_langchain_tool",
     "GenericAgentTool",

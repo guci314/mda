@@ -20,7 +20,7 @@ def method1_tool_decorator():
     
     # 创建带规范的 agent
     config = ReactAgentConfig(
-        output_dir="output/method1",
+        work_dir="output/method1",
         memory_level=MemoryLevel.NONE,
         specification="""FastAPI 代码生成器
         
@@ -60,7 +60,7 @@ def method2_structured_tool():
     # 创建多个不同规范的 agent
     agents = {
         "frontend": GenericReactAgent(ReactAgentConfig(
-            output_dir="output/frontend",
+            work_dir="output/frontend",
             memory_level=MemoryLevel.NONE,
             specification="""前端代码生成器
             
@@ -71,7 +71,7 @@ def method2_structured_tool():
 - 状态管理"""
         )),
         "backend": GenericReactAgent(ReactAgentConfig(
-            output_dir="output/backend",
+            work_dir="output/backend",
             memory_level=MemoryLevel.NONE,
             specification="""后端服务生成器
             
@@ -82,7 +82,7 @@ def method2_structured_tool():
 - 微服务架构"""
         )),
         "devops": GenericReactAgent(ReactAgentConfig(
-            output_dir="output/devops",
+            work_dir="output/devops",
             memory_level=MemoryLevel.NONE,
             specification="""DevOps 配置生成器
             
@@ -160,7 +160,7 @@ def method3_custom_tool():
     
     # 创建工具实例
     config = ReactAgentConfig(
-        output_dir="output/method3",
+        work_dir="output/method3",
         memory_level=MemoryLevel.NONE,
         specification="""数据处理工具
         
@@ -171,7 +171,7 @@ def method3_custom_tool():
 - ETL 管道"""
     )
     agent = GenericReactAgent(config)
-    tool = GenericAgentTool(agent, name="data_processor")
+    tool = GenericAgentTool(agent)  # 自动使用 agent.name
     
     return tool
 

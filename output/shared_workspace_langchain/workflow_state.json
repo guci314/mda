@@ -1,0 +1,13 @@
+{
+  "workflow": {
+    "name": "main_workflow",
+    "file": "workflow.py",
+    "start_time": "2024-01-20T10:00:00Z",
+    "status": "initialized",
+    "current_step": null
+  },
+  "execution": {
+    "steps": {}
+  },
+  "variables": {}
+}

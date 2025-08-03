@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             targetNamespace="http://agent.workflow">
+  
+  <process id="userVerificationProcess" name="用户验证流程">
+    <startEvent id="start" name="接收用户输入"/>
+    
+    <sequenceFlow id="flow_start_to_validateInput" sourceRef="start" targetRef="validateInput"/>
+    
+    <task id="validateInput" name="验证输入格式"/>
+    
+    <sequenceFlow id="flow_validateInput_to_formatCheck" sourceRef="validateInput" targetRef="formatCheckGateway"/>
+    
+    <exclusiveGateway id="formatCheckGateway" name="格式正确？"/>
+    <sequenceFlow id="flow_formatCheck_to_checkUserExists" sourceRef="formatCheckGateway" targetRef="checkUserExists">
+      <conditionExpression xsi:type="tFormalExpression" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">${formatCorrect == true}</conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="flow_formatCheck_to_returnFailureFormat" sourceRef="formatCheckGateway" targetRef="returnFailureFormat">
+      <conditionExpression xsi:type="tFormalExpression" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">${formatCorrect == false}</conditionExpression>
+    </sequenceFlow>
+    
+    <task id="checkUserExists" name="检查用户是否存在"/>
+    
+    <sequenceFlow id="flow_checkUserExists_to_userExistsCheck" sourceRef="checkUserExists" targetRef="userExistsCheckGateway"/>
+    
+    <exclusiveGateway id="userExistsCheckGateway" name="用户存在？"/>
+    <sequenceFlow id="flow_userExistsCheck_to_validatePassword" sourceRef="userExistsCheckGateway" targetRef="validatePassword">
+      <conditionExpression xsi:type="tFormalExpression" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">${userExists == true}</conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="flow_userExistsCheck_to_returnFailureUser" sourceRef="userExistsCheckGateway" targetRef="returnFailureUser">
+      <conditionExpression xsi:type="tFormalExpression" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">${userExists == false}</conditionExpression>
+    </sequenceFlow>
+    
+    <task id="validatePassword" name="验证密码"/>
+    
+    <sequenceFlow id="flow_validatePassword_to_passwordCheck" sourceRef="validatePassword" targetRef="passwordCheckGateway"/>
+    
+    <exclusiveGateway id="passwordCheckGateway" name="密码正确？"/>
+    <sequenceFlow id="flow_passwordCheck_to_returnSuccess" sourceRef="passwordCheckGateway" targetRef="returnSuccess">
+      <conditionExpression xsi:type="tFormalExpression" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">${passwordCorrect == true}</conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="flow_passwordCheck_to_returnFailurePassword" sourceRef="passwordCheckGateway" targetRef="returnFailurePassword">
+      <conditionExpression xsi:type="tFormalExpression" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">${passwordCorrect == false}</conditionExpression>
+    </sequenceFlow>
+    
+    <task id="returnSuccess" name="返回成功"/>
+    <task id="returnFailureFormat" name="返回失败：格式错误"/>
+    <task id="returnFailureUser" name="返回失败：用户不存在"/>
+    <task id="returnFailurePassword" name="返回失败：密码错误"/>
+    
+    <sequenceFlow id="flow_returnSuccess_to_end" sourceRef="returnSuccess" targetRef="end"/>
+    <sequenceFlow id="flow_returnFailureFormat_to_end" sourceRef="returnFailureFormat" targetRef="end"/>
+    <sequenceFlow id="flow_returnFailureUser_to_end" sourceRef="returnFailureUser" targetRef="end"/>
+    <sequenceFlow id="flow_returnFailurePassword_to_end" sourceRef="returnFailurePassword" targetRef="end"/>
+    
+    <endEvent id="end" name="结束"/>
+  </process>
+</definitions>

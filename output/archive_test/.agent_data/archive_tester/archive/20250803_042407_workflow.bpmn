@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             targetNamespace="http://agent.workflow">
+  
+  <process id="taskProcess" name="任务执行流程">
+    <startEvent id="start" name="开始"/>
+    
+    <sequenceFlow id="flow1" sourceRef="start" targetRef="taskA"/>
+    
+    <task id="taskA" name="任务A"/>
+    
+    <sequenceFlow id="flow2" sourceRef="taskA" targetRef="taskB"/>
+    
+    <task id="taskB" name="任务B"/>
+    
+    <sequenceFlow id="flow3" sourceRef="taskB" targetRef="end"/>
+    
+    <endEvent id="end" name="结束"/>
+  </process>
+</definitions>

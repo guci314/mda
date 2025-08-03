@@ -7,7 +7,7 @@ import os
 import re
 import subprocess
 from pathlib import Path
-from typing import Optional, List, Dict
+from typing import Optional, List, Dict, Union
 
 from langchain.tools import tool
 from pydantic import BaseModel, Field
@@ -32,11 +32,11 @@ class DirectoryInput(BaseModel):
 
 class CommandInput(BaseModel):
     command: str = Field(description="要执行的命令")
-    working_dir: Optional[str] = Field(default=None, description="工作目录")
+    working_dir: str = Field(default="", description="工作目录，默认为空字符串表示使用当前工作目录")
 
 class SearchInput(BaseModel):
     pattern: str = Field(description="搜索模式（文件名或路径片段）")
-    directory: Optional[str] = Field(default=".", description="搜索目录")
+    directory: str = Field(default=".", description="搜索目录")
 
 class SearchReplaceInput(BaseModel):
     file_path: str = Field(description="文件路径")
@@ -50,7 +50,7 @@ class EditLinesInput(BaseModel):
     file_path: str = Field(description="文件路径")
     start_line: int = Field(description="起始行号（从1开始）")
     end_line: int = Field(description="结束行号（包含）")
-    new_content: Optional[str] = Field(default=None, description="新内容，如果为None则删除这些行")
+    new_content: str = Field(default="", description="新内容，如果为空字符串则删除这些行")
 
 class FindSymbolInput(BaseModel):
     symbol_name: str = Field(description="符号名称")
@@ -92,34 +92,86 @@ def create_tools(work_dir: str):
     def write_file(file_path: str, content: str) -> str:
         """写入文件到指定路径
         
-        将内容写入到相对于 work_dir 的文件路径。
+        将内容写入到指定的文件路径。
+        如果传入绝对路径，直接使用；如果传入相对路径，则相对于 work_dir。
         如果目录不存在会自动创建。
         
         Args:
-            file_path: 相对文件路径
+            file_path: 文件路径（可以是绝对路径或相对路径）
             content: 要写入的内容
             
         Returns:
             str: 成功或错误消息
         """
         try:
-            file_full_path = Path(work_dir) / file_path
+            # 检查是否为绝对路径
+            if Path(file_path).is_absolute():
+                file_full_path = Path(file_path)
+                if os.environ.get('DEBUG'):
+                    print(f"[DEBUG] write_file: Using absolute path: {file_full_path}")
+            else:
+                file_full_path = Path(work_dir) / file_path
+                if os.environ.get('DEBUG'):
+                    print(f"[DEBUG] write_file: Using relative path '{file_path}' -> absolute: {file_full_path}")
+                    print(f"[DEBUG] write_file: work_dir is: {work_dir}")
+            
             file_full_path.parent.mkdir(parents=True, exist_ok=True)
             file_full_path.write_text(content, encoding='utf-8')
+            
+            if os.environ.get('DEBUG'):
+                print(f"[DEBUG] write_file: File written successfully to: {file_full_path}")
+                print(f"[DEBUG] write_file: File exists check: {file_full_path.exists()}")
+                print(f"[DEBUG] write_file: File size: {file_full_path.stat().st_size} bytes")
+            
             return f"Successfully wrote file: {file_path}"
         except Exception as e:
+            if os.environ.get('DEBUG'):
+                print(f"[DEBUG] write_file: Error occurred: {str(e)}")
             return f"Error writing file: {str(e)}"
 
     @tool("read_file")
     def read_file(file_path: str) -> str:
-        """读取文件内容"""
+        """读取文件内容
+        
+        Args:
+            file_path: 文件路径（可以是绝对路径或相对路径）
+            
+        Returns:
+            str: 文件内容或错误消息
+        """
         try:
-            file_full_path = Path(work_dir) / file_path
+            # 检查是否为绝对路径
+            if Path(file_path).is_absolute():
+                file_full_path = Path(file_path)
+                if os.environ.get('DEBUG'):
+                    print(f"[DEBUG] read_file: Using absolute path: {file_full_path}")
+            else:
+                file_full_path = Path(work_dir) / file_path
+                if os.environ.get('DEBUG'):
+                    print(f"[DEBUG] read_file: Using relative path '{file_path}' -> absolute: {file_full_path}")
+                    print(f"[DEBUG] read_file: work_dir is: {work_dir}")
+            
+            if os.environ.get('DEBUG'):
+                print(f"[DEBUG] read_file: Checking file existence at: {file_full_path}")
+                print(f"[DEBUG] read_file: File exists: {file_full_path.exists()}")
+                if file_full_path.parent.exists():
+                    print(f"[DEBUG] read_file: Parent directory exists: {file_full_path.parent}")
+                    # 列出父目录中的文件
+                    files_in_parent = list(file_full_path.parent.glob("*"))
+                    print(f"[DEBUG] read_file: Files in parent directory: {[f.name for f in files_in_parent[:10]]}")
+                
             if not file_full_path.exists():
+                if os.environ.get('DEBUG'):
+                    print(f"[DEBUG] read_file: File not found at: {file_full_path}")
                 return f"File not found: {file_path}"
+            
             content = file_full_path.read_text(encoding='utf-8')
+            if os.environ.get('DEBUG'):
+                print(f"[DEBUG] read_file: Successfully read file, size: {len(content)} chars")
             return content
         except Exception as e:
+            if os.environ.get('DEBUG'):
+                print(f"[DEBUG] read_file: Error occurred: {str(e)}")
             return f"Error reading file: {str(e)}"
 
     @tool("create_directory", args_schema=DirectoryInput)
@@ -134,9 +186,21 @@ def create_tools(work_dir: str):
 
     @tool("list_directory", args_schema=DirectoryInput)
     def list_directory(directory_path: str = ".") -> str:
-        """列出目录内容"""
+        """列出目录内容
+        
+        Args:
+            directory_path: 目录路径（可以是绝对路径或相对路径）
+            
+        Returns:
+            str: 目录内容列表或错误消息
+        """
         try:
-            dir_full_path = Path(work_dir) / directory_path
+            # 检查是否为绝对路径
+            if Path(directory_path).is_absolute():
+                dir_full_path = Path(directory_path)
+            else:
+                dir_full_path = Path(work_dir) / directory_path
+                
             if not dir_full_path.exists():
                 return f"Directory not found: {directory_path}"
             
@@ -152,7 +216,7 @@ def create_tools(work_dir: str):
             return f"Error listing directory: {str(e)}"
 
     @tool("execute_command", args_schema=CommandInput)
-    def execute_command(command: str, working_dir: Optional[str] = None) -> str:
+    def execute_command(command: str, working_dir: str = "") -> str:
         """执行系统命令
         
         在指定工作目录执行 shell 命令。
@@ -165,7 +229,7 @@ def create_tools(work_dir: str):
             str: 命令输出或错误信息
         """
         try:
-            cwd = working_dir if working_dir else work_dir
+            cwd = working_dir if working_dir and working_dir.strip() else work_dir
             result = subprocess.run(
                 command,
                 shell=True,
@@ -188,7 +252,7 @@ def create_tools(work_dir: str):
             return f"Error executing command: {str(e)}"
 
     @tool("search_files", args_schema=SearchInput)
-    def search_files(pattern: str, directory: Optional[str] = ".") -> str:
+    def search_files(pattern: str, directory: str = ".") -> str:
         """搜索文件或目录
         
         在指定目录中搜索匹配模式的文件或目录。
@@ -199,14 +263,30 @@ def create_tools(work_dir: str):
         
         Args:
             pattern: 搜索模式
-            directory: 搜索起始目录
+            directory: 搜索起始目录（可以是绝对路径或相对路径）
             
         Returns:
             str: 匹配的文件路径列表
         """
         try:
-            search_dir = Path(work_dir) / directory
+            # 检查是否为绝对路径
+            if Path(directory).is_absolute():
+                search_dir = Path(directory)
+                if os.environ.get('DEBUG'):
+                    print(f"[DEBUG] search_files: Using absolute directory: {search_dir}")
+            else:
+                search_dir = Path(work_dir) / directory
+                if os.environ.get('DEBUG'):
+                    print(f"[DEBUG] search_files: Using relative directory '{directory}' -> absolute: {search_dir}")
+                    print(f"[DEBUG] search_files: work_dir is: {work_dir}")
+                
+            if os.environ.get('DEBUG'):
+                print(f"[DEBUG] search_files: Searching for pattern '{pattern}' in: {search_dir}")
+                print(f"[DEBUG] search_files: Directory exists: {search_dir.exists()}")
+                
             if not search_dir.exists():
+                if os.environ.get('DEBUG'):
+                    print(f"[DEBUG] search_files: Directory not found at: {search_dir}")
                 return f"Directory not found: {directory}"
             
             # 生成搜索模式的多个变体
@@ -346,7 +426,7 @@ def create_tools(work_dir: str):
 
     @tool("edit_lines", args_schema=EditLinesInput)
     def edit_lines(file_path: str, start_line: int, end_line: int, 
-                  new_content: Optional[str] = None) -> str:
+                  new_content: str = "") -> str:
         """编辑文件的指定行范围
         
         可以替换或删除指定行范围的内容。

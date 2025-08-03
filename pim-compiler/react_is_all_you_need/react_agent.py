@@ -16,7 +16,7 @@
         memory_level=MemoryLevel.SMART,
         knowledge_files=["knowledge/综合知识.md"]
     )
-    agent = GenericReactAgent(config)
+    agent = GenericReactAgent(config, name="my_agent")
     agent.execute_task("创建一个用户管理系统")
     
     # 使用自定义 LLM
@@ -26,7 +26,7 @@
         llm_base_url="https://api.openai.com/v1",
         llm_api_key_env="OPENAI_API_KEY"
     )
-    agent = GenericReactAgent(config)
+    agent = GenericReactAgent(config, name="gpt4_agent")
     agent.execute_task("创建一个用户管理系统")
 """
 
@@ -36,6 +36,9 @@ import time
 import logging
 import re
 import warnings
+import asyncio
+import threading
+import atexit
 from pathlib import Path
 from datetime import datetime
 from typing import Dict, Any, List, Optional
@@ -75,8 +78,17 @@ import warnings as _warnings
 _warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 from langchain_openai import ChatOpenAI
-from langchain.agents import AgentExecutor, create_tool_calling_agent
+from langchain.agents import AgentExecutor
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+
+# 使用 try-except 处理导入，避免 Pylance 错误
+try:
+    from langgraph.prebuilt import create_react_agent  # type: ignore
+except ImportError:
+    # 如果导入失败，提供一个回退方案
+    raise ImportError(
+        "LangGraph is required. Please install it with: pip install langgraph>=0.2.0"
+    )
 from langchain_core.tools import tool
 from langchain_community.cache import SQLiteCache
 from langchain_core.globals import set_llm_cache
@@ -87,6 +99,7 @@ from langchain.memory import (
 from langchain_core.messages import BaseMessage, HumanMessage, AIMessage, SystemMessage
 from langchain.memory.chat_memory import BaseChatMemory
 from langchain.schema import get_buffer_string
+from langchain_core.runnables import RunnableConfig
 from langchain_community.chat_message_histories import (
     SQLChatMessageHistory,
 )
@@ -98,9 +111,20 @@ try:
 except ImportError:
     patch_deepseek_token_counting = None
 
-# 设置缓存 - 使用绝对路径确保缓存生效
-cache_path = os.path.join(os.path.dirname(__file__), ".langchain.db")
-set_llm_cache(SQLiteCache(database_path=cache_path))
+# 设置默认缓存 - 使用绝对路径确保缓存生效
+# 可以通过环境变量 DISABLE_LANGCHAIN_CACHE=true 来禁用缓存
+default_cache_path = os.path.join(os.path.dirname(__file__), ".langchain.db")
+if os.environ.get('DISABLE_LANGCHAIN_CACHE', '').lower() != 'true':
+    set_llm_cache(SQLiteCache(database_path=default_cache_path))
+    
+    # 如果启用调试模式，记录缓存路径
+    if os.environ.get('DEBUG'):
+        logger.info(f"LangChain SQLite cache enabled at: {default_cache_path}")
+        if os.path.exists(default_cache_path):
+            logger.info(f"Cache file size: {os.path.getsize(default_cache_path)} bytes")
+else:
+    if os.environ.get('DEBUG'):
+        logger.info("LangChain cache disabled by environment variable")
 
 class MemoryLevel(str, Enum):
     """记忆级别枚举
@@ -108,7 +132,7 @@ class MemoryLevel(str, Enum):
     定义 Agent 的记忆管理策略：
     - NONE: 无状态模式，适合简单任务
     - SMART: 摘要缓冲区，自动摘要超出限制的历史对话
-    - PRO: SQLite 持久化，支持长期记忆
+    - PRO: SQLite 持久化，支持知识提取
     """
     NONE = "none"              # 无记忆 - 快速简单
     SMART = "summary_buffer"   # 智能摘要缓冲 - 自动摘要旧对话，保留近期原文
@@ -121,6 +145,35 @@ try:
 except ImportError:
     # 尝试绝对导入（直接运行脚本）
     from tools import create_tools  # type: ignore
+
+# 全局线程跟踪
+_memory_update_threads = []
+_shutdown_registered = False
+
+def _wait_for_memory_updates():
+    """等待所有记忆更新线程完成"""
+    if _memory_update_threads:
+        active_threads = [t for t in _memory_update_threads if t.is_alive()]
+        if active_threads:
+            print(f"\n等待 {len(active_threads)} 个知识提取任务完成...")
+            for i, thread in enumerate(active_threads, 1):
+                if thread.is_alive():
+                    print(f"  [{i}/{len(active_threads)}] 等待 {thread.name}...")
+                    thread.join(timeout=30)  # 最多等待30秒
+                    if thread.is_alive():
+                        print(f"  警告：{thread.name} 超时未完成")
+                    else:
+                        print(f"  [{i}/{len(active_threads)}] {thread.name} 已完成")
+            print("所有记忆更新已完成。")
+        _memory_update_threads.clear()
+
+# 注册退出处理函数
+def _register_shutdown_handler():
+    """注册程序退出时的处理函数"""
+    global _shutdown_registered
+    if not _shutdown_registered:
+        atexit.register(_wait_for_memory_updates)
+        _shutdown_registered = True
 
 class CustomSummaryBufferMemory(ConversationBufferMemory):
     """自定义的摘要缓冲内存实现
@@ -260,6 +313,30 @@ DEFAULT_CONTEXT_WINDOWS = {
     "default": 4096
 }
 
+# 默认模型的知识提取文件大小限制（单位：bytes）
+DEFAULT_KNOWLEDGE_EXTRACTION_LIMITS = {
+    # DeepSeek - 较小的上下文，使用较小的记忆
+    "deepseek-chat": 50 * 1024,      # 50KB
+    "deepseek-coder": 50 * 1024,     # 50KB
+    
+    # Gemini - 大上下文，可以有更大的记忆
+    "gemini-2.5-flash": 200 * 1024,  # 200KB
+    "gemini-1.5-pro": 150 * 1024,    # 150KB
+    
+    # OpenAI
+    "gpt-4": 100 * 1024,             # 100KB
+    "gpt-4-turbo": 150 * 1024,       # 150KB
+    "gpt-3.5-turbo": 80 * 1024,      # 80KB
+    
+    # Claude - 大上下文
+    "claude-3-opus-20240229": 150 * 1024,    # 150KB
+    "claude-3-sonnet-20240229": 150 * 1024,  # 150KB
+    "claude-2.1": 150 * 1024,        # 150KB
+    
+    # Default
+    "default": 100 * 1024             # 100KB
+}
+
 
 class ReactAgentConfig:
     """React Agent 配置类
@@ -280,6 +357,7 @@ class ReactAgentConfig:
         db_path: SQLite 数据库路径（用于 PRO 模式）
         knowledge_file: 单个知识文件路径（已废弃，建议使用 knowledge_files）
         knowledge_files: 知识文件路径列表
+        knowledge_strings: 知识字符串列表，直接提供知识内容而非文件路径
         specification: Agent 规范描述
         system_prompt_file: 系统提示词文件路径
         llm_model: LLM 模型名称（默认: "deepseek-chat"）
@@ -287,19 +365,31 @@ class ReactAgentConfig:
         llm_api_key_env: LLM API 密钥的环境变量名（默认: "DEEPSEEK_API_KEY"）
         llm_temperature: LLM 温度参数（默认: 0）
         context_window: 模型的上下文窗口大小（单位：tokens）。如果未指定，将根据模型名称自动推断
+        cache_path: 自定义缓存路径（默认: None，使用全局缓存）
+        enable_cache: 是否启用 LLM 缓存（默认: True）
+        knowledge_extraction_limit: 知识提取文件大小限制（单位：bytes）。如果未指定，将根据模型名称自动推断
     """
     def __init__(self, work_dir, additional_config=None, 
                  memory_level=MemoryLevel.SMART, session_id=None, 
                  max_token_limit=30000, db_path=None,
-                 knowledge_file=None, knowledge_files=None, specification=None,
-                 system_prompt_file="system_prompt.md",
+                 knowledge_file=None, knowledge_files=None, knowledge_strings=None, specification=None,
+                 system_prompt_file="knowledge/system_prompt.md",
                  llm_model=None,
                  llm_base_url=None,
                  llm_api_key_env=None,
                  llm_temperature=0,
-                 context_window=None):
+                 context_window=None,
+                 cache_path=None,
+                 enable_cache=True,
+                 knowledge_extraction_limit=None,
+                 http_client=None,
+                 agent_home=None,
+                 enable_world_overview=True,
+                 enable_perspective=False):
         self.work_dir = work_dir
         self.additional_config = additional_config or {}
+        # Agent 内部存储目录（独立于工作目录）
+        self.agent_home = agent_home
         # 记忆配置
         self.memory_level = memory_level
         self.session_id = session_id or f"session_{int(time.time())}"
@@ -314,8 +404,14 @@ class ReactAgentConfig:
             # 向后兼容：如果只提供了 knowledge_file，转换为列表
             self.knowledge_files = [knowledge_file]
         else:
-            # 默认使用综合知识文件
-            self.knowledge_files = ["knowledge/综合知识.md"]
+            # 默认使用系统提示词作为基础知识
+            self.knowledge_files = ["knowledge/system_prompt.md"]
+        
+        # 知识字符串 - 直接提供知识内容
+        if knowledge_strings is not None:
+            self.knowledge_strings = knowledge_strings if isinstance(knowledge_strings, list) else [knowledge_strings]
+        else:
+            self.knowledge_strings = []
         
         # 系统提示词文件路径
         self.system_prompt_file = system_prompt_file
@@ -327,6 +423,7 @@ class ReactAgentConfig:
         self.llm_base_url = llm_base_url or "https://api.deepseek.com/v1"
         self.llm_api_key_env = llm_api_key_env or "DEEPSEEK_API_KEY"
         self.llm_temperature = llm_temperature
+        self.http_client = http_client
         
         # 设置上下文窗口大小
         if context_window is not None:
@@ -345,6 +442,24 @@ class ReactAgentConfig:
             self.max_token_limit = int(self.context_window * 0.8)
             if os.environ.get('DEBUG'):
                 logger.info(f"Auto-adjusted max_token_limit to {self.max_token_limit} based on context window {self.context_window}")
+        
+        # 缓存配置
+        self.cache_path = cache_path
+        self.enable_cache = enable_cache
+        
+        # 知识提取限制
+        if knowledge_extraction_limit is not None:
+            self.knowledge_extraction_limit = knowledge_extraction_limit
+        else:
+            # 根据模型名称自动推断知识提取文件大小限制
+            self.knowledge_extraction_limit = DEFAULT_KNOWLEDGE_EXTRACTION_LIMITS.get(
+                self.llm_model,
+                DEFAULT_KNOWLEDGE_EXTRACTION_LIMITS["default"]
+            )
+        
+        # 视图功能开关
+        self.enable_world_overview = enable_world_overview
+        self.enable_perspective = enable_perspective
 
 class GenericReactAgent:
     """通用 React Agent - 领域无关
@@ -367,9 +482,50 @@ class GenericReactAgent:
         system_prompt_template: 系统提示词模板
     """
     
-    def __init__(self, config: ReactAgentConfig):
+    def __init__(self, config: ReactAgentConfig, name: Optional[str] = None, custom_tools: Optional[List[Any]] = None):
         self.config = config
         self.work_dir = Path(config.work_dir)
+        self.name = name or f"Agent-{config.llm_model}"  # Agent 名称，如果未提供则使用默认值
+        
+        # 验证工作目录必须存在
+        if not self.work_dir.exists():
+            raise ValueError(
+                f"工作目录 '{self.work_dir}' 不存在。\n"
+                "工作目录代表外部世界（如项目代码库），必须预先存在。\n"
+                "Agent 不能创建工作目录，只能在其中操作文件。"
+            )
+        
+        # 检查 world_overview.md（如果启用）
+        self._pending_overview_task = None
+        if config.enable_world_overview:
+            self._check_world_overview()
+        
+        # 设置 Agent 内部存储目录（独立于工作目录）
+        if config.agent_home:
+            self.agent_home = Path(config.agent_home).expanduser()
+        else:
+            # 默认使用项目根目录的 .agents 目录
+            self.agent_home = Path(__file__).parent / ".agents"
+        
+        # 创建 agent 目录
+        self.agent_dir = self.agent_home / self.name
+        self.agent_dir.mkdir(parents=True, exist_ok=True)
+        
+        # 创建私有数据目录
+        self.data_dir = self.agent_dir / "data"
+        self.data_dir.mkdir(parents=True, exist_ok=True)
+        
+        # 创建知识目录
+        self.knowledge_dir = self.agent_dir / "knowledge"
+        self.knowledge_dir.mkdir(parents=True, exist_ok=True)
+        self.knowledge_file = self.knowledge_dir / "extracted_knowledge.md"
+        
+        # 注册退出处理函数（确保记忆更新完成）
+        _register_shutdown_handler()
+        
+        # 应用缓存配置
+        self._setup_cache()
+        
         self.llm = self._create_llm()
         self.memory = self._create_memory()
         self.prior_knowledge = self._load_prior_knowledge()
@@ -379,18 +535,51 @@ class GenericReactAgent:
         # 初始化 agent 和 executor
         self._agent = None
         self._executor = None
-        self._tools: Optional[List[Any]] = None  # 工具列表
-        self._initialize_executor()
+        self._tools: Optional[List[Any]] = custom_tools  # 支持自定义工具
+        self._system_prompt = None  # 系统提示词
+        self._create_and_setup_agent()
         
         # 只在调试模式下显示初始化信息
         if os.environ.get('DEBUG'):
-            logger.info(f"GenericReactAgent initialized with memory level: {config.memory_level}")
-            logger.info(f"LLM model: {config.llm_model}, context window: {config.context_window} tokens")
-            logger.info(f"Max token limit for memory: {config.max_token_limit}")
+            logger.info(f"[{self.name}] initialized with memory level: {config.memory_level}")
+            logger.info(f"[{self.name}] LLM model: {config.llm_model}, context window: {config.context_window} tokens")
+            logger.info(f"[{self.name}] Max token limit for memory: {config.max_token_limit}")
             if self.prior_knowledge:
                 logger.info(f"Loaded prior knowledge from: {config.knowledge_files}")
             if self.system_prompt_template:
                 logger.info(f"Loaded system prompt from: {config.system_prompt_file}")
+    
+    def _setup_cache(self) -> None:
+        """设置缓存配置
+        
+        根据配置决定是否启用缓存，以及使用哪个缓存路径。
+        支持三种模式：
+        1. 使用全局默认缓存（默认）
+        2. 使用自定义缓存路径
+        3. 禁用缓存
+        """
+        # 如果配置禁用缓存
+        if not self.config.enable_cache:
+            set_llm_cache(None)
+            if os.environ.get('DEBUG'):
+                logger.info("LLM cache disabled for this agent")
+            return
+        
+        # 如果指定了自定义缓存路径
+        if self.config.cache_path:
+            # 确保缓存目录存在
+            cache_dir = os.path.dirname(self.config.cache_path)
+            if cache_dir:
+                os.makedirs(cache_dir, exist_ok=True)
+            
+            # 设置自定义缓存
+            set_llm_cache(SQLiteCache(database_path=self.config.cache_path))
+            if os.environ.get('DEBUG'):
+                logger.info(f"Using custom cache path: {self.config.cache_path}")
+        else:
+            # 使用默认全局缓存（已在模块级别设置）
+            if os.environ.get('DEBUG'):
+                logger.info(f"Using default global cache at: {default_cache_path}")
     
     def _get_default_specification(self) -> str:
         """获取默认的工具规范描述"""
@@ -434,12 +623,18 @@ class GenericReactAgent:
             raise ValueError(f"{self.config.llm_api_key_env} not set")
         
         # 创建ChatOpenAI实例，支持任何兼容的API
-        llm = ChatOpenAI(
-            model=self.config.llm_model,
-            api_key=api_key,  # type: ignore
-            base_url=self.config.llm_base_url,
-            temperature=self.config.llm_temperature
-        )
+        llm_kwargs = {
+            "model": self.config.llm_model,
+            "api_key": api_key,  # type: ignore
+            "base_url": self.config.llm_base_url,
+            "temperature": self.config.llm_temperature
+        }
+        
+        # 如果提供了 http_client，添加到参数中
+        if self.config.http_client:
+            llm_kwargs["http_client"] = self.config.http_client
+            
+        llm = ChatOpenAI(**llm_kwargs)
         
         if os.environ.get('DEBUG'):
             logger.info(f"LLM initialized: model={self.config.llm_model}, base_url={self.config.llm_base_url}")
@@ -611,6 +806,14 @@ class GenericReactAgent:
                 if os.environ.get('DEBUG'):
                     logger.info(f"Knowledge file not found: {knowledge_file}")
         
+        # 添加知识字符串
+        for i, knowledge_string in enumerate(self.config.knowledge_strings):
+            if knowledge_string:
+                # 添加字符串标记
+                all_knowledge.append(f"<!-- Knowledge from string {i+1} -->\n{knowledge_string}")
+                if os.environ.get('DEBUG'):
+                    logger.info(f"Loaded knowledge from string {i+1}")
+        
         # 合并所有知识内容
         if all_knowledge:
             combined_content = "\n\n".join(all_knowledge)
@@ -669,52 +872,96 @@ class GenericReactAgent:
     
     def _get_default_system_prompt(self) -> str:
         """获取默认的系统提示词"""
-        return """你是一个通用的任务执行助手。
+        return """你是一个任务执行助手，能够使用各种工具完成任务。
 
-## 你的能力
+## 核心原则
 
-你可以使用以下工具来完成任务：
-- write_file: 创建或修改文件
-- read_file: 读取文件内容
-- create_directory: 创建目录结构
-- list_directory: 查看目录内容
-- execute_command: 执行系统命令
-- search_files: 搜索文件
+1. **立即执行**：收到任务后直接执行，避免过度分析
+2. **工具优先**：使用工具完成实际工作，而不是只描述步骤
+3. **简洁沟通**：保持回复简洁，重点是执行结果
 
-## 工作原则
+## 工作流程
 
-1. 理解任务要求，制定执行计划
-2. 按步骤执行，确保每步成功
-3. 遇到错误时分析原因并尝试修复
-4. 完成任务后验证结果
+1. **理解任务**（1-2句话）
+2. **执行操作**（使用相关工具）
+3. **报告结果**（简要说明）
+4. **处理异常**（遇到错误时分析并重试）
 
-## 工作目录
+## 问题解决策略
 
-所有文件操作都相对于: {work_dir}
+### 遇到困难时
+- 尝试多个解决方案（2-3个）
+- 如果都失败，重新审视目标
+- 考虑替代方案
+- 必要时寻求更多信息
 
-## 任务执行说明
+## 工作空间
 
-你将通过用户输入接收具体的任务。请仔细分析任务需求，选择合适的工具来完成任务。"""
+### 外部世界
+- 工作目录：{work_dir}
+- 代表需要操作的外部环境
+- 只能修改内容，不能删除或清理整个目录
+
+### 任务临时区
+- 位置：.agents/data/<agent_name>/
+- 用于存储任务执行的临时数据
+- 每个任务开始时会被清空
+
+## 注意事项
+
+- 保持专注于当前任务
+- 避免创建不必要的文件
+- 优先修改现有文件而非创建新文件
+- 确保产生实际输出"""
     
     def _create_agent(self):
         """创建 Agent
         
-        创建 LangChain Agent，包括：
+        创建 LangGraph React Agent，包括：
         1. 创建所有工具实例
         2. 构建系统提示词（结合模板和知识）
-        3. 创建 LangChain Agent
+        3. 创建 LangGraph React Agent
         
         Returns:
-            Agent: 配置好的 Agent
+            Agent: 配置好的 LangGraph Agent
         """
         
-        # 从 tools 模块创建工具（已包含 apply_diff）
-        tools = create_tools(self.config.work_dir)
+        # 使用自定义工具或创建默认工具
+        if self._tools is None:
+            # 没有提供自定义工具，使用默认工具集
+            tools = create_tools(self.config.work_dir)
+        else:
+            # 使用提供的自定义工具
+            tools = self._tools
         
         # 使用加载的系统提示词模板（不再需要 task_description）
         system_prompt = self.system_prompt_template.format(
             work_dir=self.config.work_dir
         )
+        
+        # 注入数据目录信息
+        data_dir_info = f"""
+## 工作区域
+- 共享工作区：{self.config.work_dir}
+- 你的私有数据区：{self.data_dir}
+"""
+        system_prompt += data_dir_info
+        
+        # 注入提取的知识
+        knowledge_file = self.knowledge_dir / "extracted_knowledge.md"
+        if knowledge_file.exists():
+            try:
+                knowledge_content = knowledge_file.read_text(encoding='utf-8')
+                if knowledge_content.strip():
+                    system_prompt += f"""
+## 提取的知识
+
+以下是你之前积累的经验和知识，请在执行任务时参考：
+
+{knowledge_content}
+"""
+            except Exception as e:
+                print(f"读取提取的知识失败: {e}")
         
         # 如果有先验知识，添加到提示词中
         if self.prior_knowledge:
@@ -726,67 +973,42 @@ class GenericReactAgent:
 {self.prior_knowledge}
 """
 
-        # 创建prompt - 根据是否有记忆调整
-        messages = [("system", system_prompt)]
+        # LangGraph 使用不同的方式处理系统提示词
+        # 我们将在执行时将系统提示词作为第一条消息注入
+        self._system_prompt = system_prompt
         
-        # 如果启用了记忆，添加记忆占位符
-        if self.memory is not None:
-            messages.append(MessagesPlaceholder(variable_name="chat_history"))  # type: ignore
-            
-        messages.extend([
-            ("human", "{input}"),
-            ("placeholder", "{agent_scratchpad}")
-        ])
-        
-        prompt = ChatPromptTemplate.from_messages(messages)
-        
-        # 创建agent
-        agent = create_tool_calling_agent(self.llm, tools, prompt)
+        # 创建agent - 使用 LangGraph 的 create_react_agent
+        # LangGraph 的 create_react_agent 支持 prompt 参数
+        # 可以传入字符串或 SystemMessage，它会被添加到消息列表的开头
+        agent = create_react_agent(
+            model=self.llm,
+            tools=tools,
+            prompt=system_prompt if self.prior_knowledge else None,  # 如果有知识，使用自定义提示词
+            checkpointer=None  # 暂时不使用 checkpointer
+        )
         
         # 保存工具列表到实例属性，供后续使用
         self._tools = tools
         
         return agent
     
-    def _initialize_executor(self):
-        """初始化或更新 executor
+    def _create_and_setup_agent(self):
+        """创建并设置 agent
         
-        创建新的 agent 并更新 executor。
-        如果是首次调用，创建新的 executor；
-        如果已存在 executor，只更新其 agent 属性。
+        在 LangGraph 中，agent 本身就是 executor，不需要额外包装。
         """
-        # 创建新的 agent（这会设置 self._tools）
+        # 创建 agent
         self._agent = self._create_agent()
         
-        # 确保 tools 已经被初始化
+        # 确保工具已初始化
         if self._tools is None:
             raise RuntimeError("Tools not initialized properly in _create_agent")
         
-        if self._executor is None:
-            # 首次创建 executor
-            executor_config = {
-                "agent": self._agent,
-                "tools": self._tools,
-                "verbose": True,
-                "max_iterations": 50,
-                "handle_parsing_errors": True
-            }
-            
-            # 如果有记忆，添加到 executor
-            if self.memory is not None:
-                executor_config["memory"] = self.memory
-                
-            self._executor = AgentExecutor(**executor_config)
-            
-            if os.environ.get('DEBUG'):
-                logger.info("Created new AgentExecutor with memory")
-        else:
-            # 更新已有 executor 的 agent（保留 memory）
-            self._executor.agent = self._agent
-            self._executor.tools = self._tools
-            
-            if os.environ.get('DEBUG'):
-                logger.info("Updated existing AgentExecutor's agent (memory preserved)")
+        # 在 LangGraph 中，agent 就是 executor
+        self._executor = self._agent
+        
+        if os.environ.get('DEBUG'):
+            logger.info("Created new LangGraph React Agent")
     
     def load_knowledge(self, knowledge_content: str) -> None:
         """动态加载知识内容
@@ -807,13 +1029,276 @@ class GenericReactAgent:
             # 如果没有知识，直接设置
             self.prior_knowledge = knowledge_content
         
-        # 重新初始化 executor（会重建 agent，但保留 memory）
-        self._initialize_executor()
+        # 重新创建 agent（会使用新的知识，但保留 memory）
+        self._create_and_setup_agent()
         
         if os.environ.get('DEBUG'):
             logger.info(f"Loaded additional knowledge: {len(knowledge_content)} characters")
     
-    def execute_task(self, task: str) -> None:
+    def _update_extracted_knowledge_sync(self, messages: List[BaseMessage]) -> None:
+        """同步方法：更新提取的知识（在后台线程中运行）"""
+        try:
+            # 读取现有知识
+            existing_knowledge = ""
+            if self.knowledge_file.exists():
+                existing_knowledge = self.knowledge_file.read_text(encoding='utf-8')
+            
+            # 构建任务历史
+            task_history = self._format_messages_for_memory(messages)
+            
+            # 构建更新知识的提示词
+            knowledge_prompt = self._build_knowledge_extraction_prompt(existing_knowledge, task_history)
+            
+            # 调用 LLM 提取知识
+            extracted_knowledge = self.llm.invoke(knowledge_prompt).content
+            
+            # 检查知识文件大小
+            knowledge_size = len(extracted_knowledge.encode('utf-8'))
+            if knowledge_size > self.config.knowledge_extraction_limit:
+                # 如果超过限制，要求 LLM 进一步压缩
+                compress_prompt = self._build_knowledge_compression_prompt(
+                    extracted_knowledge, 
+                    knowledge_size, 
+                    self.config.knowledge_extraction_limit
+                )
+                extracted_knowledge = self.llm.invoke(compress_prompt).content
+            
+            # 保存提取的知识
+            self.knowledge_file.write_text(extracted_knowledge, encoding='utf-8')
+            
+            if os.environ.get('DEBUG'):
+                logger.info(f"[{self.name}] Knowledge extracted successfully")
+                
+        except Exception as e:
+            # 知识提取失败不应影响主任务
+            if os.environ.get('DEBUG'):
+                logger.error(f"[{self.name}] Failed to extract knowledge: {e}")
+    
+    def _format_messages_for_memory(self, messages: List[BaseMessage]) -> str:
+        """格式化消息列表为知识提取所需的格式"""
+        formatted = []
+        for msg in messages:
+            if isinstance(msg, SystemMessage):
+                continue  # 跳过系统消息
+            elif isinstance(msg, HumanMessage):
+                formatted.append(f"用户: {msg.content}")
+            elif hasattr(msg, 'name') and msg.name:  # 工具消息
+                formatted.append(f"工具 {msg.name}: {msg.content[:500]}...")  # 限制工具输出长度
+            else:  # AI 消息
+                formatted.append(f"AI: {msg.content}")
+        return "\n".join(formatted)
+    
+    def _build_knowledge_extraction_prompt(self, existing_knowledge: str, task_history: str) -> str:
+        """构建知识提取的提示词"""
+        knowledge_limit_kb = self.config.knowledge_extraction_limit // 1024
+        
+        prompt = f"""# 长期记忆更新任务
+
+## 你的角色
+你是一个知识管理助手，负责从 agent 的任务执行中提取有价值的知识和经验。
+
+## 输入
+1. **已有知识**：
+{existing_knowledge if existing_knowledge else "（空）"}
+
+2. **本次任务执行历史**：
+{task_history}
+
+## 任务
+基于本次任务的执行历史，更新长期记忆。你需要：
+
+1. **提取关键经验**：
+   - 遇到的问题和解决方案
+   - 发现的有效模式和方法
+   - 需要记住的特殊情况
+   - 用户的偏好和项目特点
+
+2. **整合新旧记忆**：
+   - 保留仍然有效的旧经验
+   - 更新已过时的信息
+   - 合并相似的经验
+   - 删除不再重要的细节
+
+3. **保持精炼**：
+   - 使用简洁的要点形式
+   - 优先保留最有价值的信息
+   - 注意输出大小限制：约 {knowledge_limit_kb}KB
+
+## 输出格式
+请直接输出提取的知识内容（Markdown 格式），不要有任何解释或元信息。"""
+        
+        return prompt
+    
+    def _build_knowledge_compression_prompt(self, knowledge_content: str, 
+                                        current_size: int, 
+                                        limit: int) -> str:
+        """构建知识压缩的提示词（知识精炼系统）"""
+        current_kb = current_size / 1024
+        limit_kb = limit / 1024
+        target_kb = limit_kb * 0.85  # 目标大小为限制的85%，留出余量
+        
+        prompt = f"""# 知识压缩任务（知识精炼系统）
+
+## 当前状况
+- 知识文件大小：{current_kb:.1f}KB ({current_size} 字节)
+- 大小限制：{limit_kb:.1f}KB ({limit} 字节)
+- 目标大小：{target_kb:.1f}KB 以内
+
+## 知识内容
+{knowledge_content}
+
+## 压缩策略
+
+请使用以下精炼策略来压缩知识：
+
+### 1. 时间衰减原则
+- 保留最近的经验和教训
+- 删除过于久远或已被更新的信息
+- 合并重复出现的模式
+
+### 2. 重要性评估
+保留以下类型的信息（优先级从高到低）：
+- **关键错误和解决方案**：避免重复犯错
+- **用户偏好和项目特点**：个性化服务
+- **有效的工作模式**：提高效率
+- **特殊案例处理**：边界情况
+- **常用技术栈信息**：技术偏好
+
+删除以下类型的信息：
+- 具体的文件内容和代码细节
+- 一次性的临时解决方案
+- 已经过时的技术信息
+- 冗长的执行过程描述
+- 重复的成功经验
+
+### 3. 抽象化原则
+- 将具体案例抽象为通用模式
+- 合并相似经验为一般性原则
+- 保留模式而非实例
+
+### 4. 结构化组织
+使用清晰的标题结构，如：
+- ## 核心经验
+- ## 常见问题与解决方案
+- ## 用户偏好
+- ## 技术栈特点
+
+## 输出要求
+1. 输出压缩后的知识内容
+2. 使用Markdown格式
+3. 确保大小不超过 {target_kb:.1f}KB
+4. 保持内容的连贯性和可读性
+5. 不要包含任何解释或元信息
+
+请直接输出压缩后的记忆内容："""
+        
+        return prompt
+    
+    def _clean_data_directory(self) -> None:
+        """清理工作目录和私有数据区域，为新任务准备干净环境
+        
+        清理策略：
+        - TODO文件：归档到 archive 目录（保留任务计划历史）
+        - BPMN文件：归档到 archive 目录（保留流程执行历史）
+        - 其他文件：删除
+        """
+        import shutil
+        from datetime import datetime
+        
+        # 清理私有数据目录
+        if self.data_dir.exists():
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            
+            # 创建归档目录
+            archive_dir = self.data_dir / "archive"
+            archive_dir.mkdir(exist_ok=True)
+            
+            # 归档工作流相关文件（TODO和BPMN）
+            for item in self.data_dir.iterdir():
+                # 跳过 archive 目录本身
+                if item.is_dir() and item.name == "archive":
+                    continue
+                    
+                if item.is_file():
+                    # 归档TODO文件
+                    if item.name.upper() == 'TODO.MD' or item.name.upper().startswith('TODO'):
+                        archive_name = f"{timestamp}_{item.name}"
+                        archive_path = archive_dir / archive_name
+                        try:
+                            item.rename(archive_path)
+                            if os.environ.get('DEBUG'):
+                                logger.info(f"[{self.name}] Archived TODO file: {item.name} -> archive/{archive_name}")
+                        except Exception as e:
+                            logger.warning(f"[{self.name}] Failed to archive {item}: {e}")
+                    
+                    # 归档BPMN文件
+                    elif item.name.endswith('.bpmn'):
+                        archive_name = f"{timestamp}_{item.name}"
+                        archive_path = archive_dir / archive_name
+                        try:
+                            item.rename(archive_path)
+                            if os.environ.get('DEBUG'):
+                                logger.info(f"[{self.name}] Archived BPMN file: {item.name} -> archive/{archive_name}")
+                        except Exception as e:
+                            logger.warning(f"[{self.name}] Failed to archive {item}: {e}")
+                    
+                    # 删除其他文件
+                    else:
+                        try:
+                            item.unlink()
+                            if os.environ.get('DEBUG'):
+                                logger.info(f"[{self.name}] Removed file from data directory: {item}")
+                        except Exception as e:
+                            logger.warning(f"[{self.name}] Failed to remove {item}: {e}")
+                
+                # 删除非归档目录
+                elif item.is_dir():
+                    try:
+                        shutil.rmtree(item)
+                        if os.environ.get('DEBUG'):
+                            logger.info(f"[{self.name}] Removed directory from data directory: {item}")
+                    except Exception as e:
+                        logger.warning(f"[{self.name}] Failed to remove {item}: {e}")
+        
+        # 注释掉清理共享工作目录的代码，以支持多 Agent 文件共享
+        # 在多 Agent 协作场景下，不应该清理共享工作目录
+        # 每个 Agent 应该只管理自己的私有数据目录 (.agent_data/{agent_name})
+        
+        # # 清理共享工作目录中的文件，但保留隐藏目录（.agent_data, .agent_memory）
+        # if self.work_dir.exists():
+        #     for item in self.work_dir.iterdir():
+        #         # 跳过隐藏目录（.agent_data, .agent_memory）
+        #         if item.name.startswith('.'):
+        #             continue
+        #             
+        #         # 删除文件
+        #         if item.is_file():
+        #             try:
+        #                 item.unlink()
+        #                 if os.environ.get('DEBUG'):
+        #                     logger.info(f"[{self.name}] Removed file: {item}")
+        #             except Exception as e:
+        #                 logger.warning(f"[{self.name}] Failed to remove {item}: {e}")
+        #         
+        #         # 删除非隐藏目录
+        #         elif item.is_dir():
+        #             try:
+        #                 shutil.rmtree(item)
+        #                 if os.environ.get('DEBUG'):
+        #                     logger.info(f"[{self.name}] Removed directory: {item}")
+        #             except Exception as e:
+        #                 logger.warning(f"[{self.name}] Failed to remove {item}: {e}")
+    
+    def _check_world_overview(self) -> None:
+        """检查并生成 world_overview.md"""
+        from world_overview_checker import WorldOverviewChecker
+        
+        checker = WorldOverviewChecker(self.work_dir)
+        if checker.check_and_generate(self.name):
+            # 保存生成任务，将在第一次执行任务时处理
+            self._pending_overview_task = checker._create_generation_task()
+    
+    def execute_task(self, task: str) -> str:
         """执行任务
         
         主要执行入口，使用缓存的 executor 执行任务。
@@ -821,20 +1306,153 @@ class GenericReactAgent:
         Args:
             task: 要执行的任务描述
             
-        Note:
-            执行结果会直接打印到控制台
+        Returns:
+            str: 最后一条AI消息内容
         """
         # 确保 executor 已初始化
         if self._executor is None:
             raise RuntimeError("Executor not initialized. This should not happen.")
-            
-        # 使用缓存的 executor 执行任务
-        print("\n> Executing task...")
-        result = self._executor.invoke({"input": task})
         
-        # 打印结果
-        print("> Task completed.")
-        print(f"\nResult:\n{result['output']}")
+        # 清理数据目录（保留提取的知识）
+        self._clean_data_directory()
+        
+        # 如果有待处理的 world_overview 生成任务，优先执行
+        if self._pending_overview_task:
+            print(f"\n[{self.name}] > Generating world_overview.md first...")
+            self._execute_internal_task(self._pending_overview_task)  # 忽略返回值
+            self._pending_overview_task = None
+            print(f"\n[{self.name}] > Now executing main task...")
+        
+        # 执行主任务
+        return self._execute_internal_task(task)
+    
+    def _execute_internal_task(self, task: str) -> str:
+        """执行内部任务的通用方法
+        
+        Returns:
+            str: 最后一条AI消息内容
+        """
+        # 使用 LangGraph agent 执行任务
+        if task != self._pending_overview_task:  # 避免重复打印
+            print(f"\n[{self.name}] > Executing task...")
+        
+        # 准备输入消息
+        messages = []
+        
+        # 添加系统提示词作为第一条消息
+        if hasattr(self, '_system_prompt') and self._system_prompt:
+            messages.append(SystemMessage(content=self._system_prompt))
+        
+        # 如果有记忆，加载历史消息
+        if self.memory is not None:
+            memory_vars = self.memory.load_memory_variables({})
+            if "chat_history" in memory_vars:
+                # 添加历史消息（但不包括之前的系统消息）
+                for msg in memory_vars["chat_history"]:
+                    if not isinstance(msg, SystemMessage):
+                        messages.append(msg)
+        
+        # 添加当前任务
+        messages.append(HumanMessage(content=task))
+        
+        inputs = {"messages": messages}
+        
+        # 执行任务，设置更高的递归限制和配置
+        invoke_config = RunnableConfig(
+            recursion_limit=100,  # 增加递归限制
+            max_concurrency=5,    # 限制并发
+            configurable={}
+        )
+        
+        # 使用 stream 方法显示详细的执行过程
+        try:
+            # 收集所有消息用于最终输出
+            all_messages = []
+            
+            # 使用 stream 方法获取中间步骤
+            for event in self._executor.stream(inputs, config=invoke_config, stream_mode="values"):
+                messages = event.get("messages", [])
+                if messages:
+                    # 获取最后一条消息
+                    last_message = messages[-1]
+                    all_messages = messages
+                    
+                    # 显示不同类型的消息
+                    if hasattr(last_message, 'content'):
+                        if isinstance(last_message, HumanMessage):
+                            print(f"\n\U0001f464 用户: {last_message.content}")
+                        elif isinstance(last_message, SystemMessage):
+                            if os.environ.get('DEBUG'):
+                                print(f"\n\U0001f4bb 系统: {last_message.content[:100]}...")
+                        elif hasattr(last_message, 'tool_calls') and last_message.tool_calls:
+                            # AI 决定调用工具
+                            print(f"\n\U0001f914 [{self.name}] AI 思考: 需要使用工具来完成任务")
+                            for tool_call in last_message.tool_calls:
+                                print(f"\U0001f527 调用工具: {tool_call.get('name', 'unknown')}")
+                                if 'args' in tool_call:
+                                    print(f"   参数: {tool_call['args']}")
+                        elif hasattr(last_message, 'name'):
+                            # 工具返回结果
+                            print(f"\n\U0001f4ac 工具结果 ({last_message.name}):")
+                            content = last_message.content
+                            # 限制输出长度
+                            if len(content) > 500:
+                                print(f"   {content[:500]}...")
+                                print(f"   [省略 {len(content)-500} 字符]")
+                            else:
+                                print(f"   {content}")
+                        else:
+                            # AI 的最终回答
+                            if last_message.content:
+                                print(f"\n\U0001f916 [{self.name}] AI 回答: {last_message.content}")
+            
+            # 构建结果
+            result = {"messages": all_messages}
+            
+        except Exception as e:
+            # 如果出错，尝试简化输入
+            if "recursion" in str(e).lower():
+                print("提示：任务可能过于复杂，尝试简化...")
+                # 只保留用户消息，去掉系统提示词
+                simple_inputs = {"messages": [HumanMessage(content=task)]}
+                result = self._executor.invoke(simple_inputs, config=invoke_config)
+            else:
+                raise
+        
+        # 获取最终输出
+        if "messages" in result:
+            # 获取最后一条 AI 消息作为输出
+            output_message = result["messages"][-1]
+            output = output_message.content if hasattr(output_message, 'content') else str(output_message)
+            
+            # 如果有记忆，保存对话
+            if self.memory is not None:
+                self.memory.save_context({"input": task}, {"output": output})
+        else:
+            output = str(result)
+        
+        # 打印最终结果
+        print(f"\n[{self.name}] > Task completed.")
+        print(f"\n=== [{self.name}] 最终结果 ===\n")
+        print(output)
+        
+        # 异步更新提取的知识
+        if "messages" in result and self.config.knowledge_extraction_limit > 0:
+            # 启动后台线程提取知识（非守护线程）
+            knowledge_thread = threading.Thread(
+                target=self._update_extracted_knowledge_sync,
+                args=(result["messages"],),
+                daemon=False,  # 非守护线程，确保完成
+                name=f"knowledge_extraction_{self.name}"
+            )
+            knowledge_thread.start()
+            
+            # 添加到全局跟踪列表
+            global _memory_update_threads
+            _memory_update_threads.append(knowledge_thread)
+        
+        # 返回最后一条AI消息内容
+        return output
 
 
 def main():
@@ -913,8 +1531,12 @@ def main():
         logger.info(f"LLM base URL: {args.llm_base_url}")
         logger.info(f"LLM API key env: {args.llm_api_key_env}")
     
-    # 创建工作目录
-    Path(args.work_dir).mkdir(parents=True, exist_ok=True)
+    # 不创建工作目录 - 工作目录是外部世界，应该已经存在
+    # 如果工作目录不存在，应该报错而不是创建
+    if not Path(args.work_dir).exists():
+        print(f"错误：工作目录 '{args.work_dir}' 不存在")
+        print("工作目录代表外部世界（如项目代码库），必须预先存在")
+        sys.exit(1)
     
     # 创建配置
     config = ReactAgentConfig(
