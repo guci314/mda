@@ -139,7 +139,7 @@ def demo_step_modes():
         memory_level=MemoryLevel.NONE,
         llm_model="deepseek-chat",
         llm_temperature=0,
-        knowledge_files=["knowledge/absolute_path_usage.md"]  # 加载知识文件
+        knowledge_files=["knowledge/best_practices/absolute_path_usage.md"]  # 加载知识文件
     )
     
     agent = GenericReactAgent(config, name="step_debug_agent")
@@ -183,8 +183,8 @@ def demo_complex_workflow():
         llm_model="deepseek-chat",
         llm_temperature=0,
         knowledge_files=[
-            "knowledge/absolute_path_usage.md",
-            "knowledge/role_based_output.md"
+            "knowledge/best_practices/absolute_path_usage.md",
+            "knowledge/output/role_based_output.md"
         ]
     )
     

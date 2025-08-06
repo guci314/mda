@@ -31,7 +31,7 @@ def main():
             work_dir=str(work_dir),
             memory_level=MemoryLevel.NONE,
             knowledge_files=[],
-            specification="Python 开发专家"
+            interface="Python 开发专家"
         ),
         name="developer"
     )
@@ -42,7 +42,7 @@ def main():
             work_dir=str(work_dir),
             memory_level=MemoryLevel.NONE,
             knowledge_files=[],
-            specification="代码测试专家"
+            interface="代码测试专家"
         ),
         name="tester"
     )
@@ -58,11 +58,11 @@ def main():
         work_dir=str(work_dir),
         memory_level=MemoryLevel.NONE,
         knowledge_files=[
-            "knowledge/delegation_best_practices.md",
-            "knowledge/task_dependencies.md",
-            "knowledge/context_passing.md"
+            "knowledge/coordination/delegation_best_practices.md",
+            "knowledge/workflow/task_dependencies.md",
+            "knowledge/coordination/context_passing.md"
         ],
-        specification="高效的项目主管"
+        interface="高效的项目主管"
     )
     
     # 传入工具

@@ -7,7 +7,9 @@
 
 ### LLM Configurations
 #### Kimi (Moonshot AI)
-- **Model**: `kimi-k2-0711-preview`
+- **Models**: 
+  - `kimi-k2-0711-preview` (128k context)
+  - `kimi-k2-turbo-preview` (128k context)
 - **Base URL**: `https://api.moonshot.cn/v1`
 - **API Key Environment Variable**: `MOONSHOT_API_KEY`
 - **Temperature**: 0 (for deterministic outputs)

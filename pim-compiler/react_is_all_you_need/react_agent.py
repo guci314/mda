@@ -14,7 +14,7 @@
     config = ReactAgentConfig(
         work_dir="output",
         memory_level=MemoryLevel.SMART,
-        knowledge_files=["knowledge/综合知识.md"]
+        knowledge_files=["knowledge/experimental/综合知识.md"]
     )
     agent = GenericReactAgent(config, name="my_agent")
     agent.execute_task("创建一个用户管理系统")
@@ -148,10 +148,12 @@ except ImportError:
 
 # 全局线程跟踪
 _memory_update_threads = []
+_exploration_threads = []
 _shutdown_registered = False
 
 def _wait_for_memory_updates():
-    """等待所有记忆更新线程完成"""
+    """等待所有后台线程完成"""
+    # 等待知识提取线程
     if _memory_update_threads:
         active_threads = [t for t in _memory_update_threads if t.is_alive()]
         if active_threads:
@@ -166,6 +168,22 @@ def _wait_for_memory_updates():
                         print(f"  [{i}/{len(active_threads)}] {thread.name} 已完成")
             print("所有记忆更新已完成。")
         _memory_update_threads.clear()
+    
+    # 等待项目探索线程
+    if _exploration_threads:
+        active_threads = [t for t in _exploration_threads if t.is_alive()]
+        if active_threads:
+            print(f"\n等待 {len(active_threads)} 个项目探索任务完成...")
+            for i, thread in enumerate(active_threads, 1):
+                if thread.is_alive():
+                    print(f"  [{i}/{len(active_threads)}] 等待 {thread.name}...")
+                    thread.join(timeout=60)  # 项目探索可能需要更长时间
+                    if thread.is_alive():
+                        print(f"  警告：{thread.name} 超时未完成")
+                    else:
+                        print(f"  [{i}/{len(active_threads)}] {thread.name} 已完成")
+            print("所有项目探索已完成。")
+        _exploration_threads.clear()
 
 # 注册退出处理函数
 def _register_shutdown_handler():
@@ -289,6 +307,7 @@ DEFAULT_CONTEXT_WINDOWS = {
     
     # Moonshot (Kimi)
     "kimi-k2-0711-preview": 131072,  # 128k
+    "kimi-k2-turbo-preview": 131072,  # 128k
     "moonshot-v1-8k": 8192,
     "moonshot-v1-32k": 32768,
     "moonshot-v1-128k": 131072,
@@ -358,7 +377,7 @@ class ReactAgentConfig:
         knowledge_file: 单个知识文件路径（已废弃，建议使用 knowledge_files）
         knowledge_files: 知识文件路径列表
         knowledge_strings: 知识字符串列表，直接提供知识内容而非文件路径
-        specification: Agent 规范描述
+        interface: Agent 接口声明
         system_prompt_file: 系统提示词文件路径
         llm_model: LLM 模型名称（默认: "deepseek-chat"）
         llm_base_url: LLM API 基础 URL（默认: "https://api.deepseek.com/v1"）
@@ -368,12 +387,19 @@ class ReactAgentConfig:
         cache_path: 自定义缓存路径（默认: None，使用全局缓存）
         enable_cache: 是否启用 LLM 缓存（默认: True）
         knowledge_extraction_limit: 知识提取文件大小限制（单位：bytes）。如果未指定，将根据模型名称自动推断
+        show_memory_updates: 是否显示记忆更新通知（默认: True）。错误纠正始终显示
+        enable_project_exploration: 是否启用项目探索功能（默认: True）
+        exploration_interval: 项目探索间隔时间（秒）（默认: 86400，即24小时）
+        exploration_prompt: 项目探索提示词（可选）
+        exploration_prompt_file: 项目探索提示词文件路径（可选）
+        auto_reload_on_exploration: 项目探索完成后是否自动重载（默认: True）
+        llm_max_tokens: LLM输出的最大token数（默认: 16384）
     """
     def __init__(self, work_dir, additional_config=None, 
                  memory_level=MemoryLevel.SMART, session_id=None, 
                  max_token_limit=30000, db_path=None,
-                 knowledge_file=None, knowledge_files=None, knowledge_strings=None, specification=None,
-                 system_prompt_file="knowledge/system_prompt.md",
+                 knowledge_file=None, knowledge_files=None, knowledge_strings=None, interface=None,
+                 system_prompt_file="knowledge/core/system_prompt.md",
                  llm_model=None,
                  llm_base_url=None,
                  llm_api_key_env=None,
@@ -385,8 +411,15 @@ class ReactAgentConfig:
                  http_client=None,
                  agent_home=None,
                  enable_world_overview=True,
-                 enable_perspective=False):
-        self.work_dir = work_dir
+                 enable_perspective=False,
+                 show_memory_updates=True,
+                 enable_project_exploration=True,
+                 exploration_interval=86400,
+                 exploration_prompt=None,
+                 exploration_prompt_file=None,
+                 auto_reload_on_exploration=True):
+        # 将工作目录转换为绝对路径
+        self.work_dir = os.path.abspath(work_dir) if work_dir else os.getcwd()
         self.additional_config = additional_config or {}
         # Agent 内部存储目录（独立于工作目录）
         self.agent_home = agent_home
@@ -405,7 +438,7 @@ class ReactAgentConfig:
             self.knowledge_files = [knowledge_file]
         else:
             # 默认使用系统提示词作为基础知识
-            self.knowledge_files = ["knowledge/system_prompt.md"]
+            self.knowledge_files = ["knowledge/core/system_prompt.md"]
         
         # 知识字符串 - 直接提供知识内容
         if knowledge_strings is not None:
@@ -416,7 +449,7 @@ class ReactAgentConfig:
         # 系统提示词文件路径
         self.system_prompt_file = system_prompt_file
         # 工具规范和用途描述
-        self.specification = specification
+        self.interface = interface
         
         # LLM 配置 - 如果未提供，使用 DeepSeek 默认值
         self.llm_model = llm_model or "deepseek-chat"
@@ -458,8 +491,17 @@ class ReactAgentConfig:
             )
         
         # 视图功能开关
-        self.enable_world_overview = enable_world_overview
+        # enable_world_overview 已废弃，保留参数是为了向后兼容
+        # self.enable_world_overview = enable_world_overview
         self.enable_perspective = enable_perspective
+        self.show_memory_updates = show_memory_updates
+        
+        # 项目探索配置
+        self.enable_project_exploration = enable_project_exploration
+        self.exploration_interval = exploration_interval
+        self.exploration_prompt = exploration_prompt
+        self.exploration_prompt_file = exploration_prompt_file
+        self.auto_reload_on_exploration = auto_reload_on_exploration
 
 class GenericReactAgent:
     """通用 React Agent - 领域无关
@@ -484,7 +526,8 @@ class GenericReactAgent:
     
     def __init__(self, config: ReactAgentConfig, name: Optional[str] = None, custom_tools: Optional[List[Any]] = None):
         self.config = config
-        self.work_dir = Path(config.work_dir)
+        # 确保工作目录是绝对路径（config.work_dir已经是绝对路径）
+        self.work_dir = Path(config.work_dir).resolve()
         self.name = name or f"Agent-{config.llm_model}"  # Agent 名称，如果未提供则使用默认值
         
         # 验证工作目录必须存在
@@ -495,10 +538,8 @@ class GenericReactAgent:
                 "Agent 不能创建工作目录，只能在其中操作文件。"
             )
         
-        # 检查 world_overview.md（如果启用）
-        self._pending_overview_task = None
-        if config.enable_world_overview:
-            self._check_world_overview()
+        # 初始化环境认知（取代 world_overview）
+        self._init_environment_cognition()
         
         # 设置 Agent 内部存储目录（独立于工作目录）
         if config.agent_home:
@@ -511,12 +552,12 @@ class GenericReactAgent:
         self.agent_dir = self.agent_home / self.name
         self.agent_dir.mkdir(parents=True, exist_ok=True)
         
-        # 创建私有数据目录
-        self.data_dir = self.agent_dir / "data"
+        # 创建短期数据目录
+        self.data_dir = self.agent_dir / "short_term_data"
         self.data_dir.mkdir(parents=True, exist_ok=True)
         
-        # 创建知识目录
-        self.knowledge_dir = self.agent_dir / "knowledge"
+        # 创建长期数据目录
+        self.knowledge_dir = self.agent_dir / "long_term_data"
         self.knowledge_dir.mkdir(parents=True, exist_ok=True)
         self.knowledge_file = self.knowledge_dir / "extracted_knowledge.md"
         
@@ -526,11 +567,14 @@ class GenericReactAgent:
         # 应用缓存配置
         self._setup_cache()
         
+        # 初始化更新标记
+        self._pending_reload = False
+        
         self.llm = self._create_llm()
         self.memory = self._create_memory()
-        self.prior_knowledge = self._load_prior_knowledge()
+        self.prior_knowledge = self._load_prior_knowledge()  # 现在包含了项目理解
         self.system_prompt_template = self._load_system_prompt()
-        self.specification = config.specification or self._get_default_specification()
+        self.interface = config.interface or self._get_default_interface()
         
         # 初始化 agent 和 executor
         self._agent = None
@@ -581,7 +625,7 @@ class GenericReactAgent:
             if os.environ.get('DEBUG'):
                 logger.info(f"Using default global cache at: {default_cache_path}")
     
-    def _get_default_specification(self) -> str:
+    def _get_default_interface(self) -> str:
         """获取默认的工具规范描述"""
         return """GenericReactAgent - 通用任务执行工具
         
@@ -627,7 +671,10 @@ class GenericReactAgent:
             "model": self.config.llm_model,
             "api_key": api_key,  # type: ignore
             "base_url": self.config.llm_base_url,
-            "temperature": self.config.llm_temperature
+            "temperature": self.config.llm_temperature,
+            # 设置较大的max_tokens以避免输出被截断
+            # 如果模型支持，可以设置为-1让模型自己决定
+            "max_tokens": 16384  # 16k tokens，适合大多数长输出场景
         }
         
         # 如果提供了 http_client，添加到参数中
@@ -814,6 +861,19 @@ class GenericReactAgent:
                 if os.environ.get('DEBUG'):
                     logger.info(f"Loaded knowledge from string {i+1}")
         
+        # 加载项目理解作为核心知识（模型驱动开发理念）
+        understanding_file = self.knowledge_dir / "project_understanding.md"
+        if understanding_file.exists():
+            try:
+                project_understanding = understanding_file.read_text(encoding='utf-8')
+                if project_understanding.strip():
+                    # 项目理解（UML模型）是最高价值的知识
+                    all_knowledge.insert(0, f"<!-- Project Architecture Model (Core Knowledge) -->\n{project_understanding}\n<!-- End of Project Architecture Model -->")
+                    if os.environ.get('DEBUG'):
+                        logger.info(f"Loaded project understanding as core knowledge ({len(project_understanding)} chars)")
+            except Exception as e:
+                logger.warning(f"Failed to load project understanding: {e}")
+        
         # 合并所有知识内容
         if all_knowledge:
             combined_content = "\n\n".join(all_knowledge)
@@ -834,6 +894,7 @@ class GenericReactAgent:
             return combined_content
         else:
             return ""
+    
     
     def _load_system_prompt(self) -> str:
         """加载系统提示词模板
@@ -903,7 +964,7 @@ class GenericReactAgent:
 - 只能修改内容，不能删除或清理整个目录
 
 ### 任务临时区
-- 位置：.agents/data/<agent_name>/
+- 位置：.agents/<agent_name>/short_term_data/
 - 用于存储任务执行的临时数据
 - 每个任务开始时会被清空
 
@@ -943,7 +1004,7 @@ class GenericReactAgent:
         data_dir_info = f"""
 ## 工作区域
 - 共享工作区：{self.config.work_dir}
-- 你的私有数据区：{self.data_dir}
+- 你的短期数据存储区：{self.data_dir}
 """
         system_prompt += data_dir_info
         
@@ -966,9 +1027,11 @@ class GenericReactAgent:
         # 如果有先验知识，添加到提示词中
         if self.prior_knowledge:
             system_prompt += f"""
-## 领域知识
+## 核心知识（模型驱动开发）
 
-以下是相关的领域知识，请在执行任务时参考：
+重要原则：软件开发的本质是将UML模型翻译成代码。项目理解文档（Project Architecture Model）是最高价值的知识，包含了完整的UML视图。你的任务是基于这些模型生成和维护代码。
+
+以下是相关的领域知识和项目模型，请在执行任务时严格参考：
 
 {self.prior_knowledge}
 """
@@ -983,7 +1046,7 @@ class GenericReactAgent:
         agent = create_react_agent(
             model=self.llm,
             tools=tools,
-            prompt=system_prompt if self.prior_knowledge else None,  # 如果有知识，使用自定义提示词
+            prompt=system_prompt if self.prior_knowledge else None,  # 如果有知识（包含项目理解），使用自定义提示词
             checkpointer=None  # 暂时不使用 checkpointer
         )
         
@@ -1046,7 +1109,17 @@ class GenericReactAgent:
             # 构建任务历史
             task_history = self._format_messages_for_memory(messages)
             
-            # 构建更新知识的提示词
+            # 添加环境认知（如果有的话）
+            env_summary = ""
+            if hasattr(self, 'env_cognition') and self.env_cognition:
+                try:
+                    env_summary = self.env_cognition.get_summary()
+                except:
+                    pass  # 失败也没关系
+            
+            # 构建更新知识的提示词（包含环境认知）
+            if env_summary:
+                task_history = f"{env_summary}\n\n{task_history}"
             knowledge_prompt = self._build_knowledge_extraction_prompt(existing_knowledge, task_history)
             
             # 调用 LLM 提取知识
@@ -1065,6 +1138,20 @@ class GenericReactAgent:
             
             # 保存提取的知识
             self.knowledge_file.write_text(extracted_knowledge, encoding='utf-8')
+            
+            # 通知用户知识提取完成（经验主义：先简单打印）
+            # 获取知识的前几行作为预览
+            knowledge_preview = extracted_knowledge.split('\n')[0][:100]
+            if len(knowledge_preview) == 100:
+                knowledge_preview += "..."
+            
+            # 检查是否包含错误纠正（重要信息应该更醒目）
+            if any(word in extracted_knowledge.lower() for word in ['错误', 'error', '修正', 'fix', '实际上']):
+                # 错误纠正始终显示（经验教训：错误信息必须让用户知道）
+                print(f"\n🚨 [记忆更新] 发现错误纠正：{knowledge_preview}\n")
+            elif self.config.show_memory_updates:
+                # 普通学习更新（根据配置决定是否显示）
+                print(f"\n💭 [记忆更新] {knowledge_preview}\n")
             
             if os.environ.get('DEBUG'):
                 logger.info(f"[{self.name}] Knowledge extracted successfully")
@@ -1095,7 +1182,13 @@ class GenericReactAgent:
         prompt = f"""# 长期记忆更新任务
 
 ## 你的角色
-你是一个知识管理助手，负责从 agent 的任务执行中提取有价值的知识和经验。
+你是一个知识管理助手，负责从 agent 的任务执行中提取有价值的知识和经验，并按照四层记忆架构组织。
+
+## 四层记忆架构
+1. **元知识层**：如何学习、查找、验证的方法（极少变化）
+2. **原理层**：设计理念、架构决策、核心概念（仅重大重构时更新）
+3. **接口层**：API、配置项、公共方法（版本更新时验证）
+4. **实现层**：具体代码位置、内部实现（每次使用前验证）
 
 ## 输入
 1. **已有知识**：
@@ -1105,27 +1198,63 @@ class GenericReactAgent:
 {task_history}
 
 ## 任务
-基于本次任务的执行历史，更新长期记忆。你需要：
+基于本次任务的执行历史，更新长期记忆。
 
-1. **提取关键经验**：
-   - 遇到的问题和解决方案
-   - 发现的有效模式和方法
-   - 需要记住的特殊情况
-   - 用户的偏好和项目特点
+**重要**：你必须整合而非覆盖现有知识！
+- 如果"已有知识"不为空，你必须保留其中仍然有效的内容
+- 在已有知识的基础上添加新学到的内容
+- 只删除明确过时或错误的部分
 
-2. **整合新旧记忆**：
-   - 保留仍然有效的旧经验
-   - 更新已过时的信息
-   - 合并相似的经验
-   - 删除不再重要的细节
+具体要求：
 
-3. **保持精炼**：
+1. **按层级提取经验**：
+   - **元知识**：发现了什么新的查找、验证方法？
+   - **原理**：理解了什么设计理念或架构决策？
+   - **接口**：使用了哪些API、配置项、工具？
+   - **实现**：具体代码位置、文件结构（标注不确定性）
+
+2. **处理不同层级的更新**：
+   - 元知识和原理层：只有重大发现才更新
+   - 接口层：记录准确的API签名和用法
+   - 实现层：标注"可能已变化"，记录查找模式而非行号
+
+3. **整合新旧记忆**（最重要）：
+   - **必须保留**：已有知识中仍然有效的所有内容
+   - **需要添加**：本次任务中学到的新知识
+   - **可以更新**：发现错误的部分（明确标注"更正："）
+   - **可以删除**：确认已过时的实现细节
+   - **合并相似**：相同主题的经验可以合并
+
+4. **保持精炼**：
    - 使用简洁的要点形式
-   - 优先保留最有价值的信息
+   - 方法优于结果（如何找到 > 在哪里）
+   - 稳定优于精确（原理 > 细节）
    - 注意输出大小限制：约 {knowledge_limit_kb}KB
 
 ## 输出格式
-请直接输出提取的知识内容（Markdown 格式），不要有任何解释或元信息。"""
+使用以下Markdown结构组织知识：
+
+```markdown
+# 知识库
+
+## 元知识
+- 查找方法、验证技巧、学习模式
+
+## 原理与设计
+- 核心概念、架构决策、设计理念
+
+## 接口与API
+- 工具用法、配置项、公共方法
+
+## 实现细节（需验证）
+- 代码位置、文件结构、内部实现
+- 注：实现细节可能已变化，使用前需验证
+
+## 用户偏好与项目特点
+- 特定偏好、项目约定、常见模式
+```
+
+请直接输出提取的知识内容，不要有任何解释或元信息。"""
         
         return prompt
     
@@ -1193,6 +1322,18 @@ class GenericReactAgent:
 请直接输出压缩后的记忆内容："""
         
         return prompt
+    
+    def _init_environment_cognition(self) -> None:
+        """初始化环境认知（简单版本）"""
+        try:
+            # 延迟导入，避免依赖问题
+            from environment_cognition import EnvironmentCognition
+            self.env_cognition = EnvironmentCognition(self.name, self.work_dir)
+        except Exception as e:
+            # 如果失败，不影响主功能
+            self.env_cognition = None
+            if os.environ.get('DEBUG'):
+                logger.warning(f"环境认知初始化失败: {e}")
     
     def _clean_data_directory(self) -> None:
         """清理工作目录和私有数据区域，为新任务准备干净环境
@@ -1289,14 +1430,314 @@ class GenericReactAgent:
         #             except Exception as e:
         #                 logger.warning(f"[{self.name}] Failed to remove {item}: {e}")
     
-    def _check_world_overview(self) -> None:
-        """检查并生成 world_overview.md"""
-        from world_overview_checker import WorldOverviewChecker
+    def _check_and_trigger_exploration(self) -> None:
+        """检查是否需要触发定期探索"""
+        import time
         
-        checker = WorldOverviewChecker(self.work_dir)
-        if checker.check_and_generate(self.name):
-            # 保存生成任务，将在第一次执行任务时处理
-            self._pending_overview_task = checker._create_generation_task()
+        # 获取上次探索时间
+        last_exploration_time = self._get_last_exploration_time()
+        current_time = time.time()
+        
+        # 如果从未探索过或超过间隔时间
+        if last_exploration_time is None or (current_time - last_exploration_time) > self.config.exploration_interval:
+            print(f"\n🔍 [项目探索] 超过{self.config.exploration_interval/3600:.0f}小时未探索，启动后台探索...")
+            self._trigger_project_exploration()
+    
+    def _get_last_exploration_time(self) -> Optional[float]:
+        """获取上次探索时间"""
+        try:
+            from project_explorer_segmented import SegmentedProjectExplorer as ProjectExplorer
+            explorer = ProjectExplorer(self.name, self.work_dir, self.llm, self.config)
+            return explorer.get_last_exploration_time()
+        except Exception as e:
+            if os.environ.get('DEBUG'):
+                logger.warning(f"Failed to get last exploration time: {e}")
+            return None
+    
+    def _trigger_project_exploration(self) -> None:
+        """触发项目探索（异步）"""
+        import threading
+        import asyncio
+        
+        # 避免重复探索
+        if hasattr(self, '_exploration_in_progress') and self._exploration_in_progress:
+            print("⚠️ 项目探索已在进行中，跳过此次触发")
+            return
+        
+        self._exploration_in_progress = True
+        
+        # 定义探索完成的回调
+        def on_exploration_complete():
+            """探索完成后的回调"""
+            if self.config.auto_reload_on_exploration:
+                # 设置待更新标记
+                self._pending_reload = True
+                print("💡 [项目理解] 探索完成，将在下次任务时更新模型")
+        
+        # 创建异步探索任务
+        def explore_async():
+            try:
+                from project_explorer_segmented import SegmentedProjectExplorer as ProjectExplorer
+                explorer = ProjectExplorer(
+                    self.name, 
+                    self.work_dir, 
+                    self.llm, 
+                    self.config,
+                    on_complete_callback=on_exploration_complete
+                )
+                
+                # 在新的事件循环中运行异步任务
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                loop.run_until_complete(explorer.explore_project())
+                loop.close()
+                
+            except Exception as e:
+                print(f"⚠️ [项目探索] 探索过程中出错: {e}")
+                if os.environ.get('DEBUG'):
+                    import traceback
+                    traceback.print_exc()
+            finally:
+                self._exploration_in_progress = False
+        
+        # 创建并启动线程
+        explorer_thread = threading.Thread(
+            target=explore_async,
+            daemon=False,  # 非守护线程，确保完成
+            name=f"project_explorer_{self.name}"
+        )
+        explorer_thread.start()
+        
+        # 跟踪线程（供退出时等待）
+        global _exploration_threads
+        if '_exploration_threads' not in globals():
+            _exploration_threads = []
+        _exploration_threads.append(explorer_thread)
+    
+    def _save_current_messages(self) -> List[BaseMessage]:
+        """保存当前消息历史
+        
+        Returns:
+            List[BaseMessage]: 当前的消息列表
+        """
+        if self.memory and hasattr(self.memory, 'chat_memory'):
+            # 复制消息列表，避免引用问题
+            return list(self.memory.chat_memory.messages)
+        return []
+    
+    def _restore_messages(self, messages: List[BaseMessage]) -> None:
+        """恢复消息历史
+        
+        Args:
+            messages: 要恢复的消息列表
+        """
+        if self.memory and hasattr(self.memory, 'chat_memory'):
+            # 清空当前消息
+            self.memory.chat_memory.clear()
+            
+            # 恢复消息（跳过第一条系统消息，因为新的系统消息已经包含更新的知识）
+            for i, msg in enumerate(messages):
+                # 第一条通常是系统消息，包含旧的知识，跳过
+                if i == 0 and isinstance(msg, SystemMessage):
+                    continue
+                self.memory.chat_memory.add_message(msg)
+    
+    def _reload_with_new_understanding(self) -> None:
+        """重新加载项目理解并保留消息历史
+        
+        经验主义实现：重新初始化Agent，然后恢复消息
+        """
+        print("\n🔄 [项目理解] 检测到新的项目理解，正在更新...")
+        self.hot_reload_knowledge()
+        print("💡 现在Agent基于最新的UML模型工作\n")
+    
+    def hot_reload_knowledge(self, knowledge_files: Optional[List[str]] = None, 
+                           knowledge_strings: Optional[List[str]] = None,
+                           notify: bool = True) -> None:
+        """知识热加载 - 动态加载知识文件，类似动态链接库
+        
+        经验主义设计：通过重新初始化实现热加载，简单有效
+        
+        Args:
+            knowledge_files: 新的知识文件列表（如果为None，则重新加载当前配置的文件）
+            knowledge_strings: 新的知识字符串列表
+            notify: 是否显示通知消息
+            
+        Example:
+            # 热加载新的知识文件
+            agent.hot_reload_knowledge(["knowledge/new_domain.md"])
+            
+            # 重新加载当前知识（用于文件内容更新）
+            agent.hot_reload_knowledge()
+            
+            # 加载字符串知识
+            agent.hot_reload_knowledge(knowledge_strings=["新的领域知识..."])
+        """
+        if notify:
+            print("\n♻️ [知识热加载] 正在更新知识系统...")
+        
+        # 1. 保存当前消息历史
+        saved_messages = self._save_current_messages()
+        
+        # 2. 保存当前配置
+        saved_config = self.config
+        saved_name = self.name
+        saved_tools = self._tools
+        
+        # 3. 更新配置中的知识文件（如果提供了新的）
+        if knowledge_files is not None:
+            saved_config.knowledge_files = knowledge_files
+        if knowledge_strings is not None:
+            saved_config.knowledge_strings = knowledge_strings
+        
+        # 4. 重新初始化（会加载新的知识）
+        self.__init__(saved_config, saved_name, saved_tools)
+        
+        # 5. 恢复消息历史
+        self._restore_messages(saved_messages)
+        
+        if notify:
+            loaded_count = len(self.config.knowledge_files) + len(self.config.knowledge_strings)
+            print(f"✅ [知识热加载] 完成！已加载 {loaded_count} 个知识源，对话历史已保留")
+    
+    def _execute_unix_command(self, knowledge_file_name: str, parameter: str) -> Optional[str]:
+        """执行Unix命令格式的知识文件调用
+        
+        Args:
+            knowledge_file_name: 知识文件名（不含扩展名）
+            parameter: 传递给知识程序的参数
+            
+        Returns:
+            Optional[str]: 执行结果，如果找不到知识文件则返回None
+        """
+        # 查找知识文件
+        knowledge_content = None
+        knowledge_file_path = None
+        
+        # 1. 先在长期数据目录查找
+        for ext in ['.md', '.txt', '']:
+            candidate = self.knowledge_dir / f"{knowledge_file_name}{ext}"
+            if candidate.exists():
+                knowledge_file_path = candidate
+                break
+        
+        # 2. 如果没找到，在knowledge目录查找
+        if knowledge_file_path is None:
+            knowledge_base = Path(__file__).parent / "knowledge"
+            if knowledge_base.exists():
+                for ext in ['.md', '.txt', '']:
+                    candidate = knowledge_base / f"{knowledge_file_name}{ext}"
+                    if candidate.exists():
+                        knowledge_file_path = candidate
+                        break
+        
+        # 3. 如果还没找到，检查配置的知识文件
+        if knowledge_file_path is None:
+            for kf in self.config.knowledge_files:
+                kf_path = Path(kf)
+                if kf_path.stem == knowledge_file_name or kf_path.name == knowledge_file_name:
+                    if kf_path.exists():
+                        knowledge_file_path = kf_path
+                        break
+        
+        # 如果找不到知识文件
+        if knowledge_file_path is None:
+            print(f"⚠️ [Unix命令] 找不到知识文件: {knowledge_file_name}")
+            return None
+        
+        # 读取知识文件内容
+        try:
+            knowledge_content = knowledge_file_path.read_text(encoding='utf-8')
+        except Exception as e:
+            print(f"❌ [Unix命令] 读取知识文件失败: {e}")
+            return None
+        
+        # 构造提示词
+        # 知识本质是程序的哲学：知识文件是程序，参数是输入
+        prompt = f"""你现在要执行一个知识程序。
+
+## 程序（来自 {knowledge_file_path.name}）：
+{knowledge_content}
+
+## 参数：
+{parameter if parameter else "（无参数）"}
+
+请根据上述程序内容和参数，执行相应的任务。
+"""
+        
+        print(f"\n🖥️ [Unix命令] 执行: /{knowledge_file_name} {parameter}")
+        print(f"📄 加载知识程序: {knowledge_file_path}")
+        
+        # 使用内部执行方法
+        return self._execute_internal_task(prompt)
+    
+    def clear_long_term_memory(self, confirm: bool = False) -> None:
+        """清空长期记忆（删除long_term_data目录下的所有文件）
+        
+        Args:
+            confirm: 是否确认删除，默认False需要确认
+            
+        警告：此操作不可恢复！将删除所有：
+        - 提取的知识 (extracted_knowledge.md)
+        - 项目理解 (project_understanding.md)
+        - 环境认知 (environment_cognition.json)
+        - 探索历史 (exploration_log.json)
+        """
+        import shutil
+        
+        if not confirm:
+            print("⚠️ 警告：此操作将永久删除所有长期记忆！")
+            print("   包括：知识、项目理解、环境认知等")
+            print("   如果确定要继续，请使用 clear_long_term_memory(confirm=True)")
+            return
+        
+        try:
+            # 确保目录存在
+            if not self.knowledge_dir.exists():
+                print("📭 长期记忆目录不存在，无需清理")
+                return
+            
+            # 统计文件数量
+            files = list(self.knowledge_dir.glob("*"))
+            file_count = len(files)
+            
+            if file_count == 0:
+                print("📭 长期记忆已经是空的")
+                return
+            
+            print(f"🗑️ 正在清空长期记忆...")
+            print(f"   将删除 {file_count} 个文件：")
+            
+            # 列出将要删除的文件
+            for f in files:
+                print(f"   - {f.name}")
+            
+            # 删除所有文件
+            for f in files:
+                try:
+                    if f.is_file():
+                        f.unlink()
+                    elif f.is_dir():
+                        shutil.rmtree(f)
+                except Exception as e:
+                    print(f"   ⚠️ 删除 {f.name} 失败: {e}")
+            
+            # 重新初始化必要的文件
+            self.knowledge_file.touch()  # 创建空的知识文件
+            
+            print("✅ 长期记忆已清空！")
+            print("   Agent将从零开始学习")
+            
+            # 清空内存中的缓存
+            self.prior_knowledge = ""
+            self.project_understanding = ""
+            
+        except Exception as e:
+            print(f"❌ 清空长期记忆失败: {e}")
+            if os.environ.get('DEBUG'):
+                import traceback
+                traceback.print_exc()
+    
     
     def execute_task(self, task: str) -> str:
         """执行任务
@@ -1316,15 +1757,45 @@ class GenericReactAgent:
         # 清理数据目录（保留提取的知识）
         self._clean_data_directory()
         
-        # 如果有待处理的 world_overview 生成任务，优先执行
-        if self._pending_overview_task:
-            print(f"\n[{self.name}] > Generating world_overview.md first...")
-            self._execute_internal_task(self._pending_overview_task)  # 忽略返回值
-            self._pending_overview_task = None
-            print(f"\n[{self.name}] > Now executing main task...")
+        # 检查是否有待处理的项目理解更新
+        if self._pending_reload:
+            self._reload_with_new_understanding()
+            self._pending_reload = False
+        
+        # 检查是否是Unix命令格式: /知识文件名 参数
+        if task.strip().startswith('/'):
+            parts = task.strip().split(maxsplit=1)
+            if len(parts) >= 1:
+                knowledge_file_name = parts[0][1:]  # 去掉开头的 /
+                parameter = parts[1] if len(parts) > 1 else ""
+                
+                # 处理Unix命令
+                result = self._execute_unix_command(knowledge_file_name, parameter)
+                if result is not None:
+                    return result
+                # 如果返回None，说明没找到对应的知识文件，继续正常处理
+        
+        # 检查是否是探索请求
+        exploration_keywords = [
+            "探索项目", "分析项目", "扫描代码", 
+            "理解架构", "项目结构", "explore project",
+            "analyze project", "scan code", "understand architecture"
+        ]
+        
+        if any(keyword in task.lower() for keyword in exploration_keywords):
+            # 用户主动请求探索
+            print("\n🔍 正在后台探索项目结构...")
+            self._trigger_project_exploration()
+            return "已启动项目探索，将在后台异步执行。探索完成后会通知您。"
         
         # 执行主任务
-        return self._execute_internal_task(task)
+        result = self._execute_internal_task(task)
+        
+        # 检查定期触发（如果启用了项目探索）
+        if self.config.enable_project_exploration:
+            self._check_and_trigger_exploration()
+        
+        return result
     
     def _execute_internal_task(self, task: str) -> str:
         """执行内部任务的通用方法
@@ -1333,8 +1804,7 @@ class GenericReactAgent:
             str: 最后一条AI消息内容
         """
         # 使用 LangGraph agent 执行任务
-        if task != self._pending_overview_task:  # 避免重复打印
-            print(f"\n[{self.name}] > Executing task...")
+        print(f"\n[{self.name}] > Executing task...")
         
         # 准备输入消息
         messages = []
@@ -1512,6 +1982,12 @@ def main():
     parser.add_argument("--context-window", type=int,
                        default=None,
                        help="Context window size in tokens (default: auto-detect based on model)")
+    
+    parser.add_argument("--show-memory-updates", action="store_true",
+                       help="Show memory extraction notifications (default: True)")
+    parser.add_argument("--no-show-memory-updates", action="store_true",
+                       help="Hide memory extraction notifications")
+    
     args = parser.parse_args()
     
     # 根据memory参数映射到MemoryLevel
@@ -1539,6 +2015,13 @@ def main():
         sys.exit(1)
     
     # 创建配置
+    # 处理 show_memory_updates 参数（默认为 True）
+    show_memory_updates = True
+    if args.no_show_memory_updates:
+        show_memory_updates = False
+    elif args.show_memory_updates:
+        show_memory_updates = True
+    
     config = ReactAgentConfig(
         work_dir=args.work_dir,
         additional_config={},
@@ -1550,7 +2033,8 @@ def main():
         llm_base_url=args.llm_base_url,
         llm_api_key_env=args.llm_api_key_env,
         llm_temperature=args.llm_temperature,
-        context_window=args.context_window
+        context_window=args.context_window,
+        show_memory_updates=show_memory_updates
     )
     
     try:

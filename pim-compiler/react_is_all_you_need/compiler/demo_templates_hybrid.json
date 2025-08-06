@@ -1,0 +1,86 @@
+{
+  "aea25614": {
+    "id": "aea25614",
+    "pattern": "List docker images with size greater than {size_threshold_mb}MB",
+    "parameters": [
+      {
+        "name": "size_threshold_mb",
+        "type": "integer",
+        "description": "The minimum size of the Docker images to list, in MB.",
+        "extraction_hints": []
+      }
+    ],
+    "compiled_function": "import subprocess\nimport json\n\ndef get_large_docker_images(size_threshold_mb):\n    \"\"\"Lists Docker images with size greater than the specified threshold.\n\n    Args:\n        size_threshold_mb: The size threshold in MB.\n\n    Returns:\n        A list of dictionaries, where each dictionary contains the image name and size (in MB).\n    \"\"\"\n    try:\n        result = subprocess.run(['docker', 'images', '--format', '{{.Repository}}:{{.Tag}}\\t{{.Size}}'], capture_output=True, text=True, check=True)\n        output = result.stdout.strip()\n        images = []\n        for line in output.splitlines():\n            try:\n                name, size_str = line.split('\\t')\n                size_unit = size_str[-2:].lower()\n                size_value = float(size_str[:-2])\n\n                if size_unit == 'kb':\n                    size_mb = size_value / 1024\n                elif size_unit == 'mb':\n                    size_mb = size_value\n                elif size_unit == 'gb':\n                    size_mb = size_value * 1024\n                else:\n                    size_mb = 0  # Handle unknown units\n\n                if size_mb > size_threshold_mb:\n                    images.append({'name': name, 'size_mb': size_mb})\n            except ValueError:\n                print(f\"Skipping line due to parsing error: {line}\")\n                continue\n\n        return images\n    except subprocess.CalledProcessError as e:\n        print(f\"Error executing docker command: {e}\")\n        return []\n\n\nsize_threshold = 50  # Size threshold in MB\nresult = get_large_docker_images(size_threshold)\n\n# Example of printing the result (optional)\n# print(json.dumps(result, indent=4))\n",
+    "examples": [
+      "列出本机size大于50m的docker image",
+      "get_large_docker_images(50)",
+      "get_large_docker_images(100)"
+    ],
+    "created_at": "2025-08-07T03:55:34.230246",
+    "use_count": 0,
+    "last_used": null
+  },
+  "eb212926": {
+    "id": "eb212926",
+    "pattern": "List docker images with size greater than {min_size_mb} MB",
+    "parameters": [
+      {
+        "name": "min_size_mb",
+        "type": "integer",
+        "description": "The minimum size of the Docker image in MB.",
+        "extraction_hints": []
+      }
+    ],
+    "compiled_function": "import subprocess\nimport json\n\ndef get_large_docker_images(min_size_mb):\n    \"\"\"Lists Docker images with size greater than a specified value.\n\n    Args:\n        min_size_mb: The minimum size in MB for an image to be included in the results.\n\n    Returns:\n        A list of dictionaries, where each dictionary represents a Docker image and contains its name and size in MB.\n    \"\"\"\n    try:\n        result = subprocess.run(['docker', 'images', '--format', '{{.Repository}}:{{.Tag}}\\t{{.Size}}'], capture_output=True, text=True, check=True)\n        output = result.stdout.strip()\n        images = []\n        for line in output.splitlines():\n            name, size_str = line.split('\\t')\n            size_unit = size_str[-2:].lower()\n            size_value = float(size_str[:-2])\n\n            if size_unit == 'kb':\n                size_mb = size_value / 1024\n            elif size_unit == 'mb':\n                size_mb = size_value\n            elif size_unit == 'gb':\n                size_mb = size_value * 1024\n            else:\n                size_mb = 0  # Handle unexpected size units\n\n            if size_mb > min_size_mb:\n                images.append({'name': name, 'size_mb': size_mb})\n        return images\n    except subprocess.CalledProcessError as e:\n        print(f\"Error executing docker command: {e}\")\n        return []\n\n\nmin_size = 100\nresult = get_large_docker_images(min_size)\n\n# Example of printing the result (optional)\n# for image in result:\n#     print(f\"Image: {image['name']}, Size: {image['size_mb']:.2f} MB\")",
+    "examples": [
+      "列出本机size大于100m的docker image",
+      "get_large_docker_images(100) # Lists images larger than 100MB",
+      "get_large_docker_images(500) # Lists images larger than 500MB"
+    ],
+    "created_at": "2025-08-07T03:55:40.007442",
+    "use_count": 0,
+    "last_used": null
+  },
+  "f29f8e48": {
+    "id": "f29f8e48",
+    "pattern": "显示docker镜像中超过{size_threshold_mb}MB的镜像",
+    "parameters": [
+      {
+        "name": "size_threshold_mb",
+        "type": "integer",
+        "description": "Docker镜像大小的阈值，单位为MB",
+        "extraction_hints": []
+      }
+    ],
+    "compiled_function": "import subprocess\nimport json\n\ndef get_large_docker_images(size_threshold_mb):\n    \"\"\"Lists Docker images exceeding a specified size threshold.\n\n    Args:\n        size_threshold_mb: The size threshold in MB.\n\n    Returns:\n        A list of dictionaries, where each dictionary represents a Docker image\n        exceeding the size threshold. Each dictionary contains the 'Repository',\n        'Tag', and 'Size' of the image.\n    \"\"\"\n    try:\n        result = subprocess.run(['docker', 'images', '--format', '{{json .}}'], capture_output=True, text=True, check=True)\n        images_data = result.stdout.strip().split('\\n')\n        \n        large_images = []\n        for image_json in images_data:\n            try:\n                image = json.loads(image_json)\n                size_str = image['Size']\n                size_unit = size_str[-2:].upper()\n                size_value = float(size_str[:-2])\n\n                if size_unit == 'KB':\n                    size_mb = size_value / 1024\n                elif size_unit == 'MB':\n                    size_mb = size_value\n                elif size_unit == 'GB':\n                    size_mb = size_value * 1024\n                else:\n                    size_mb = 0  # Handle unknown units\n\n                if size_mb > size_threshold_mb:\n                    large_images.append({\n                        'Repository': image['Repository'],\n                        'Tag': image['Tag'],\n                        'Size': image['Size']\n                    })\n            except json.JSONDecodeError:\n                print(f\"Error decoding JSON: {image_json}\")\n            except KeyError as e:\n                print(f\"KeyError: {e} in image data: {image_json}\")\n\n        return large_images\n\n    except subprocess.CalledProcessError as e:\n        print(f\"Error executing docker command: {e}\")\n        return []\n\n\nsize_threshold = 200\nresult = get_large_docker_images(size_threshold)\n\n",
+    "examples": [
+      "显示docker镜像中超过200MB的",
+      "get_large_docker_images(200)",
+      "get_large_docker_images(500)"
+    ],
+    "created_at": "2025-08-07T03:55:46.550656",
+    "use_count": 0,
+    "last_used": null
+  },
+  "fa2dfae5": {
+    "id": "fa2dfae5",
+    "pattern": "Find Docker images larger than {size_threshold_mb} MB.",
+    "parameters": [
+      {
+        "name": "size_threshold_mb",
+        "type": "integer",
+        "description": "The size threshold in megabytes.",
+        "extraction_hints": []
+      }
+    ],
+    "compiled_function": "import subprocess\nimport json\n\ndef check_docker_image_size(size_threshold_mb):\n    \"\"\"Checks Docker images and returns names of those exceeding a size threshold.\n\n    Args:\n        size_threshold_mb: The size threshold in MB.\n\n    Returns:\n        A list of image names exceeding the size threshold.\n    \"\"\"\n    try:\n        result = subprocess.run(['docker', 'images', '--format', '{{.Repository}}:{{.Tag}}\\t{{.Size}}'], capture_output=True, text=True, check=True)\n        output = result.stdout\n        large_images = []\n        for line in output.strip().split('\\n'):\n            if line:\n                image_name, image_size_str = line.split('\\t')\n                size_unit = image_size_str[-1]\n                size_value = float(image_size_str[:-1])\n\n                if size_unit == 'B':\n                    size_mb = size_value / (1024 * 1024)\n                elif size_unit == 'KB':\n                    size_mb = size_value / 1024\n                elif size_unit == 'MB':\n                    size_mb = size_value\n                elif size_unit == 'GB':\n                    size_mb = size_value * 1024\n                elif size_unit == 'TB':\n                    size_mb = size_value * 1024 * 1024\n                else:\n                    continue # Skip if unit is unknown\n\n                if size_mb > size_threshold_mb:\n                    large_images.append(image_name)\n        return large_images\n    except subprocess.CalledProcessError as e:\n        print(f\"Error executing docker command: {e}\")\n        return []\n\n\nsize_threshold = 500  # MB\nresult = check_docker_image_size(size_threshold)\n\n",
+    "examples": [
+      "docker images中哪些大于500兆",
+      "check_docker_image_size(500)",
+      "check_docker_image_size(1024)"
+    ],
+    "created_at": "2025-08-07T03:55:52.074859",
+    "use_count": 0,
+    "last_used": null
+  }
+}

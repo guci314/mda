@@ -26,7 +26,7 @@ def approach2():
     config = ReactAgentConfig(
         work_dir="output/approach2",
         memory_level=MemoryLevel.NONE,
-        knowledge_files=["knowledge/编程规范知识.md"]  # 只加载小的知识文件
+        knowledge_files=["knowledge/programming/编程规范知识.md"]  # 只加载小的知识文件
     )
     agent = GenericReactAgent(config)
     
@@ -47,7 +47,7 @@ def approach3():
     task = "我需要创建一个 FastAPI 应用"
     if "fastapi" in task.lower():
         # 动态加载 FastAPI 相关知识
-        with open("knowledge/fastapi_generation_knowledge.md", "r") as f:
+        with open("knowledge/programming/fastapi_generation_knowledge.md", "r") as f:
             fastapi_knowledge = f.read()[:1000]  # 只取前1000字符
         agent.load_knowledge(f"FastAPI 基础知识：\n{fastapi_knowledge}")
     

@@ -45,14 +45,14 @@ def main():
         work_dir=str(abs_work_dir),
         memory_level=MemoryLevel.NONE,
         knowledge_files=[
-            "knowledge/absolute_path_usage.md",
-            "knowledge/role_based_output.md"        # 基于角色的输出指南
+            "knowledge/best_practices/absolute_path_usage.md",
+            "knowledge/output/role_based_output.md"        # 基于角色的输出指南
         ],
         llm_model="gemini-2.5-flash",
         llm_base_url="https://generativelanguage.googleapis.com/v1beta/",
         llm_api_key_env="GOOGLE_API_KEY",
         llm_temperature=0,
-        specification=f"专门生成各种编程语言的高质量代码文件，支持 Python、JavaScript、Java 等。工作目录：{abs_work_dir}",
+        interface=f"专门生成各种编程语言的高质量代码文件，支持 Python、JavaScript、Java 等。工作目录：{abs_work_dir}",
         enable_world_overview=False,  # 子 Agent 不需要生成 world_overview
         http_client=http_client
     )
@@ -74,9 +74,9 @@ def main():
         work_dir=str(abs_work_dir),
         memory_level=MemoryLevel.NONE,
         knowledge_files=[
-            "knowledge/absolute_path_usage.md",
-            "knowledge/role_based_output.md",       # 基于角色的输出指南
-            "knowledge/test_execution_best_practices.md"  # 测试执行最佳实践
+            "knowledge/best_practices/absolute_path_usage.md",
+            "knowledge/output/role_based_output.md",       # 基于角色的输出指南
+            "knowledge/best_practices/test_execution_best_practices.md"  # 测试执行最佳实践
         ],
         knowledge_strings=[
             """# 重要规则：不要修改代码
@@ -94,7 +94,7 @@ def main():
         llm_base_url="https://generativelanguage.googleapis.com/v1beta/",
         llm_api_key_env="GOOGLE_API_KEY",
         llm_temperature=0,
-        specification=f"专门运行和测试代码，提供执行结果和错误分析。不要修改代码，也不要生成代码。工作目录：{abs_work_dir}",
+        interface=f"专门运行和测试代码，提供执行结果和错误分析。不要修改代码，也不要生成代码。工作目录：{abs_work_dir}",
         enable_world_overview=False,  # 子 Agent 不需要生成 world_overview
         http_client=http_client
     )
@@ -105,15 +105,15 @@ def main():
         work_dir=str(abs_work_dir),
         memory_level=MemoryLevel.NONE,
         knowledge_files=[
-            "knowledge/absolute_path_usage.md",
-            "knowledge/code_review_ethics.md",     # 代码审查职业道德
-            "knowledge/role_based_output.md"        # 基于角色的输出指南
+            "knowledge/best_practices/absolute_path_usage.md",
+            "knowledge/best_practices/code_review_ethics.md",     # 代码审查职业道德
+            "knowledge/output/role_based_output.md"        # 基于角色的输出指南
         ],
         llm_model="gemini-2.5-flash",
         llm_base_url="https://generativelanguage.googleapis.com/v1beta/",
         llm_api_key_env="GOOGLE_API_KEY",
         llm_temperature=0,
-        specification=f"专门审查代码质量，提供改进建议和最佳实践指导。工作目录：{abs_work_dir}",
+        interface=f"专门审查代码质量，提供改进建议和最佳实践指导。工作目录：{abs_work_dir}",
         enable_world_overview=False,  # 子 Agent 不需要生成 world_overview
         http_client=http_client
     )
@@ -130,7 +130,7 @@ def main():
     # 方式2：使用 create_langchain_tool 创建 LangChain 兼容工具
     code_gen_tool = create_langchain_tool(code_gen_agent)
     code_gen_tool.name = "code_generator"
-    code_gen_tool.description = code_gen_agent.specification
+    code_gen_tool.description = code_gen_agent.interface
     
     # 方式3：使用 GenericAgentTool 类
     code_run_tool = GenericAgentTool(code_run_agent)
@@ -186,20 +186,20 @@ def main():
         work_dir=str(abs_work_dir),
         memory_level=MemoryLevel.SMART,  # 使用智能记忆以便更好地协调
         knowledge_files=[
-            "knowledge/absolute_path_usage.md",     # 绝对路径使用规范
-            "knowledge/role_based_output.md",       # 基于角色的输出指南
-            # "knowledge/bpmn_obsession.md",          # BPMN 强迫症（已移除）
+            "knowledge/best_practices/absolute_path_usage.md",     # 绝对路径使用规范
+            "knowledge/output/role_based_output.md",       # 基于角色的输出指南
+            # "knowledge/workflow/bpmn_obsession.md",          # BPMN 强迫症（已移除）
             # "knowledge/intent_declaration_workflow.md",  # 意图声明工作流（React自带，已移除）
-            "knowledge/delegation_best_practices.md",
-            "knowledge/task_dependencies.md", 
-            "knowledge/context_passing.md",
-            "knowledge/result_extraction.md"
+            "knowledge/coordination/delegation_best_practices.md",
+            "knowledge/workflow/task_dependencies.md", 
+            "knowledge/coordination/context_passing.md",
+            "knowledge/coordination/result_extraction.md"
         ],
         llm_model="gemini-2.5-flash",
         llm_base_url="https://generativelanguage.googleapis.com/v1beta/",
         llm_api_key_env="GOOGLE_API_KEY",
         llm_temperature=0,
-        specification=f"协调多个专家 Agent 完成复杂的软件开发任务。工作目录：{abs_work_dir}",
+        interface=f"协调多个专家 Agent 完成复杂的软件开发任务。工作目录：{abs_work_dir}",
         http_client=http_client
     )
     

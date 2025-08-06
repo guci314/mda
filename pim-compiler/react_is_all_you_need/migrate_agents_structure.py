@@ -10,8 +10,8 @@
 迁移到新结构：
 .agents/
 └── {agent_name}/
-    ├── data/
-    └── knowledge/
+    ├── short_term_data/
+    └── long_term_data/
 """
 
 import os
@@ -63,9 +63,9 @@ def migrate_agents_structure():
         new_agent_dir = agents_dir / agent_name
         new_agent_dir.mkdir(exist_ok=True)
         
-        # 迁移 data 目录
+        # 迁移 data 目录到 short_term_data
         old_data_path = old_data_dir / agent_name
-        new_data_path = new_agent_dir / "data"
+        new_data_path = new_agent_dir / "short_term_data"
         
         if old_data_path.exists() and not new_data_path.exists():
             try:
@@ -76,18 +76,18 @@ def migrate_agents_structure():
         elif new_data_path.exists():
             print(f"  - data 目录已存在，跳过")
         
-        # 迁移 memory 目录到 knowledge
+        # 迁移 memory 目录到 long_term_data
         old_memory_path = old_memory_dir / agent_name
-        new_knowledge_path = new_agent_dir / "knowledge"
+        new_knowledge_path = new_agent_dir / "long_term_data"
         
         if old_memory_path.exists() and not new_knowledge_path.exists():
             try:
                 shutil.move(str(old_memory_path), str(new_knowledge_path))
-                print(f"  ✓ 迁移 memory → knowledge 目录")
+                print(f"  ✓ 迁移 memory → long_term_data 目录")
             except Exception as e:
                 print(f"  ✗ 迁移 memory 目录失败: {e}")
         elif new_knowledge_path.exists():
-            print(f"  - knowledge 目录已存在，跳过")
+            print(f"  - long_term_data 目录已存在，跳过")
         
         success_count += 1
     
@@ -120,8 +120,8 @@ def migrate_agents_structure():
             for sub_dir in sorted(agent_dir.iterdir()):
                 if sub_dir.is_dir():
                     print(f"    └── {sub_dir.name}/")
-                    # 显示知识文件
-                    if sub_dir.name == "knowledge":
+                    # 显示长期数据文件
+                    if sub_dir.name == "long_term_data":
                         for file in sub_dir.iterdir():
                             if file.is_file():
                                 print(f"        └── {file.name}")

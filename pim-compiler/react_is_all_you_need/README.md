@@ -71,6 +71,7 @@
 - **自定义工具**：支持为 Agent 指定自定义工具集
 - **灵活缓存**：支持配置缓存路径或禁用缓存
 - **多 Agent 协作**：Agent 可作为工具被其他 Agent 调用
+- **Unix 命令模式**：使用 `/知识文件名 参数` 执行知识程序（知识本质是程序）
 
 ## 🏗️ 架构设计
 
@@ -214,14 +215,24 @@ agent = GenericReactAgent(config)
 agent.execute_task("分析 /path/to/project 的代码结构和架构设计")
 ```
 
-### 示例 3：动态知识加载
+### 示例 3：动态知识加载（知识热加载）
 ```python
 agent = GenericReactAgent(config)
 
-# 根据任务动态加载知识
+# 方式1：使用旧版 load_knowledge（会重建agent但保留memory）
 if "fastapi" in task.lower():
     agent.load_knowledge("FastAPI 最佳实践：...")
-    
+
+# 方式2：使用新版热加载（支持多文件和更灵活的配置）
+# 热加载新的知识文件
+agent.hot_reload_knowledge(["knowledge/fastapi.md", "knowledge/async.md"])
+
+# 重新加载当前知识（文件内容更新后）
+agent.hot_reload_knowledge()
+
+# 加载字符串知识
+agent.hot_reload_knowledge(knowledge_strings=["新的领域知识..."])
+
 agent.execute_task(task)
 ```
 
@@ -326,6 +337,25 @@ agent = GenericReactAgent(config, name="开发者")  # 中文名称会自动转�
 tool = GenericAgentTool(agent)  # tool.name 为 "developer"
 
 # 在 LangChain 工作流中使用
+```
+
+### 示例 5：Unix 命令模式 - 知识即程序
+```python
+# 使用 Unix 命令格式执行知识程序
+agent = GenericReactAgent(config)
+
+# 格式: /知识文件名 参数
+# 知识文件作为"程序"，参数作为输入
+result = agent.execute_task("/python_programming_knowledge 解释装饰器的工作原理")
+
+# 无参数调用
+result = agent.execute_task("/code_review_ethics")
+
+# 系统会：
+# 1. 查找知识文件（优先级：长期数据目录 > knowledge目录 > 配置的知识文件）
+# 2. 将知识文件内容作为"程序"
+# 3. 将参数作为输入传递给程序
+# 4. 执行并返回结果
 ```
 
 ## 📚 知识文件

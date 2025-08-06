@@ -33,7 +33,7 @@ def main():
         llm_base_url="https://api.moonshot.cn/v1",
         llm_api_key_env="MOONSHOT_API_KEY",
         llm_temperature=0,
-        specification="专门生成代码的Agent"
+        interface="专门生成代码的Agent"
     )
     code_gen_agent = GenericReactAgent(code_gen_config, name="代码生成Agent")
     
@@ -52,7 +52,7 @@ def main():
         llm_base_url="https://api.moonshot.cn/v1",
         llm_api_key_env="MOONSHOT_API_KEY",
         llm_temperature=0,
-        specification="专门运行代码的Agent"
+        interface="专门运行代码的Agent"
     )
     code_run_agent = GenericReactAgent(code_run_config, name="代码运行Agent")
     
@@ -79,7 +79,7 @@ def main():
         llm_base_url="https://api.moonshot.cn/v1",
         llm_api_key_env="MOONSHOT_API_KEY",
         llm_temperature=0,
-#         specification=f"""项目协调管理者
+#         interface=f"""项目协调管理者
 
 # 你有两个专门的 Agent 工具可以调用：
 # 1. code_generator: 代码生成 Agent，可以生成各种代码文件

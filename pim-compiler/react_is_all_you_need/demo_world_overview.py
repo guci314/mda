@@ -41,9 +41,9 @@ def main():
         work_dir=str(target_dir),
         memory_level=MemoryLevel.NONE,
         knowledge_files=[
-            "knowledge/system_prompt.md",
-            "knowledge/python_programming_knowledge.md",
-            "knowledge/world_overview_generation.md"
+            "knowledge/core/system_prompt.md",
+            "knowledge/programming/python_programming_knowledge.md",
+            "knowledge/core/world_overview_generation.md"
         ]
     )
     

@@ -4,10 +4,34 @@
 
 ## 1. 分析目录结构
 
-首先扫描整个工作目录，了解：
+首先判断是否为git仓库，选择合适的方法：
+
+### 方法A：Git仓库（推荐）
+```bash
+# 检查是否为git仓库
+git rev-parse --git-dir 2> /dev/null
+
+# 如果是git仓库，使用git ls-files获取文件列表
+git ls-files | head -50  # 查看前50个文件了解结构
+
+# 获取目录结构
+git ls-files | xargs -n1 dirname | sort -u | head -20
+
+# 统计文件类型
+git ls-files | grep -E '\.(py|js|java|go|rs|cpp)$' | wc -l
+```
+
+### 方法B：非Git仓库或需要查看完整结构
+```bash
+eza . --tree -L 3 -I '.venv|venv|env|__pycache__|*.pyc|.git|node_modules|.pytest_cache|.mypy_cache'
+```
+
+了解：
 - 目录的整体结构和层级
 - 主要文件类型分布
 - 关键目录的用途
+
+注意：优先使用git ls-files，因为它只显示项目实际管理的文件。
 
 ## 2. 识别项目类型
 
@@ -54,8 +78,27 @@
 
 ## 目录结构
 
+获取目录结构的推荐方法：
+
+### Git仓库：
+```bash
+# 方法1：显示目录层级（推荐）
+git ls-files | sed 's|[^/]*/|  |g' | sort -u | head -30
+
+# 方法2：只显示目录
+git ls-files | xargs -n1 dirname | sort -u | grep -v '^\.$' | sed 's|^|./|' | head -20
+
+# 方法3：树形结构（如果需要）
+git ls-files | xargs -n1 dirname | sort -u | sed 's|[^/]*/|  |g'
 ```
-[展示主要目录结构，最多3层]
+
+### 非Git仓库：
+```bash
+eza . --tree -L 3 -I '.venv|venv|env|__pycache__|*.pyc|.git'
+```
+
+```
+[展示主要目录结构，优先显示版本控制的文件]
 ```
 
 ## 关键文件
@@ -108,9 +151,10 @@
 
 ### 超大项目
 如果文件过多（>1000个），只关注：
-- 顶层目录结构
+- 顶层目录结构（使用 `eza . --tree -L 2` 只显示2层）
 - README 和文档
 - 主要配置文件
+- 可以对特定子目录单独分析：`eza ./src --tree -L 3`
 
 ### 非代码目录
 如果是文档库、数据目录等：

@@ -306,7 +306,7 @@
 #### 调用工具前 - 更新状态为 running：
 ```python
 # 1. 读取执行文件
-content = read_file(".agents/project_manager/data/workflow_execution.bpmn")
+content = read_file(".agents/project_manager/short_term_data/workflow_execution.bpmn")
 
 # 2. 在对应的 serviceTask 后添加执行数据
 # 例如：调用 code_generator 前
@@ -321,13 +321,13 @@ new_content = content.replace(
 )
 
 # 3. 保存更新
-write_file(".agents/project_manager/data/workflow_execution.bpmn", new_content)
+write_file(".agents/project_manager/short_term_data/workflow_execution.bpmn", new_content)
 ```
 
 #### 工具调用后 - 更新为 completed：
 ```python
 # 1. 读取执行文件
-content = read_file(".agents/project_manager/data/workflow_execution.bpmn")
+content = read_file(".agents/project_manager/short_term_data/workflow_execution.bpmn")
 
 # 2. 更新状态和添加结果
 # 假设工具返回了 result
@@ -343,7 +343,7 @@ new_content = new_content.replace(
 )
 
 # 3. 保存更新
-write_file(".agents/project_manager/data/workflow_execution.bpmn", new_content)
+write_file(".agents/project_manager/short_term_data/workflow_execution.bpmn", new_content)
 ```
 
 #### 网关决策时 - 记录决策结果：

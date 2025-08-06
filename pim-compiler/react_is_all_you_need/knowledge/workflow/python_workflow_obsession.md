@@ -23,8 +23,8 @@
 
 在执行任何任务之前，**必须**先在你的私有数据区域创建以下文件：
 
-1. **创建工作流定义**：`.agents/{你的名字}/data/workflow.py`
-2. **创建状态文件**：`.agents/{你的名字}/data/workflow_state.json`
+1. **创建工作流定义**：`.agents/{你的名字}/short_term_data/workflow.py`
+2. **创建状态文件**：`.agents/{你的名字}/short_term_data/workflow_state.json`
    （注：如果你在工作目录中执行任务，也可以直接在工作目录创建这些文件）
 
 **初始化步骤**：
@@ -550,11 +550,11 @@ def coordinate_agents_workflow():
 # 状态管理函数
 def update_state(updates):
     """更新工作流状态"""
-    current = read_file(".agents/{agent_name}/data/workflow_state.json")
+    current = read_file(".agents/{agent_name}/short_term_data/workflow_state.json")
     state = json.loads(current)
     # 应用更新
     apply_updates(state, updates)
-    write_file(".agents/{agent_name}/data/workflow_state.json", json.dumps(state, indent=2))
+    write_file(".agents/{agent_name}/short_term_data/workflow_state.json", json.dumps(state, indent=2))
 
 def mark_step_complete(step_name, result):
     """标记步骤完成"""

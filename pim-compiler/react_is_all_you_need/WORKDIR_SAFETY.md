@@ -32,12 +32,12 @@ if not self.work_dir.exists():
 ```
 
 ### 2. 清理逻辑隔离
-- 所有清理操作仅限于 Agent 的私有数据目录（`.agents/data/{agent_name}`）
+- 所有清理操作仅限于 Agent 的私有数据目录（`.agents/{agent_name}/short_term_data`）
 - 工作目录的清理代码已被永久注释掉：
 ```python
 # 注释掉清理共享工作目录的代码，以支持多 Agent 文件共享
 # 在多 Agent 协作场景下，不应该清理共享工作目录
-# 每个 Agent 应该只管理自己的私有数据目录 (.agent_data/{agent_name})
+# 每个 Agent 应该只管理自己的私有数据目录 (.agents/{agent_name}/short_term_data)
 ```
 
 ### 3. 目录结构分离
@@ -49,10 +49,9 @@ if not self.work_dir.exists():
 └── ... 用户的文件
 
 .agents/                # Agent 内部存储（独立位置）
-├── memory/             # 提取的知识
-│   └── {agent_name}/
-└── data/              # 私有数据
-    └── {agent_name}/
+└── {agent_name}/
+    ├── short_term_data/  # 短期数据
+    └── long_term_data/   # 长期数据
 ```
 
 ## 安全测试

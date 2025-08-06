@@ -188,6 +188,12 @@ def create_tools(work_dir: str):
     def list_directory(directory_path: str = ".") -> str:
         """列出目录内容
         
+        显示目录内容，包括文件和子目录。
+        
+        注意：对于生成 world_overview.md，建议使用 execute_command 工具：
+        - Git仓库：git ls-files | xargs -n1 dirname | sort -u
+        - 非Git仓库：eza . --tree -L 3 -I '.venv|venv|env|__pycache__|*.pyc|.git'
+        
         Args:
             directory_path: 目录路径（可以是绝对路径或相对路径）
             

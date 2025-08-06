@@ -174,9 +174,9 @@ def create_code_reviewer(work_dir: str, name: str = "code_reviewer_001",
         work_dir=work_dir,
         enable_perspective=enable_perspective,
         knowledge_files=[
-            "knowledge/system_prompt.md",
-            "knowledge/python_programming_knowledge.md",
-            "knowledge/perspective_templates.md"
+            "knowledge/core/system_prompt.md",
+            "knowledge/programming/python_programming_knowledge.md",
+            "knowledge/output/perspective_templates.md"
         ],
         specification="专业的代码审查者，关注代码质量、可维护性和最佳实践。"
     )
@@ -190,8 +190,8 @@ def create_security_auditor(work_dir: str, name: str = "security_auditor_001",
         work_dir=work_dir,
         enable_perspective=enable_perspective,
         knowledge_files=[
-            "knowledge/system_prompt.md",
-            "knowledge/perspective_templates.md"
+            "knowledge/core/system_prompt.md",
+            "knowledge/output/perspective_templates.md"
         ],
         specification="安全审计专家，识别安全漏洞和风险。"
     )
@@ -205,8 +205,8 @@ def create_architect(work_dir: str, name: str = "architect_001",
         work_dir=work_dir,
         enable_perspective=enable_perspective,
         knowledge_files=[
-            "knowledge/system_prompt.md",
-            "knowledge/perspective_templates.md"
+            "knowledge/core/system_prompt.md",
+            "knowledge/output/perspective_templates.md"
         ],
         specification="软件架构师，关注系统设计、模块化和技术决策。"
     )

@@ -13,6 +13,7 @@ from .llm_compiler import LLMCompiler
 from .template_manager import TemplateManager, TaskTemplate, Parameter
 from .llm_template_matcher import LLMTemplateMatcher
 from .template_aware_compiler import TemplateAwareCompiler
+from .llm_only_compiler import LLMOnlyCompiler
 
 __all__ = [
     'HierarchicalCompiler',
@@ -26,5 +27,6 @@ __all__ = [
     'TaskTemplate',
     'Parameter',
     'LLMTemplateMatcher',
-    'TemplateAwareCompiler'
+    'TemplateAwareCompiler',
+    'LLMOnlyCompiler'
 ]

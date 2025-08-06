@@ -149,11 +149,11 @@ def create_langchain_tool(agent: GenericReactAgent) -> StructuredTool:
     """
     wrapper = AgentToolWrapper(agent)
     
-    # 从 agent 获取规范描述
-    specification = agent.specification
+    # 从 agent 获取接口声明
+    interface = agent.interface
     
     # 创建工具描述
-    tool_description = f"""{specification}
+    tool_description = f"""{interface}
 
 输入: 任务描述字符串
 输出: 执行结果字符串"""
@@ -190,8 +190,8 @@ class GenericAgentTool(BaseTool):
     
     def __init__(self, agent: GenericReactAgent, **kwargs):
         """初始化工具"""
-        # 从 agent 获取规范描述
-        description = agent.specification
+        # 从 agent 获取接口声明
+        description = agent.interface
         # 从 agent 获取名称，如果没有传入 name 参数
         if 'name' not in kwargs:
             agent_name = agent.name if hasattr(agent, 'name') else "generic_react_agent"
@@ -228,7 +228,7 @@ def create_code_generation_tool(output_dir: str = "output/code_gen") -> Structur
         llm_base_url="https://api.moonshot.cn/v1",
         llm_api_key_env="MOONSHOT_API_KEY",
         llm_temperature=0,
-        specification="""代码生成工具
+        interface="""代码生成工具
         
 专门用于生成各种编程语言的代码，支持：
 - Python, JavaScript, Java, C++ 等主流语言
@@ -253,7 +253,7 @@ def create_file_processing_tool(output_dir: str = "output/file_proc") -> Structu
     config = ReactAgentConfig(
         work_dir=output_dir,
         memory_level=MemoryLevel.NONE,
-        specification="""文件处理工具
+        interface="""文件处理工具
         
 专门用于批量处理文件，支持：
 - 文件格式转换
@@ -287,7 +287,7 @@ def example_langchain_integration():
     custom_config = ReactAgentConfig(
         work_dir="output/custom",
         memory_level=MemoryLevel.SMART,
-        specification="自定义任务执行工具，根据具体需求执行各种任务"
+        interface="自定义任务执行工具，根据具体需求执行各种任务"
     )
     custom_agent = GenericReactAgent(custom_config)
     custom_tool = GenericAgentTool(custom_agent)

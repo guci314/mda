@@ -8,7 +8,7 @@ import os
 import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from compiler.template_aware_compiler import TemplateAwareCompiler
+from compiler.llm_only_compiler import LLMOnlyCompiler
 from compiler.hierarchical_executor import HierarchicalExecutor
 
 
@@ -18,7 +18,7 @@ def demo_docker_size_tasks():
     print("=" * 60)
     
     # 创建编译器
-    compiler = TemplateAwareCompiler(
+    compiler = LLMOnlyCompiler(
         template_storage_path="demo_templates.json"
     )
     
@@ -63,7 +63,7 @@ def demo_file_operations():
     print("=" * 60)
     
     # 使用新的存储文件
-    compiler = TemplateAwareCompiler(
+    compiler = LLMOnlyCompiler(
         template_storage_path="demo_templates_file.json"
     )
     
@@ -96,7 +96,7 @@ def demo_data_analysis():
     print("\n\n数据分析任务演示")
     print("=" * 60)
     
-    compiler = TemplateAwareCompiler(
+    compiler = LLMOnlyCompiler(
         template_storage_path="demo_templates_analysis.json"
     )
     

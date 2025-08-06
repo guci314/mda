@@ -200,7 +200,7 @@ if __name__ == "__main__":
         memory_level=MemoryLevel.SMART,
         enable_world_overview=True,
         enable_perspective=True,
-        knowledge_files=["knowledge/system_prompt.md"]
+        knowledge_files=["knowledge/core/system_prompt.md"]
     )
     
     # 创建 PerspectiveAgent

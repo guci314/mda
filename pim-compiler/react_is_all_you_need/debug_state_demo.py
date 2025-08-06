@@ -29,7 +29,7 @@ def demo_state_inspection():
     config = ReactAgentConfig(
         work_dir="output/debug_state_demo",
         memory_level=MemoryLevel.SMART,  # 启用记忆系统
-        knowledge_files=["knowledge/absolute_path_usage.md"],  # 加载知识文件
+        knowledge_files=["knowledge/best_practices/absolute_path_usage.md"],  # 加载知识文件
         llm_model="deepseek-chat",
         llm_temperature=0,
         specification="演示调试器状态查看的测试 Agent"

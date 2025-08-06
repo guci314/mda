@@ -38,8 +38,8 @@ def demo_world_view_debugging():
         memory_level=MemoryLevel.NONE,
         enable_world_overview=True,  # 确保启用
         knowledge_files=[
-            "knowledge/system_prompt.md",
-            "knowledge/world_overview_generation.md"
+            "knowledge/core/system_prompt.md",
+            "knowledge/core/world_overview_generation.md"
         ]
     )
     
@@ -75,8 +75,8 @@ def demo_perspective_debugging():
         enable_world_overview=False,  # 关闭以专注于主观视图
         enable_perspective=True,      # 启用主观视图
         knowledge_files=[
-            "knowledge/system_prompt.md",
-            "knowledge/perspective_templates.md"
+            "knowledge/core/system_prompt.md",
+            "knowledge/output/perspective_templates.md"
         ]
     )
     
@@ -177,10 +177,10 @@ def process_data(data):
         enable_world_overview=True,
         enable_perspective=True,
         knowledge_files=[
-            "knowledge/system_prompt.md",
-            "knowledge/python_programming_knowledge.md",
-            "knowledge/perspective_templates.md",
-            "knowledge/world_overview_generation.md"
+            "knowledge/core/system_prompt.md",
+            "knowledge/programming/python_programming_knowledge.md",
+            "knowledge/output/perspective_templates.md",
+            "knowledge/core/world_overview_generation.md"
         ]
     )
     

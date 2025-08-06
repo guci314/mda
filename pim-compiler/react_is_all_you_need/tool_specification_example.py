@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""演示工具规范如何传递给 LangChain Framework"""
+"""演示工具接口如何传递给 LangChain Framework"""
 
 import os
 import sys
@@ -16,13 +16,13 @@ from react_agent import GenericReactAgent, ReactAgentConfig, MemoryLevel
 
 # 方法1: 使用 @tool 装饰器
 def method1_tool_decorator():
-    """方法1: 通过 @tool 装饰器传递规范"""
+    """方法1: 通过 @tool 装饰器传递接口声明"""
     
-    # 创建带规范的 agent
+    # 创建带接口声明的 agent
     config = ReactAgentConfig(
         work_dir="output/method1",
         memory_level=MemoryLevel.NONE,
-        specification="""FastAPI 代码生成器
+        interface="""FastAPI 代码生成器
         
 功能：专门生成 FastAPI 应用代码
 支持：RESTful API、数据模型、认证、中间件
@@ -30,7 +30,7 @@ def method1_tool_decorator():
     )
     agent = GenericReactAgent(config)
     
-    # 使用 agent 的规范作为工具描述
+    # 使用 agent 的接口声明作为工具描述
     # 注意: @tool 装饰器会使用函数的 docstring 作为描述
     @tool("fastapi_generator")
     def generate_fastapi_code(task: str) -> str:
@@ -50,19 +50,19 @@ def method1_tool_decorator():
 
 # 方法2: 使用 StructuredTool
 def method2_structured_tool():
-    """方法2: 通过 StructuredTool 传递规范"""
+    """方法2: 通过 StructuredTool 传递接口声明"""
     from langchain_core.tools import StructuredTool
     from pydantic import BaseModel, Field
     
     class TaskInput(BaseModel):
         task: str = Field(description="任务描述")
     
-    # 创建多个不同规范的 agent
+    # 创建多个不同接口的 agent
     agents = {
         "frontend": GenericReactAgent(ReactAgentConfig(
             work_dir="output/frontend",
             memory_level=MemoryLevel.NONE,
-            specification="""前端代码生成器
+            interface="""前端代码生成器
             
 专注于生成现代前端应用：
 - React/Vue/Angular 组件
@@ -73,7 +73,7 @@ def method2_structured_tool():
         "backend": GenericReactAgent(ReactAgentConfig(
             work_dir="output/backend",
             memory_level=MemoryLevel.NONE,
-            specification="""后端服务生成器
+            interface="""后端服务生成器
             
 专注于生成后端服务：
 - RESTful/GraphQL API
@@ -84,7 +84,7 @@ def method2_structured_tool():
         "devops": GenericReactAgent(ReactAgentConfig(
             work_dir="output/devops",
             memory_level=MemoryLevel.NONE,
-            specification="""DevOps 配置生成器
+            interface="""DevOps 配置生成器
             
 专注于生成部署配置：
 - Docker/Kubernetes 配置
@@ -109,7 +109,7 @@ def method2_structured_tool():
         tool = StructuredTool.from_function(
             func=create_executor(agent),
             name=f"{name}_generator",
-            description=agent.specification,  # 使用 agent 的规范
+            description=agent.interface,  # 使用 agent 的接口声明
             args_schema=TaskInput
         )
         tools.append(tool)
@@ -119,13 +119,13 @@ def method2_structured_tool():
 
 # 方法3: 自定义 BaseTool
 def method3_custom_tool():
-    """方法3: 通过自定义 BaseTool 类传递规范"""
+    """方法3: 通过自定义 BaseTool 类传递接口声明"""
     from langchain_core.tools import BaseTool
     from pydantic import BaseModel, Field
     from typing import Type, Optional
     
     class GenericAgentTool(BaseTool):
-        """自动从 agent 获取规范的工具"""
+        """自动从 agent 获取接口声明的工具"""
         
         name: str = "generic_agent_tool"
         description: str = "通用工具"  # 默认描述
@@ -136,10 +136,10 @@ def method3_custom_tool():
             arbitrary_types_allowed = True
         
         def __init__(self, agent: GenericReactAgent, name: Optional[str] = None):
-            # 自动从 agent 获取规范作为描述
+            # 自动从 agent 获取接口声明作为描述
             super().__init__(
                 name=name or "generic_agent_tool",
-                description=agent.specification,
+                description=agent.interface,
                 agent=agent
             )
         
@@ -162,7 +162,7 @@ def method3_custom_tool():
     config = ReactAgentConfig(
         work_dir="output/method3",
         memory_level=MemoryLevel.NONE,
-        specification="""数据处理工具
+        interface="""数据处理工具
         
 专门处理各种数据任务：
 - 数据清洗和转换
@@ -195,11 +195,11 @@ def demonstrate_in_langchain():
     # 添加方法3的工具
     tools.append(method3_custom_tool())
     
-    # 打印所有工具的规范
-    print("=== 已注册的工具及其规范 ===\n")
+    # 打印所有工具的接口声明
+    print("=== 已注册的工具及其接口声明 ===\n")
     for tool in tools:
         print(f"工具名称: {tool.name}")
-        print(f"规范描述:\n{tool.description}\n")
+        print(f"接口描述:\n{tool.description}\n")
         print("-" * 50 + "\n")
     
     # 创建 Agent（这里只是示例，不实际运行）
@@ -221,7 +221,7 @@ def demonstrate_in_langchain():
 
 
 if __name__ == "__main__":
-    print("=== 工具规范传递演示 ===\n")
+    print("=== 工具接口传递演示 ===\n")
     
     # 演示三种方法
     print("方法1: @tool 装饰器")

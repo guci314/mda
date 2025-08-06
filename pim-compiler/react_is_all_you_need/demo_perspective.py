@@ -48,9 +48,9 @@ def demo_code_reviewer():
         work_dir=str(work_dir),
         memory_level=MemoryLevel.SMART,
         knowledge_files=[
-            "knowledge/system_prompt.md",
-            "knowledge/python_programming_knowledge.md",
-            "knowledge/perspective_templates.md"
+            "knowledge/core/system_prompt.md",
+            "knowledge/programming/python_programming_knowledge.md",
+            "knowledge/output/perspective_templates.md"
         ],
         specification="""你是一个专业的代码审查者，负责：
 1. 评估代码质量
@@ -111,9 +111,9 @@ def demo_security_auditor():
         work_dir=str(work_dir),
         memory_level=MemoryLevel.SMART,
         knowledge_files=[
-            "knowledge/system_prompt.md",
-            "knowledge/python_programming_knowledge.md",
-            "knowledge/perspective_templates.md"
+            "knowledge/core/system_prompt.md",
+            "knowledge/programming/python_programming_knowledge.md",
+            "knowledge/output/perspective_templates.md"
         ],
         specification="""你是一个安全审计专家，负责：
 1. 识别安全漏洞
@@ -155,8 +155,8 @@ def demo_cross_perspective():
             work_dir=str(work_dir),
             memory_level=MemoryLevel.SMART,
             knowledge_files=[
-                "knowledge/system_prompt.md",
-                "knowledge/perspective_templates.md"
+                "knowledge/core/system_prompt.md",
+                "knowledge/output/perspective_templates.md"
             ]
         )
         

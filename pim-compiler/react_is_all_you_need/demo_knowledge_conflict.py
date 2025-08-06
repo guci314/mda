@@ -18,7 +18,7 @@ def demo_no_conflict():
     config = ReactAgentConfig(
         work_dir=".",
         memory_level=MemoryLevel.NONE,
-        knowledge_files=["knowledge/simple_approach.md"],
+        knowledge_files=["knowledge/best_practices/simple_approach.md"],
         enable_world_overview=False
     )
     
@@ -37,8 +37,8 @@ def demo_conflict_order1():
         work_dir=".",
         memory_level=MemoryLevel.NONE,
         knowledge_files=[
-            "knowledge/simple_approach.md",
-            "knowledge/conflict_test.md"  # BPMN 强迫症
+            "knowledge/best_practices/simple_approach.md",
+            "knowledge/experimental/conflict_test.md"  # BPMN 强迫症
         ],
         enable_world_overview=False
     )
@@ -58,8 +58,8 @@ def demo_conflict_order2():
         work_dir=".",
         memory_level=MemoryLevel.NONE,
         knowledge_files=[
-            "knowledge/conflict_test.md",  # BPMN 强迫症
-            "knowledge/simple_approach.md"
+            "knowledge/experimental/conflict_test.md",  # BPMN 强迫症
+            "knowledge/best_practices/simple_approach.md"
         ],
         enable_world_overview=False
     )
@@ -79,8 +79,8 @@ def demo_task_specific():
         work_dir=".",
         memory_level=MemoryLevel.NONE,
         knowledge_files=[
-            "knowledge/simple_approach.md",
-            "knowledge/conflict_test.md"
+            "knowledge/best_practices/simple_approach.md",
+            "knowledge/experimental/conflict_test.md"
         ],
         enable_world_overview=False
     )

@@ -134,8 +134,8 @@ def demo_combined_switches():
         enable_world_overview=True,    # 启用客观视图
         enable_perspective=True,        # 启用主观视图
         knowledge_files=[
-            "knowledge/system_prompt.md",
-            "knowledge/perspective_templates.md"
+            "knowledge/core/system_prompt.md",
+            "knowledge/output/perspective_templates.md"
         ]
     )
     
