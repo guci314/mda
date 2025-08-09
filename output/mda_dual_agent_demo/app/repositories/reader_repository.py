@@ -1,51 +1,17 @@
-from sqlalchemy.orm import Session
-from typing import Optional, List
-from app.models.domain import ReaderDB as Reader
-from app.models.enums import ReaderStatus
-
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+from typing import Optional
+from app.models.database import ReaderDB
 
 class ReaderRepository:
-    def __init__(self, db: Session):
+    def __init__(self, db: AsyncSession):
         self.db = db
 
-    def get_by_id(self, reader_id: str) -> Optional[Reader]:
-        """根据ID获取读者"""
-        return self.db.query(Reader).filter(Reader.reader_id == reader_id).first()
+    async def get_by_id(self, reader_id: str) -> Optional[ReaderDB]:
+        result = await self.db.execute(select(ReaderDB).where(ReaderDB.reader_id == reader_id))
+        return result.scalars().first()
 
-    def get_by_id_card(self, id_card: str) -> Optional[Reader]:
-        """根据身份证号获取读者"""
-        return self.db.query(Reader).filter(Reader.id_card == id_card).first()
-
-    def get_all(self, skip: int = 0, limit: int = 100) -> List[Reader]:
-        """获取所有读者"""
-        return self.db.query(Reader).offset(skip).limit(limit).all()
-
-    def get_active_readers(self, skip: int = 0, limit: int = 100) -> List[Reader]:
-        """获取活动状态的读者"""
-        return self.db.query(Reader).filter(Reader.status == ReaderStatus.ACTIVE).offset(skip).limit(limit).all()
-
-    def save(self, reader: Reader) -> Reader:
-        """保存读者"""
+    async def save(self, reader: ReaderDB) -> None:
         self.db.add(reader)
-        self.db.commit()
-        self.db.refresh(reader)
-        return reader
-
-    def update(self, reader_id: str, **kwargs) -> Optional[Reader]:
-        """更新读者信息"""
-        reader = self.get_by_id(reader_id)
-        if reader:
-            for key, value in kwargs.items():
-                setattr(reader, key, value)
-            self.db.commit()
-            self.db.refresh(reader)
-        return reader
-
-    def delete(self, reader_id: str) -> bool:
-        """删除读者"""
-        reader = self.get_by_id(reader_id)
-        if reader:
-            self.db.delete(reader)
-            self.db.commit()
-            return True
-        return False
+        await self.db.commit()
+        await self.db.refresh(reader)

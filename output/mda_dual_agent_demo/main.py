@@ -1,16 +1,21 @@
 from fastapi import FastAPI
-from contextlib import asynccontextmanager
-import database
-from routers import book_router, reader_router, borrowing_router, reservation_router
+from app.database import init_db
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    database.init_db()
-    yield
+app = FastAPI(title="图书借阅系统API")
 
-app = FastAPI(title="Library Borrowing System", lifespan=lifespan)
+@app.on_event("startup")
+def startup():
+    """初始化数据库连接"""
+    init_db()
 
-app.include_router(book_router.router, prefix="/api", tags=["books"])
-app.include_router(reader_router.router, prefix="/api", tags=["readers"])
-app.include_router(borrowing_router.router, prefix="/api", tags=["borrowing"])
-app.include_router(reservation_router.router, prefix="/api", tags=["reservations"])
+@app.on_event("shutdown")
+def shutdown():
+    """关闭数据库连接"""
+    pass
+
+# 包含路由
+from app.routers import books, readers, borrows, reservations
+app.include_router(books.router, prefix="/api")
+app.include_router(readers.router, prefix="/api")
+app.include_router(borrows.router, prefix="/api")
+app.include_router(reservations.router, prefix="/api")

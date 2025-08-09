@@ -25,9 +25,9 @@ def create_sequential_thinking_agent(work_dir: str) -> GenericReactAgent:
         memory_level=MemoryLevel.SMART,
         knowledge_files=[],
         enable_project_exploration=False,
-        llm_model="deepseek-chat",
-        llm_base_url="https://api.deepseek.com/v1",
-        llm_api_key_env="DEEPSEEK_API_KEY",
+        llm_model="kimi-k2-turbo-preview",
+        llm_base_url="https://api.moonshot.cn/v1",
+        llm_api_key_env="MOONSHOT_API_KEY",
         llm_temperature=0
     )
     
@@ -45,106 +45,151 @@ def create_sequential_thinking_agent(work_dir: str) -> GenericReactAgent:
     # 核心：通过系统提示定义Sequential Thinking的实现
     agent._system_prompt = (agent._system_prompt or "") + """
 
+## 任务目标（意图声明）
+
+你的任务是使用thought_chain.json文件实现完整的Sequential Thinking过程。
+
+### 成功条件（必须全部满足）
+✅ thought_chain.json包含至少5个思考步骤
+✅ 必须包含至少2个分支探索（不同技术方案）
+✅ 每个thought都有明确的confidence置信度
+✅ 最终conclusions部分包含明确的主要结论
+✅ status字段最终为"completed"
+✅ 生成对应的架构文档（.md文件）
+
+### 失败条件（出现任何一个即为失败）
+❌ 只完成1-2个思考步骤就停止
+❌ 没有探索多个技术分支
+❌ conclusions部分为空
+❌ status仍为"thinking"
+❌ 没有生成最终文档
+
 ## Sequential Thinking 实现协议
 
-你需要通过维护 thought_chain.json 文件来实现Sequential Thinking。
-
-### JSON结构
+### JSON结构（你必须严格遵守）
 ```json
 {
-  "session_id": "thinking_session_20240809_123456",
-  "created_at": "2024-08-09T12:34:56",
-  "total_thoughts_estimate": 5,
-  "current_thought": 3,
-  "status": "thinking|completed|paused",
+  "session_id": "唯一会话标识",
+  "created_at": "创建时间",
+  "total_thoughts_estimate": 8,  // 预估需要8个思考步骤
+  "current_thought": 0,  // 当前进行到第几步
+  "status": "thinking",  // thinking|completed|paused
   "thoughts": [
     {
       "id": 1,
-      "content": "思考内容",
-      "timestamp": "2024-08-09T12:34:56",
+      "content": "详细的思考内容",
+      "timestamp": "时间戳",
       "type": "initial|continuation|revision|branch|conclusion",
-      "revises": null,  // 如果是revision，指向被修正的thought id
-      "branch_from": null,  // 如果是branch，指向分支起点
-      "branch_id": null,  // 分支标识
-      "confidence": 0.8,  // 置信度
-      "tags": ["hypothesis", "verified"]  // 标签
+      "revises": null,
+      "branch_from": null,
+      "branch_id": null,
+      "confidence": 0.8,
+      "tags": ["标签1", "标签2"]
     }
   ],
   "branches": {
-    "branch_name": {
+    "协同过滤": {
+      "from_thought": 2,
+      "thoughts": [...]
+    },
+    "深度学习": {
       "from_thought": 2,
       "thoughts": [...]
     }
   },
   "conclusions": {
-    "main": "主要结论",
+    "main": "最终选择的方案及理由",
     "alternatives": ["备选方案1", "备选方案2"]
   }
 }
 ```
 
-### 使用流程
+## 执行策略（必须按顺序完成）
 
-1. **初始化思维链**
-   - 首次思考时，创建 thought_chain.json
-   - 设置 session_id 和初始参数
+### 第1步：初始化
+- 创建thought_chain.json，设置初始结构
+- current_thought: 0, status: "thinking"
 
-2. **添加思考步骤**
-   每次思考：
-   - 读取 thought_chain.json
-   - 添加新的 thought 对象
-   - 更新 current_thought
-   - 写回文件
+### 第2步：需求分析（thought 1）
+- type: "initial"
+- 分析所有需求，识别关键挑战
+- confidence: 0.9+（需求明确）
 
-3. **修正思考**
-   发现错误时：
-   - 添加 type="revision" 的thought
-   - 设置 revises 指向要修正的thought id
-   - 解释修正原因
+### 第3步：技术方案探索（thought 2-5）
+你必须探索至少2个不同的技术分支：
 
-4. **分支探索**
-   需要并行探索时：
-   - 添加 type="branch" 的thought
-   - 设置 branch_from 和 branch_id
-   - 在 branches 部分记录分支详情
+#### 分支A：协同过滤方案
+- thought 2: 创建分支点
+- thought 3: 探索协同过滤（branch_id: "collaborative_filtering"）
+  - 详细分析UserCF/ItemCF
+  - 评估优缺点
+  - confidence: 基于方案可行性
 
-5. **得出结论**
-   - 添加 type="conclusion" 的thought
-   - 更新 conclusions 部分
-   - 设置 status="completed"
+#### 分支B：深度学习方案  
+- thought 4: 探索深度学习（branch_id: "deep_learning"）
+  - 分析DNN/Wide&Deep/DeepFM等模型
+  - 评估优缺点
+  - confidence: 基于方案可行性
 
-### 高级功能
+### 第4步：方案评估（thought 5-6）
+- thought 5: 性能对比（延迟、吞吐量）
+- thought 6: 效果对比（CTR提升潜力）
+- 可能需要revision修正之前的分析
 
-1. **思维回溯**
-   - 可以查看任何历史thought
-   - 分析思维演进过程
+### 第5步：综合决策（thought 7-8）
+- thought 7: 最终方案选择
+- thought 8: type="conclusion"，总结所有分析
+- 更新conclusions部分
+- 设置status="completed"
 
-2. **置信度追踪**
-   - 为每个thought设置confidence
-   - 低置信度的thought可能需要revision
+### 第6步：生成文档
+基于thought_chain.json生成recommendation_system.md
 
-3. **标签系统**
-   - 使用tags标记thought类型
-   - 便于后续分析和检索
+## 重要提醒
 
-4. **多分支合并**
-   - 比较不同分支的结论
-   - 选择最优方案
+⚠️ 你必须完成所有8个思考步骤，不能中途停止
+⚠️ 每完成一个thought，立即更新thought_chain.json
+⚠️ 使用read_file读取当前状态，write_file保存更新
+⚠️ 分支探索要详细，不能敷衍了事
+⚠️ 最后必须设置status="completed"
 
-### 示例工作流
+## 强制执行循环
 
-对于复杂问题，按以下模式思考：
+你必须执行以下循环，直到current_thought达到8：
 
-1. 初始化thought_chain.json
-2. 添加问题分析thought (type="initial")
-3. 添加假设生成thought
-4. 如需验证，调用其他工具（execute_command等）
-5. 根据结果添加验证thought
-6. 如发现问题，添加revision thought
-7. 得出结论，添加conclusion thought
-8. 更新status为completed
+```
+while current_thought < 8:
+    1. 读取thought_chain.json
+    2. 添加下一个thought
+    3. 更新current_thought
+    4. 写回thought_chain.json
+```
 
-记住：thought_chain.json就是你的"思维大脑"，所有推理都要记录在其中。
+不允许在current_thought < 8时返回结果！
+
+## 执行检查清单
+
+在返回结果前，你必须确认ALL条件都满足：
+☐ thought_chain.json存在且格式正确
+☐ thoughts数组包含至少8个元素（当前只有{current}个，还需{remaining}个）
+☐ branches对象包含至少2个分支
+☐ conclusions.main不为空
+☐ status == "completed"（不是"thinking"）
+☐ recommendation_system.md文件已生成
+
+❌ 如果任何检查项未完成，你必须继续工作！
+❌ 绝对不允许在未完成时返回！
+✅ 只有当所有条件都满足时才能返回结果！
+
+## 当前进度追踪
+
+每次更新thought_chain.json后，检查：
+- 当前thought数量：{当前数量}/8
+- 分支数量：{当前分支数}/2
+- 状态：{当前状态} → 必须是"completed"
+- 文档：{是否已生成} → 必须已生成
+
+如果进度不足100%，立即继续下一步！
 """
     
     return agent
@@ -163,28 +208,68 @@ def demo_architecture_design():
     agent = create_sequential_thinking_agent(str(work_dir))
     
     task = """
+【重要】这是一个强制性任务，你必须完成全部8个思考步骤！
+
+## 任务目标
 使用thought_chain.json实现Sequential Thinking，设计一个电商推荐系统架构。
 
-需求：
+## 需求
 1. 实时个性化推荐
-2. 支持千万级用户
+2. 支持千万级用户  
 3. 推荐延迟<100ms
 4. CTR提升20%
 
-工作流程：
-1. 创建thought_chain.json初始化思维链
-2. 分析需求（thought 1）
-3. 探索技术方案（thought 2-4，可以创建分支探索不同方案）
-4. 评估各方案优劣（thought 5-6）
-5. 如发现之前分析有误，添加revision
-6. 综合决策（conclusion）
-7. 生成架构文档recommendation_system.md
+## 强制执行步骤（必须全部完成）
 
-要求：
-- 每个重要决策都要在thought_chain.json中记录
-- 使用分支探索不同的技术栈（如：协同过滤 vs 深度学习）
-- 包含置信度评估
-- 最终结论要有理有据
+### Step 1: 初始化
+✅ 创建thought_chain.json，设置initial结构
+
+### Step 2: 需求分析（thought 1）
+✅ 添加type="initial"的thought，分析所有需求
+
+### Step 3: 技术分支点（thought 2）
+✅ 添加分支决策点thought
+
+### Step 4: 协同过滤分支（thought 3）
+✅ 添加branch_id="collaborative_filtering"的thought
+✅ 详细分析UserCF/ItemCF的优缺点
+
+### Step 5: 深度学习分支（thought 4）
+✅ 添加branch_id="deep_learning"的thought
+✅ 详细分析DNN/Wide&Deep模型
+
+### Step 6: 性能对比（thought 5）
+✅ 对比两个方案的延迟和吞吐量
+
+### Step 7: 效果评估（thought 6）
+✅ 评估CTR提升潜力
+
+### Step 8: 最终决策（thought 7）
+✅ 选择最优方案，说明理由
+
+### Step 9: 总结（thought 8）
+✅ 添加type="conclusion"的thought
+✅ 更新conclusions.main
+✅ 设置status="completed"
+
+### Step 10: 生成文档
+✅ 创建recommendation_system.md
+
+## 验证清单（返回前必须全部打勾）
+
+当前进度检查：
+□ thought_chain.json已创建
+□ thoughts数组有8个元素（不是2个或3个！）
+□ 包含collaborative_filtering分支
+□ 包含deep_learning分支
+□ conclusions.main已填写
+□ status是"completed"（不是"thinking"！）
+□ recommendation_system.md已生成
+
+⚠️ 警告：如果你在完成8个thoughts之前返回，任务将被判定为失败！
+⚠️ 当前只完成2个thoughts是不可接受的！必须完成全部8个！
+
+请立即开始，并确保完成所有步骤后再返回。
 """
     
     print("\n任务：设计电商推荐系统")

@@ -49,3 +49,4 @@ llm_api_key_env="GEMINI_API_KEY",
 http_client=http_client,
 llm_temperature=0
 ```
+- 我说使用kimi，默认使用kimi-k2-turbo-preview

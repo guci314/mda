@@ -1,1 +1,3 @@
-# Initialize the tests package
+"""
+测试包初始化
+"""

@@ -5,7 +5,7 @@ from app.enums import BorrowStatus
 from datetime import datetime
 
 
-class BorrowRecord(Base):
+class BorrowRecordDB(Base):
     __tablename__ = "borrow_records"
 
     borrow_id = Column(String(36), primary_key=True, index=True)
@@ -19,5 +19,5 @@ class BorrowRecord(Base):
     fine = Column(Numeric(10, 2))
 
     # 关系
-    reader = relationship("Reader", back_populates="borrow_records")
-    book = relationship("Book", back_populates="borrow_records")
+    reader = relationship("ReaderDB", back_populates="borrow_records")
+    book = relationship("BookDB", back_populates="borrow_records")

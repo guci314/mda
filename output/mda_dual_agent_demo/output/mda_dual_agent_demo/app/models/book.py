@@ -4,7 +4,7 @@ from app.database import Base
 from app.enums import BookStatus
 
 
-class Book(Base):
+class BookDB(Base):
     __tablename__ = "books"
 
     isbn = Column(String(20), primary_key=True, index=True)
@@ -20,5 +20,5 @@ class Book(Base):
     status = Column(SQLEnum(BookStatus), nullable=False, default=BookStatus.AVAILABLE)
 
     # 关系
-    borrow_records = relationship("BorrowRecord", back_populates="book")
-    reservation_records = relationship("ReservationRecord", back_populates="book")
+    borrow_records = relationship("BorrowRecordDB", back_populates="book")
+    reservation_records = relationship("ReservationRecordDB", back_populates="book")

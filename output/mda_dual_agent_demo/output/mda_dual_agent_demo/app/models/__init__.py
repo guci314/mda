@@ -1,6 +1,27 @@
-from .book import Book
-from .reader import Reader
-from .borrow_record import BorrowRecord
-from .reservation_record import ReservationRecord
+"""
+模型包初始化
+"""
+from .enums import BookStatus, ReaderType, ReaderStatus, BorrowStatus, ReservationStatus
+from .database import Base, BookDB, ReaderDB, BorrowRecordDB, ReservationRecordDB
+from .pydantic import (
+    BookCreate, BookUpdate, BookResponse,
+    ReaderCreate, ReaderUpdate, ReaderResponse,
+    BorrowRecordCreate, BorrowRecordResponse,
+    ReservationRecordCreate, ReservationRecordResponse,
+    MessageResponse, ErrorResponse,
+    PaginationParams, PaginatedResponse
+)
 
-__all__ = ["Book", "Reader", "BorrowRecord", "ReservationRecord"]
+__all__ = [
+    # 枚举
+    "BookStatus", "ReaderType", "ReaderStatus", "BorrowStatus", "ReservationStatus",
+    # 数据库模型
+    "Base", "BookDB", "ReaderDB", "BorrowRecordDB", "ReservationRecordDB",
+    # Pydantic模型
+    "BookCreate", "BookUpdate", "BookResponse",
+    "ReaderCreate", "ReaderUpdate", "ReaderResponse",
+    "BorrowRecordCreate", "BorrowRecordResponse",
+    "ReservationRecordCreate", "ReservationRecordResponse",
+    "MessageResponse", "ErrorResponse",
+    "PaginationParams", "PaginatedResponse"
+]

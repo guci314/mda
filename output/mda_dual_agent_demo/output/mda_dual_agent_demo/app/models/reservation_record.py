@@ -5,7 +5,7 @@ from app.enums import ReservationStatus
 from datetime import datetime
 
 
-class ReservationRecord(Base):
+class ReservationRecordDB(Base):
     __tablename__ = "reservation_records"
 
     reservation_id = Column(String(36), primary_key=True, index=True)
@@ -17,5 +17,5 @@ class ReservationRecord(Base):
     expire_date = Column(DateTime)
 
     # 关系
-    reader = relationship("Reader", back_populates="reservation_records")
-    book = relationship("Book", back_populates="reservation_records")
+    reader = relationship("ReaderDB", back_populates="reservation_records")
+    book = relationship("BookDB", back_populates="reservation_records")

@@ -5,7 +5,7 @@ from app.enums import ReaderType, ReaderStatus
 from datetime import datetime
 
 
-class Reader(Base):
+class ReaderDB(Base):
     __tablename__ = "readers"
 
     reader_id = Column(String(36), primary_key=True, index=True)
@@ -20,5 +20,5 @@ class Reader(Base):
     credit_score = Column(Integer, nullable=False, default=100)
 
     # 关系
-    borrow_records = relationship("BorrowRecord", back_populates="reader")
-    reservation_records = relationship("ReservationRecord", back_populates="reader")
+    borrow_records = relationship("BorrowRecordDB", back_populates="reader")
+    reservation_records = relationship("ReservationRecordDB", back_populates="reader")

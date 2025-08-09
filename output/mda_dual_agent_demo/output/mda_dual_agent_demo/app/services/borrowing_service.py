@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from typing import Optional
-from ..models.domain import BorrowRecordDB
+from ..models.borrow_record import BorrowRecordDB
 from ..schemas.schemas import BorrowRecordResponse
 
 from datetime import date, datetime, timedelta

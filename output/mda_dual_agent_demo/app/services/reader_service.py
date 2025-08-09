@@ -1,24 +1,31 @@
-from sqlalchemy.orm import Session
 from typing import Optional
-from uuid import uuid4
-from datetime import datetime, timedelta
-from ..models.domain import ReaderDB
-from ..models.enums import ReaderType, ReaderStatus
-from ..schemas.schemas import ReaderCreate, ReaderResponse
-from ..repositories.reader_repository import ReaderRepository
+from sqlalchemy.ext.asyncio import AsyncSession
+from app.models.database import ReaderDB
+from app.models.pydantic import ReaderCreate, ReaderResponse
+from app.repositories.reader_repository import ReaderRepository
 
 class ReaderService:
-    def __init__(self, db: Session):
+    def __init__(self, db: AsyncSession):
         self.db = db
         self.repository = ReaderRepository(db)
 
-    def register_reader(self, reader_data: ReaderCreate) -> ReaderResponse:
-        reader = ReaderDB(**reader_data.model_dump(), reader_id=str(uuid4()), register_date=datetime.now(), valid_until=datetime.now() + timedelta(days=365), status=ReaderStatus.ACTIVE)
-        reader = ReaderDB(**reader_data.model_dump(exclude={"reader_type"}), reader_id=str(uuid4()), register_date=datetime.now(), valid_until=datetime.now().date() + timedelta(days=365), status=ReaderStatus.ACTIVE, reader_type=ReaderType.STUDENT, credit_score=100)
-        return ReaderResponse.model_validate(reader)
+    async def register_reader(self, reader_data: ReaderCreate) -> ReaderResponse:
+        reader = ReaderDB(**reader_data.dict(), status="正常", credit_score=100)
+        await self.repository.save(reader)
+        return ReaderResponse.from_orm(reader)
 
-    def get_reader(self, reader_id: str) -> Optional[ReaderResponse]:
-        reader = self.repository.get_by_id(reader_id)
-        if reader is None:
-            return None
-        return ReaderResponse.model_validate(reader)
+    async def update_reader(self, reader_id: str, reader_data: ReaderCreate) -> ReaderResponse:
+        reader = await self.repository.get_by_id(reader_id)
+        if not reader:
+            raise ValueError("读者不存在")
+        for key, value in reader_data.dict().items():
+            setattr(reader, key, value)
+        await self.repository.save(reader)
+        return ReaderResponse.from_orm(reader)
+
+    async def freeze_reader(self, reader_id: str) -> None:
+        reader = await self.repository.get_by_id(reader_id)
+        if not reader:
+            raise ValueError("读者不存在")
+        reader.status = "冻结"
+        await self.repository.save(reader)
