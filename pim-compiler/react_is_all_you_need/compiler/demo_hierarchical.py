@@ -56,7 +56,8 @@ class HierarchicalLLMCompiler(LLMCompiler):
                 HumanMessage(content="开始分析")
             ])
             
-            content = response.content.strip()
+            content = response.content if isinstance(response.content, str) else str(response.content[0] if response.content else "")
+            content = content.strip()
             if '```json' in content:
                 content = content.split('```json')[1].split('```')[0].strip()
             elif '```' in content:
@@ -107,7 +108,8 @@ context字典中可能包含：
                     HumanMessage(content="生成代码")
                 ])
                 
-                code = response.content.strip()
+                code = response.content if isinstance(response.content, str) else str(response.content[0] if response.content else "")
+                code = code.strip()
                 if '```python' in code:
                     code = code.split('```python')[1].split('```')[0].strip()
                 elif '```' in code:

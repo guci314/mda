@@ -15,11 +15,15 @@ from pydantic import BaseModel, Field
 # Google 搜索相关导入
 try:
     from googleapiclient.discovery import build
+    import googleapiclient.http
+    import httplib2
     import requests
     from bs4 import BeautifulSoup
     GOOGLE_SEARCH_AVAILABLE = True
 except ImportError:
     GOOGLE_SEARCH_AVAILABLE = False
+    build = None
+    httplib2 = None
 
 
 # Pydantic 输入模型定义
@@ -926,9 +930,13 @@ def create_tools(work_dir: str):
             str: 搜索结果的格式化字符串
         """
         if not GOOGLE_SEARCH_AVAILABLE:
-            return "Error: Google search dependencies not installed. Please install: pip install google-api-python-client requests beautifulsoup4"
+            return "Error: Google search dependencies not installed. Please install: pip install google-api-python-client httplib2 requests beautifulsoup4"
         
         try:
+            # 检查 build 函数是否可用
+            if build is None:
+                return "Error: Google API client not properly imported"
+            
             # 获取 API 凭证
             api_key = os.getenv('GOOGLE_API_KEY')
             cse_id = os.getenv('GOOGLE_CSE_ID')
@@ -938,20 +946,36 @@ def create_tools(work_dir: str):
             
             # 设置代理（如果需要）
             proxy = os.getenv('HTTP_PROXY') or os.getenv('http_proxy')
-            if proxy:
-                import googleapiclient.http
-                import httplib2
+            if proxy and httplib2 is not None:
                 # 增加超时时间
-                http = httplib2.Http(timeout=30, proxy_info=httplib2.ProxyInfo(
-                    httplib2.socks.PROXY_TYPE_HTTP,
-                    proxy.split('://')[1].split(':')[0],
-                    int(proxy.split(':')[-1])
-                ))
-                service = build("customsearch", "v1", developerKey=api_key, http=http)
-            else:
+                try:
+                    # httplib2 的代理设置
+                    from httplib2 import Http, ProxyInfo
+                    try:
+                        from httplib2 import socks
+                        http = Http(timeout=30, proxy_info=ProxyInfo(
+                            socks.PROXY_TYPE_HTTP,
+                            proxy.split('://')[1].split(':')[0],
+                            int(proxy.split(':')[-1])
+                        ))
+                    except ImportError:
+                        # httplib2.socks 不可用，使用基本的 Http
+                        http = Http(timeout=30)
+                except (ImportError, AttributeError):
+                    # 如果 httplib2 没有正确导入，使用基本的 Http
+                    http = httplib2.Http(timeout=30) if httplib2 else None
+                
+                if http:
+                    service = build("customsearch", "v1", developerKey=api_key, http=http)
+                else:
+                    service = build("customsearch", "v1", developerKey=api_key)
+            elif httplib2 is not None:
                 # 即使没有代理也设置超时
                 http = httplib2.Http(timeout=30)
                 service = build("customsearch", "v1", developerKey=api_key, http=http)
+            else:
+                # 没有 httplib2，直接使用 build
+                service = build("customsearch", "v1", developerKey=api_key)
             
             # 构建查询
             if site:

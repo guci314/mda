@@ -1,115 +1,47 @@
-# 长期记忆更新
+# 知识库
 
-## 用户个性化信息
-- **姓名**：谷词
-- **交互风格**：直接、简洁，关注项目概览而非细节
-- **记忆确认**：已确认姓名记忆，无需再次询问
+## 元知识
+- **搜索策略**：先用中文关键词获取中文技术博客，再用英文关键词获取官方文档，最后用具体类名精准定位
+- **信息验证**：对比官方文档、技术博客、代码示例三方信息，优先使用官方文档和最新API
+- **快速评估**：通过URL域名判断信息权威性（*.langchain.com > medium > csdn）
+- **版本识别**：注意新旧API对比，官方文档会标注"legacy"或"deprecated"
 
-## 项目识别经验更新
+## 原理与设计
+- **记忆设计哲学**：LangChain记忆系统的核心是在token成本和记忆精度之间做权衡
+- **分层记忆模型**：从完整存储→窗口截断→token限制→摘要压缩→混合策略的演进路径
+- **状态管理范式**：从ConversationChain的隐式状态转向RunnableWithMessageHistory的显式状态管理
+- **成本控制策略**：通过不同记忆类型实现从原型到生产的平滑过渡
 
-### 1. 实验性工作空间特征
-- **结构模式**：根目录包含多个独立实验项目（test_*, demo_*, shared_*）
-- **命名约定**：使用数字后缀区分版本（test_project, test_project2, test_project3）
-- **功能分区**：测试项目 + 演示项目 + 共享资源 + 核心工具
-- **项目规模**：23个Python文件的实验集合 vs 70个Python文件+64个Markdown文档的完整框架
+## 接口与API
+- **新API（推荐）**：
+  ```python
+  from langchain_core.runnables.history import RunnableWithMessageHistory
+  from langchain_core.chat_history import InMemoryChatMessageHistory
+  ```
+- **旧API（legacy）**：
+  ```python
+  from langchain.memory import ConversationBufferMemory
+  from langchain.chains import ConversationChain
+  ```
+- **记忆类型选择矩阵**：
+  - 原型阶段：ConversationBufferMemory
+  - 生产环境：ConversationTokenBufferMemory
+  - 长对话：ConversationSummaryMemory
+  - 平衡方案：ConversationSummaryBufferMemory
 
-### 2. 架构模式识别
-- **微实验架构**：分散式微实验设计，每个子项目独立验证
-- **完整框架架构**：基于LangGraph的下一代React Agent框架，三级记忆系统+知识管理+多Agent协作
-- **技术栈对比**：
-  - 微实验：纯Python，零外部依赖
-  - 完整框架：Python 3.8+、LangGraph、LangChain、SQLite
+## 实现细节（需验证）
+- **官方文档位置**：https://python.langchain.com/api_reference/ 下的memory子模块
+- **关键类路径**：
+  - langchain.memory.buffer.ConversationBufferMemory
+  - langchain.memory.summary.ConversationSummaryMemory
+  - langchain.memory.token_buffer.ConversationTokenBufferMemory
+- **配置参数**：
+  - ConversationBufferWindowMemory: `k` (保留消息数)
+  - ConversationTokenBufferMemory: `max_token_limit`
+  - ConversationSummaryMemory: 依赖LLM配置
 
-### 3. 快速识别技巧
-- **根目录扫描**：优先查看一级目录的命名模式
-- **关键词匹配**：test_*, demo_*, shared_*, *_workspace* vs docs/, knowledge/, examples/
-- **文件计数**：快速统计Python文件数量判断项目规模
-- **架构推断**：通过目录结构和文件命名推断功能分层
-
-## world_overview.md 模板优化
-
-### 1. 实验性工作空间专用模板
-```markdown
-# 项目概览
-**实验性工作空间** - 包含多个测试项目和演示
-
-## 架构模式
-微实验架构 (Micro-Experiment Architecture)
-
-## 目录结构
-[树状图，最多3层]
-
-## 项目分类
-- **测试项目**：test_project*, 功能验证实验
-- **演示项目**：demo_project*, 概念验证展示
-- **共享资源**：shared_workspace*, 跨项目复用
-- **核心工具**：独立实验单元
-
-## 技术特征
-- Python ≥3.8，零外部依赖
-- 面向对象 + 函数式混合设计
-- 单元测试驱动开发
-- 渐进式功能演进
-
-## 快速开始
-1. 选择对应实验目录
-2. 运行 `python <main_file>.py`
-3. 执行测试：`python test_*.py`
-```
-
-### 2. 完整框架模板
-```markdown
-# 项目概览
-**基于LangGraph的下一代React Agent框架**
-
-## 架构模式
-三级记忆系统 + 知识管理 + 多Agent协作
-
-## 目录结构
-- docs/：技术文档和指南
-- knowledge/：分层组织的知识库系统
-- examples/：使用示例和演示
-- 核心文件：react_agent.py、tools.py、langchain_agent_tool.py
-
-## 技术特征
-- Python 3.8+
-- LangGraph、LangChain、SQLite
-- 70个Python文件 + 64个Markdown文档
-
-## 快速开始
-1. 基础使用：`python react_agent.py`
-2. 多Agent协作：`python examples/multi_agent_demo.py`
-3. Jupyter环境：`jupyter notebook`
-```
-
-## 常见问题解决方案更新
-
-### 1. 无架构文档处理
-- **问题**：缺乏architecture.md或design文档
-- **解决**：通过代码结构和目录命名推断架构模式
-- **工具**：find + wc统计文件数量，list_directory分析结构
-
-### 2. 多项目根目录处理
-- **问题**：根目录包含多个独立实验项目
-- **解决**：按功能分类（测试/演示/共享/工具），分别概述
-- **统计**：使用`find . -name "*.py" | wc -l`快速评估规模
-
-### 3. 实验性项目描述
-- **问题**：缺乏标准项目特征（无requirements.txt, README.md等）
-- **解决**：通过目录命名、文件结构和代码内容推断项目用途
-- **验证**：运行示例代码确认功能
-
-### 4. 完整框架项目描述
-- **问题**：项目规模大，功能复杂
-- **解决**：按功能模块分层描述，突出核心组件
-- **验证**：检查核心文件（react_agent.py, tools.py）确认主要功能
-
-## 复用脚本增强
-
-### 1. 实验项目快速分析
-```bash
-# 统计实验规模
-echo "## 项目规模"
-find . -name "*.py" | wc -l  # Python文件总数
-find . -maxdepth 1 -type d -name "test_*" | wc -l  # 测试项目数
-find . -maxdepth 1 -type d -name "demo_*" | wc -l 
+## 用户偏好与项目特点
+- **信息呈现**：偏好结构化总结（表格、对比矩阵）
+- **实用性导向**：关注"何时使用"而非"如何实现"
+- **版本敏感**：明确标注新旧API差异和迁移建议
+- **决策支持**：提供基于场景的选择建议而非技术细节

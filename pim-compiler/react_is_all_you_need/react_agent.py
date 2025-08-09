@@ -221,6 +221,9 @@ class CustomSummaryBufferMemory(ConversationBufferMemory):
         
     def save_context(self, inputs: Dict[str, Any], outputs: Dict[str, str]) -> None:
         """保存上下文并在需要时进行摘要"""
+        # 确保输出不为空
+        if not outputs or not any(outputs.values()):
+            outputs = {"output": "No response"}
         # 先保存新的对话
         super().save_context(inputs, outputs)
         
@@ -241,6 +244,9 @@ class CustomSummaryBufferMemory(ConversationBufferMemory):
         
         if current_tokens > self.max_token_limit:
             # 需要进行摘要
+            print(f"\n💭 [SMART记忆] 当前对话历史超过限制 ({current_tokens} > {self.max_token_limit} tokens)")
+            print(f"   正在压缩早期对话历史...")
+            
             messages_to_summarize = []
             remaining_messages = []
             accumulated_tokens = 0
@@ -256,10 +262,12 @@ class CustomSummaryBufferMemory(ConversationBufferMemory):
             
             if messages_to_summarize:
                 # 生成摘要
+                print(f"   将 {len(messages_to_summarize)} 条早期消息压缩为摘要...")
                 self._generate_summary(messages_to_summarize)
                 
                 # 更新消息历史
                 self.chat_memory.messages = remaining_messages
+                print(f"   ✅ 压缩完成！保留最近 {len(remaining_messages)} 条消息")
     
     def _generate_summary(self, messages: List[BaseMessage]) -> None:
         """使用 LLM 生成消息摘要"""
@@ -281,7 +289,16 @@ Please provide a concise summary that captures the key points from both the exis
         
         # 生成摘要
         summary_message = self.llm.invoke(prompt)
-        self.summary = summary_message.content
+        # 处理可能的空内容或列表格式
+        if hasattr(summary_message, 'content'):
+            if isinstance(summary_message.content, str):
+                self.summary = summary_message.content
+            elif isinstance(summary_message.content, list) and summary_message.content:
+                self.summary = str(summary_message.content[0])
+            else:
+                self.summary = "No summary available"
+        else:
+            self.summary = "No summary available"
         
     def load_memory_variables(self, inputs: Dict[str, Any]) -> Dict[str, Any]:
         """加载内存变量，包括摘要"""
@@ -305,12 +322,6 @@ DEFAULT_CONTEXT_WINDOWS = {
     "deepseek-chat": 32768,
     "deepseek-coder": 16384,
     
-    # Moonshot (Kimi)
-    "kimi-k2-0711-preview": 131072,  # 128k
-    "kimi-k2-turbo-preview": 131072,  # 128k
-    "moonshot-v1-8k": 8192,
-    "moonshot-v1-32k": 32768,
-    "moonshot-v1-128k": 131072,
     
     # OpenAI
     "gpt-4": 8192,
@@ -437,8 +448,8 @@ class ReactAgentConfig:
             # 向后兼容：如果只提供了 knowledge_file，转换为列表
             self.knowledge_files = [knowledge_file]
         else:
-            # 默认使用系统提示词作为基础知识
-            self.knowledge_files = ["knowledge/core/system_prompt.md"]
+            # 默认使用独立的知识文件，避免与系统提示词重复
+            self.knowledge_files = ["knowledge/core/default_knowledge.md"]
         
         # 知识字符串 - 直接提供知识内容
         if knowledge_strings is not None:
@@ -539,7 +550,6 @@ class GenericReactAgent:
             )
         
         # 初始化环境认知（取代 world_overview）
-        self._init_environment_cognition()
         
         # 设置 Agent 内部存储目录（独立于工作目录）
         if config.agent_home:
@@ -672,10 +682,10 @@ class GenericReactAgent:
             "api_key": api_key,  # type: ignore
             "base_url": self.config.llm_base_url,
             "temperature": self.config.llm_temperature,
-            # 设置较大的max_tokens以避免输出被截断
-            # 如果模型支持，可以设置为-1让模型自己决定
-            "max_tokens": 16384  # 16k tokens，适合大多数长输出场景
         }
+        
+        # 设置max_tokens
+        llm_kwargs["max_tokens"] = 16384  # 默认16k，适合大多数模型
         
         # 如果提供了 http_client，添加到参数中
         if self.config.http_client:
@@ -987,18 +997,21 @@ class GenericReactAgent:
             Agent: 配置好的 LangGraph Agent
         """
         
-        # 使用自定义工具或创建默认工具
+        # 创建工具集：默认工具 + 自定义工具
+        default_tools = create_tools(self.config.work_dir)
+        
         if self._tools is None:
-            # 没有提供自定义工具，使用默认工具集
-            tools = create_tools(self.config.work_dir)
+            # 没有提供自定义工具，只使用默认工具集
+            tools = default_tools
         else:
-            # 使用提供的自定义工具
-            tools = self._tools
+            # 合并默认工具和自定义工具
+            tools = default_tools + self._tools
         
         # 使用加载的系统提示词模板（不再需要 task_description）
         system_prompt = self.system_prompt_template.format(
             work_dir=self.config.work_dir
         )
+        
         
         # 注入数据目录信息
         data_dir_info = f"""
@@ -1109,32 +1122,30 @@ class GenericReactAgent:
             # 构建任务历史
             task_history = self._format_messages_for_memory(messages)
             
-            # 添加环境认知（如果有的话）
-            env_summary = ""
-            if hasattr(self, 'env_cognition') and self.env_cognition:
-                try:
-                    env_summary = self.env_cognition.get_summary()
-                except:
-                    pass  # 失败也没关系
-            
-            # 构建更新知识的提示词（包含环境认知）
-            if env_summary:
-                task_history = f"{env_summary}\n\n{task_history}"
+            # 构建更新知识的提示词
             knowledge_prompt = self._build_knowledge_extraction_prompt(existing_knowledge, task_history)
             
             # 调用 LLM 提取知识
-            extracted_knowledge = self.llm.invoke(knowledge_prompt).content
+            response = self.llm.invoke(knowledge_prompt)
+            extracted_knowledge = response.content if isinstance(response.content, str) else str(response.content[0] if response.content else "")
             
             # 检查知识文件大小
             knowledge_size = len(extracted_knowledge.encode('utf-8'))
             if knowledge_size > self.config.knowledge_extraction_limit:
                 # 如果超过限制，要求 LLM 进一步压缩
+                print(f"\n📚 [知识提取] 知识文件超过限制 ({knowledge_size/1024:.1f}KB > {self.config.knowledge_extraction_limit/1024:.1f}KB)")
+                print(f"   正在压缩知识内容...")
+                
                 compress_prompt = self._build_knowledge_compression_prompt(
                     extracted_knowledge, 
                     knowledge_size, 
                     self.config.knowledge_extraction_limit
                 )
-                extracted_knowledge = self.llm.invoke(compress_prompt).content
+                compress_response = self.llm.invoke(compress_prompt)
+                extracted_knowledge = compress_response.content if isinstance(compress_response.content, str) else str(compress_response.content[0] if compress_response.content else "")
+                
+                compressed_size = len(extracted_knowledge.encode('utf-8'))
+                print(f"   ✅ 压缩完成！从 {knowledge_size/1024:.1f}KB 压缩到 {compressed_size/1024:.1f}KB")
             
             # 保存提取的知识
             self.knowledge_file.write_text(extracted_knowledge, encoding='utf-8')
@@ -1322,18 +1333,6 @@ class GenericReactAgent:
 请直接输出压缩后的记忆内容："""
         
         return prompt
-    
-    def _init_environment_cognition(self) -> None:
-        """初始化环境认知（简单版本）"""
-        try:
-            # 延迟导入，避免依赖问题
-            from environment_cognition import EnvironmentCognition
-            self.env_cognition = EnvironmentCognition(self.name, self.work_dir)
-        except Exception as e:
-            # 如果失败，不影响主功能
-            self.env_cognition = None
-            if os.environ.get('DEBUG'):
-                logger.warning(f"环境认知初始化失败: {e}")
     
     def _clean_data_directory(self) -> None:
         """清理工作目录和私有数据区域，为新任务准备干净环境
@@ -1838,14 +1837,32 @@ class GenericReactAgent:
         try:
             # 收集所有消息用于最终输出
             all_messages = []
+            # 记录已打印的消息内容哈希，避免重复
+            printed_messages = set()
             
             # 使用 stream 方法获取中间步骤
+            if self._executor is None:
+                raise RuntimeError("Executor not initialized")
             for event in self._executor.stream(inputs, config=invoke_config, stream_mode="values"):
                 messages = event.get("messages", [])
                 if messages:
                     # 获取最后一条消息
                     last_message = messages[-1]
                     all_messages = messages
+                    
+                    # 生成消息内容的唯一标识（基于内容而不是对象ID）
+                    msg_content = ""
+                    if hasattr(last_message, 'content'):
+                        msg_content = str(last_message.content)
+                    if hasattr(last_message, 'tool_calls'):
+                        msg_content += str(last_message.tool_calls)
+                    if hasattr(last_message, 'name'):
+                        msg_content += str(last_message.name)
+                    
+                    msg_hash = hash(msg_content)
+                    if msg_hash in printed_messages:
+                        continue  # 跳过已打印的消息
+                    printed_messages.add(msg_hash)
                     
                     # 显示不同类型的消息
                     if hasattr(last_message, 'content'):
@@ -1872,9 +1889,13 @@ class GenericReactAgent:
                             else:
                                 print(f"   {content}")
                         else:
-                            # AI 的最终回答
+                            # AI 的最终回答 - 限制长度避免重复
                             if last_message.content:
-                                print(f"\n\U0001f916 [{self.name}] AI 回答: {last_message.content}")
+                                content = last_message.content
+                                if len(content) > 200:
+                                    print(f"\n\U0001f916 [{self.name}] AI 回答: {content[:200]}... [已截断]")
+                                else:
+                                    print(f"\n\U0001f916 [{self.name}] AI 回答: {content}")
             
             # 构建结果
             result = {"messages": all_messages}
@@ -1885,6 +1906,8 @@ class GenericReactAgent:
                 print("提示：任务可能过于复杂，尝试简化...")
                 # 只保留用户消息，去掉系统提示词
                 simple_inputs = {"messages": [HumanMessage(content=task)]}
+                if self._executor is None:
+                    raise RuntimeError("Executor not initialized")
                 result = self._executor.invoke(simple_inputs, config=invoke_config)
             else:
                 raise
@@ -1893,18 +1916,24 @@ class GenericReactAgent:
         if "messages" in result:
             # 获取最后一条 AI 消息作为输出
             output_message = result["messages"][-1]
+            
+            
             output = output_message.content if hasattr(output_message, 'content') else str(output_message)
             
             # 如果有记忆，保存对话
             if self.memory is not None:
-                self.memory.save_context({"input": task}, {"output": output})
+                self.memory.save_context({"input": task}, {"output": str(output)})
         else:
             output = str(result)
         
-        # 打印最终结果
+        # 打印最终结果（限制输出长度避免重复）
         print(f"\n[{self.name}] > Task completed.")
         print(f"\n=== [{self.name}] 最终结果 ===\n")
-        print(output)
+        # 限制输出长度，避免大量重复内容
+        if len(output) > 1000:
+            print(output[:500] + "\n... [内容过长，已截断] ...")
+        else:
+            print(output)
         
         # 异步更新提取的知识
         if "messages" in result and self.config.knowledge_extraction_limit > 0:
@@ -1922,7 +1951,7 @@ class GenericReactAgent:
             _memory_update_threads.append(knowledge_thread)
         
         # 返回最后一条AI消息内容
-        return output
+        return str(output) if output else ""
 
 
 def main():

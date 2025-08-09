@@ -1,0 +1,55 @@
+# 知识库
+
+## 元知识
+- 系统提示词查找方法：在核心运行时文件中搜索"system prompt"或查看prompts目录
+- React循环验证技巧：通过分析useGeminiStream.ts和useReactToolScheduler.ts确认循环实现
+- MCP架构分析方法：通过搜索mcp相关文件（mcp-client.ts、mcp-tool.ts）理解MCP集成
+- 配置发现模式：通过settings.json中的mcpServers配置项识别可用MCP服务器
+- 传输协议识别：支持Stdio、SSE、Streamable HTTP三种MCP传输方式
+- 代码结构验证方法：使用list_directory查看目录结构，read_file查看关键文件内容
+- 架构模式识别：通过目录结构识别单体CLI+插件化扩展的混合架构
+- 中文系统提示词翻译：将英文系统提示词准确翻译为中文，保持技术术语一致性
+- 系统提示词变量识别：支持{{WORK_DIR}}、{{AVAILABLE_TOOLS}}、{{MCP_SERVERS}}等动态替换
+- 记忆工具查找方法：搜索memory相关文件或查看工具注册表中的memory工具定义
+- 工具功能验证：通过实际调用memory.store/memory.get验证工具行为
+- 记忆持久化验证：检查~/.gemini/memory.json文件确认存储机制
+- 文件系统持久化识别：通过MemoryStore类实现无数据库的JSON文件存储
+- 触发时机识别：通过分析context-collector.ts和对话处理逻辑识别自动触发场景
+- 重要性评分算法：通过isImportantResult函数实现多维度加权评分（信息密度、可操作性、唯一性、项目相关性、持久价值）
+- 算法类型识别：isImportantResult为纯符号主义计算，无LLM调用，基于规则引擎
+- 性能验证方法：通过benchmark测试验证离线运行能力
+- 会话启动模式识别：通过简单问候即可启动任务执行助手，无需复杂初始化
+- 文件创建方法：通过write_file工具创建文件，支持指定文件名和内容
+- 助手能力识别：通过问候响应自动展示核心功能列表（代码分析、文件操作、测试运行、文档创建、问题解决）
+- 文档命名规范：使用小写+下划线命名，扩展名.md，保存到工作目录
+- 文档创建流程：先整理知识→结构化内容→使用write_file保存→验证文件存在
+- 文档生成策略：对于长文档，分段生成或限制在8000字符内，确保工具调用成功
+- 知识提取方法：按四层记忆架构（元知识→原理→接口→实现）系统整理经验
+- 记忆整合原则：保留有效内容，添加新知识，标注不确定性，合并相似经验
+- 文档创建触发模式：用户明确请求"写个文档"或"创建文档"时立即响应
+- 文档内容组织方法：按原理→使用方法→配置→示例的结构化方式呈现
+- 文档创建验证：创建后立即验证文件存在，确保写入成功
+- 记忆文件发现方法：通过搜索GEMINI.md文件理解记忆存储位置
+- 记忆文件格式识别：通过查看GEMINI.md内容理解Markdown格式的记忆存储
+- 记忆文件优先级识别：通过分析memory discovery代码理解全局vs项目记忆的优先级
+- 记忆合并机制验证：通过查看memory discovery实现理解多文件合并策略
+- 助手启动响应模式：通过简单问候触发自动展示核心功能列表和已加载的架构信息
+- 文档创建工具验证：通过write_file工具成功创建中文文档，验证工具可用性
+- 中文文档创建能力：助手支持创建完整的中文技术文档，保持术语准确性
+- LLM兼容性验证：Claude、Gemini、DeepSeek都完全兼容GenericReactAgent
+- Kimi模型不兼容：Kimi使用非标准tool_call_id格式，工具调用容易失败，不建议使用
+- 推荐模型：Claude 3.5 Sonnet、Gemini 2.5 Pro、DeepSeek均可靠执行工具调用
+- Gemini通过OpenRouter问题：需要明确的React循环说明才能正常工作
+- 系统提示词优化：明确说明React循环和工具调用机制后，Gemini能正常执行工具调用
+- 关键改进：在提示词中强调"必须调用工具"和"不能只输出文字描述"解决了问题
+- 模型选择建议：
+  - 超长上下文（100万tokens）：Gemini 2.5 Pro
+  - 高质量输出：Claude 3.5 Sonnet
+  - 性价比：DeepSeek
+  - 避免使用：Kimi（工具调用不可靠）
+
+## 原理与设计
+- React循环实现：在CLI内部实现Reason-Action-Observation循环用于复杂任务处理
+- 系统提示词设计：强制模型以JSON格式返回下一步指令，确保可解析性
+- 中文系统提示词：提供完整的中文版系统提示词，便于中文用户理解
+- React循环架构：Reason阶段(Gemini API分析)→Action阶段(CoreToolScheduler)→Observation阶段
