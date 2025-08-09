@@ -7,7 +7,7 @@
 import os
 import shutil
 from pathlib import Path
-from react_agent import GenericReactAgent, ReactAgentConfig, MemoryLevel
+from core.react_agent import GenericReactAgent, ReactAgentConfig, MemoryLevel
 from perspective_agent import PerspectiveAgent
 
 

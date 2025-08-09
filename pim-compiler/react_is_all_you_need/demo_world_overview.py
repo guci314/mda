@@ -8,7 +8,7 @@
 import os
 import sys
 from pathlib import Path
-from react_agent import GenericReactAgent, ReactAgentConfig, MemoryLevel
+from core.react_agent import GenericReactAgent, ReactAgentConfig, MemoryLevel
 
 def main():
     # 获取要分析的目录

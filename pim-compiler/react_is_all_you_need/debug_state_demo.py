@@ -10,7 +10,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 
-from react_agent import GenericReactAgent, ReactAgentConfig, MemoryLevel
+from core.react_agent import GenericReactAgent, ReactAgentConfig, MemoryLevel
 from react_agent_debugger import (
     ReactAgentDebugger,
     StepType,
@@ -82,7 +82,7 @@ def demo_detailed_state_analysis():
     print("\n\n=== 详细状态分析演示 ===\n")
     
     # 创建包含自定义工具的 Agent
-    from tools import create_tools
+    from core.tools import create_tools
     
     config = ReactAgentConfig(
         work_dir="output/debug_state_analysis",

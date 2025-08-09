@@ -15,8 +15,8 @@ sys.path.insert(0, str(Path(__file__).parent))
 # 禁用缓存以提高性能
 os.environ['DISABLE_LANGCHAIN_CACHE'] = 'true'
 
-from react_agent import GenericReactAgent, ReactAgentConfig, MemoryLevel
-from langchain_agent_tool import AgentToolWrapper, create_langchain_tool
+from core.react_agent import GenericReactAgent, ReactAgentConfig, MemoryLevel
+from core.langchain_agent_tool import AgentToolWrapper, create_langchain_tool
 from langchain_core.tools import tool
 
 # 如果使用 Gemini 需要导入 httpx

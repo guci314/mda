@@ -15,8 +15,8 @@ os.environ["HTTP_PROXY"] = "http://localhost:7890"
 os.environ["HTTPS_PROXY"] = "http://localhost:7890"
 http_client = None  # Gemini 将使用环境变量中的代理
 
-from react_agent import GenericReactAgent, ReactAgentConfig, MemoryLevel
-from langchain_agent_tool import (
+from core.react_agent import GenericReactAgent, ReactAgentConfig, MemoryLevel
+from core.langchain_agent_tool import (
     AgentToolWrapper, 
     create_langchain_tool,
     GenericAgentTool
@@ -59,7 +59,7 @@ def main():
     code_gen_agent = GenericReactAgent(code_gen_config, name="code_generator")
     
     # 为 code_runner 创建受限的工具集
-    from tools import create_tools
+    from core.tools import create_tools
     all_tools = create_tools(str(abs_work_dir))
     
     # 只保留读取和执行相关的工具，排除写入工具
@@ -150,7 +150,7 @@ def main():
     print("3. 创建主协调 Agent（使用 GenericReactAgent）...")
     
     # 从tools模块创建基本工具
-    from tools import create_tools
+    from core.tools import create_tools
     
     # 创建基本工具（使用主agent的工作目录）
     basic_tools = create_tools(str(work_dir))

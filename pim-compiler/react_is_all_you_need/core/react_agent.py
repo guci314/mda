@@ -144,7 +144,7 @@ try:
     from .tools import create_tools  # type: ignore
 except ImportError:
     # 尝试绝对导入（直接运行脚本）
-    from tools import create_tools  # type: ignore
+    from .tools import create_tools  # type: ignore
 
 # 全局线程跟踪
 _memory_update_threads = []

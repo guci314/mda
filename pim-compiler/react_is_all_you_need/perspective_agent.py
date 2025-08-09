@@ -7,7 +7,7 @@ import os
 import logging
 from pathlib import Path
 from typing import Optional, List, Dict, Any
-from react_agent import GenericReactAgent, ReactAgentConfig
+from core.react_agent import GenericReactAgent, ReactAgentConfig
 from perspective_manager import PerspectiveManager
 
 logger = logging.getLogger(__name__)

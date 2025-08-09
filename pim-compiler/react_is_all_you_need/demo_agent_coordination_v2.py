@@ -11,7 +11,7 @@ os.environ.pop('http_proxy', None)
 os.environ.pop('https_proxy', None)
 os.environ.pop('all_proxy', None)
 
-from react_agent import GenericReactAgent, ReactAgentConfig, MemoryLevel
+from core.react_agent import GenericReactAgent, ReactAgentConfig, MemoryLevel
 from langchain_core.tools import tool
 
 

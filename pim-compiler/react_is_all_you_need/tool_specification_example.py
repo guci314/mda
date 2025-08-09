@@ -11,7 +11,7 @@ os.environ.pop('https_proxy', None)
 os.environ.pop('all_proxy', None)
 
 from langchain_core.tools import tool
-from react_agent import GenericReactAgent, ReactAgentConfig, MemoryLevel
+from core.react_agent import GenericReactAgent, ReactAgentConfig, MemoryLevel
 
 
 # 方法1: 使用 @tool 装饰器

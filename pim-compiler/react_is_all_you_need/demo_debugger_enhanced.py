@@ -7,7 +7,7 @@
 import os
 import shutil
 from pathlib import Path
-from react_agent import ReactAgentConfig, MemoryLevel
+from core.react_agent import ReactAgentConfig, MemoryLevel
 from perspective_agent import PerspectiveAgent
 from react_agent_debugger_enhanced import EnhancedReactAgentDebugger, StepType
 from react_agent_debugger import StepBreakpoint, ConditionalBreakpoint

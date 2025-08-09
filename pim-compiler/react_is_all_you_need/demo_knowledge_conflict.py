@@ -6,7 +6,7 @@
 
 import os
 from pathlib import Path
-from react_agent import GenericReactAgent, ReactAgentConfig, MemoryLevel
+from core.react_agent import GenericReactAgent, ReactAgentConfig, MemoryLevel
 
 
 def demo_no_conflict():

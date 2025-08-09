@@ -6,7 +6,7 @@ import os
 # Uncomment the line below to disable cache
 os.environ['DISABLE_LANGCHAIN_CACHE'] = 'true'
 
-from react_agent import GenericReactAgent, ReactAgentConfig, MemoryLevel
+from core.react_agent import GenericReactAgent, ReactAgentConfig, MemoryLevel
 from pathlib import Path
 
 # 如果使用 Gemini 直连需要导入 httpx（OpenRouter不需要）

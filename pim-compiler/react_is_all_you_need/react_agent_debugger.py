@@ -21,7 +21,7 @@ from datetime import datetime
 from langchain_core.messages import BaseMessage, HumanMessage, AIMessage, SystemMessage, ToolMessage
 from langchain_core.runnables import RunnableConfig
 
-from react_agent import GenericReactAgent
+from core.react_agent import GenericReactAgent
 
 
 class StepType(Enum):

@@ -15,7 +15,7 @@ os.environ.pop('https_proxy', None)
 os.environ.pop('all_proxy', None)
 
 from langchain_core.tools import BaseTool, StructuredTool
-from react_agent import GenericReactAgent, ReactAgentConfig, MemoryLevel
+from .react_agent import GenericReactAgent, ReactAgentConfig, MemoryLevel
 
 
 def sanitize_tool_name(name: str) -> str:

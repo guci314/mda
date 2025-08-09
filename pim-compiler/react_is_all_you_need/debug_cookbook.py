@@ -11,7 +11,7 @@ from datetime import datetime
 
 sys.path.insert(0, str(Path(__file__).parent))
 
-from react_agent import GenericReactAgent, ReactAgentConfig, MemoryLevel
+from core.react_agent import GenericReactAgent, ReactAgentConfig, MemoryLevel
 from react_agent_debugger import ReactAgentDebugger, ConditionalBreakpoint, StepType
 
 

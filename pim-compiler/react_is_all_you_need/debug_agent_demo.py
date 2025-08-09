@@ -11,7 +11,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 
-from react_agent import GenericReactAgent, ReactAgentConfig, MemoryLevel
+from core.react_agent import GenericReactAgent, ReactAgentConfig, MemoryLevel
 from react_agent_debugger import (
     ReactAgentDebugger, 
     StepType, 
@@ -19,7 +19,7 @@ from react_agent_debugger import (
     AgentBreakpoint,
     ToolBreakpoint
 )
-from langchain_agent_tool import create_langchain_tool
+from core.langchain_agent_tool import create_langchain_tool
 
 
 def demo_multi_agent_debugging():
@@ -66,7 +66,7 @@ def demo_multi_agent_debugging():
     )
     
     # 创建基本工具
-    from tools import create_tools
+    from core.tools import create_tools
     basic_tools = create_tools(str(work_dir))
     
     # 组合所有工具

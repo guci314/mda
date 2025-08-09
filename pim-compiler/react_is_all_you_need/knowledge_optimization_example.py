@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """知识文件优化示例"""
 
-from react_agent import GenericReactAgent, ReactAgentConfig, MemoryLevel
+from core.react_agent import GenericReactAgent, ReactAgentConfig, MemoryLevel
 
 # 方案1：不使用知识文件，直接在任务中提供上下文
 def approach1():

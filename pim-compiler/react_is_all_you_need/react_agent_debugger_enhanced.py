@@ -5,7 +5,7 @@
 
 from typing import Optional, Dict, Any
 from react_agent_debugger import ReactAgentDebugger, StepType, ExecutionStep
-from react_agent import GenericReactAgent
+from core.react_agent import GenericReactAgent
 from perspective_agent import PerspectiveAgent
 from datetime import datetime
 
@@ -187,7 +187,7 @@ class EnhancedReactAgentDebugger(ReactAgentDebugger):
 
 # 使用示例
 if __name__ == "__main__":
-    from react_agent import ReactAgentConfig, MemoryLevel
+    from core.react_agent import ReactAgentConfig, MemoryLevel
     from pathlib import Path
     
     # 创建测试目录
