@@ -9,6 +9,8 @@
 - **文件操作模式**：使用write_file/read_file/str_replace_editor进行文件管理，注意JSON格式和转义字符处理
 - **状态追踪**：通过status字段（thinking/branching/concluding/completed）跟踪思维过程阶段
 - **强制完成机制**：必须完成所有指定步骤（如8个thoughts）才能返回，避免半途而废
+- **自检循环**：使用while循环验证所有成功条件，确保任务完整性
+- **JSON更新技巧**：使用str_replace_editor进行精确替换，避免破坏JSON结构
 
 ## 原理与设计
 - **实时推荐系统核心原则**：
@@ -25,6 +27,8 @@
   - 重排层：业务规则调整（<20ms），实时过滤和多样性
 - **性能优化策略**：预计算+缓存+近似算法是满足延迟要求的关键
 - **冷启动解决方案**：使用内容特征+热门商品兜底策略
+- **混合架构优势**：结合协同过滤的实时性和深度学习的精准性，通过分层架构实现延迟与效果的平衡
+- **决策流程**：从需求分析→技术分支→性能对比→效果评估→最终决策的完整闭环
 
 ## 接口与API
 - **thought_chain.json结构**：
@@ -46,6 +50,8 @@
   - `str_replace_editor(path, old_str, new_str)`：替换文件内容（需精确匹配）
 - **分支创建方法**：在branches对象中添加新分支，指定parent thought_id
 - **状态更新流程**：按顺序添加thoughts→创建branches→更新conclusions→设置status=completed
+- **验证清单**：必须检查thoughts数量、分支完整性、conclusions填写、status状态
+- **文档生成模板**：从thought_chain.json提取关键信息生成recommendation_system.md
 
 ## 实现细节（需验证）
 - **文件结构**：
@@ -60,11 +66,8 @@
 - **状态管理**：status字段跟踪思维过程阶段
 - **注意事项**：JSON文件更新时需注意转义字符和格式完整性
 - **验证清单**：必须检查thoughts数量、分支完整性、conclusions填写、status状态
+- **强制完成检查**：使用while循环确保所有条件满足
+- **文件操作顺序**：先read_file获取当前状态，再str_replace_editor更新特定部分
 
 ## 用户偏好与项目特点
-- **文档要求**：每个重要决策必须记录在thought_chain.json中
-- **性能指标**：严格延迟要求（<100ms）驱动技术选型
-- **效果验证**：需要量化的CTR提升目标（20%）
-- **探索模式**：鼓励并行探索多种技术方案而非单一路径
-- **格式规范**：使用ISO8601时间戳，confidence值0-1范围
-- **强制完成**：必须完成所有指定步骤，不接受部分完成
+- **

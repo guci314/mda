@@ -23,7 +23,7 @@ def create_sequential_thinking_agent(work_dir: str) -> GenericReactAgent:
     config = ReactAgentConfig(
         work_dir=work_dir,
         memory_level=MemoryLevel.SMART,
-        knowledge_files=[],
+        knowledge_files=["knowledge/sequential_thinking_knowledge.md"],  # 使用知识驱动
         enable_project_exploration=False,
         llm_model="kimi-k2-turbo-preview",
         llm_base_url="https://api.moonshot.cn/v1",
@@ -270,6 +270,45 @@ def demo_architecture_design():
 ⚠️ 当前只完成2个thoughts是不可接受的！必须完成全部8个！
 
 请立即开始，并确保完成所有步骤后再返回。
+
+## 成功条件
+
+任务只有在满足以下所有条件时才算成功：
+
+### 必须满足的条件（ALL must be true）
+1. ✅ thought_chain.json存在且格式正确
+2. ✅ thoughts数组包含exactly 8个元素
+3. ✅ 每个thought都有完整的内容（不少于50字）
+4. ✅ branches对象包含"collaborative_filtering"分支
+5. ✅ branches对象包含"deep_learning"分支
+6. ✅ conclusions.main字段非空（包含最终决策）
+7. ✅ status字段值为"completed"（不是"thinking"）
+8. ✅ recommendation_system.md文件已生成
+9. ✅ 文档包含基于思维链的架构设计
+
+### 失败标志（任何一个出现即为失败）
+1. ❌ thoughts少于8个
+2. ❌ status仍为"thinking"
+3. ❌ conclusions.main为空
+4. ❌ 缺少任何一个技术分支
+5. ❌ 没有生成架构文档
+
+### 自检循环
+你必须在返回前执行自检：
+```python
+while not all_conditions_met():
+    check_current_state()
+    if thoughts < 8:
+        add_next_thought()
+    elif status != "completed":
+        update_status()
+    elif not document_exists():
+        generate_document()
+    else:
+        break  # 所有条件满足，可以返回
+```
+
+记住：只有当所有成功条件都满足时，你才能返回结果。
 """
     
     print("\n任务：设计电商推荐系统")
