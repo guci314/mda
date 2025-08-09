@@ -1,6 +1,6 @@
 from sqlalchemy import Column, String, Integer, Enum as SQLEnum, ForeignKey, DateTime, Date, Numeric
 from sqlalchemy.orm import relationship
-from ..database import Base
+from app.database import Base
 from .enums import BookStatus, ReaderType, ReaderStatus, BorrowStatus, ReservationStatus
 
 class BookDB(Base):

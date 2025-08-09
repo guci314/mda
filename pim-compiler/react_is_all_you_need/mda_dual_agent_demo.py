@@ -69,7 +69,8 @@ def create_debug_agent(work_dir: str, llm_config: dict) -> GenericReactAgent:
         memory_level=MemoryLevel.SMART,
         knowledge_files=[
             "knowledge/mda/debugging_knowledge.md",      # 调试专用知识
-            "knowledge/mda/syntax_fix_strategies.md"     # 语法修复策略
+            "knowledge/mda/syntax_fix_strategies.md",    # 语法修复策略
+            "knowledge/mda/debugging_workflow.md"        # 调试工作流程
         ],
         enable_project_exploration=False,
         **llm_config
@@ -85,35 +86,19 @@ def create_debug_agent(work_dir: str, llm_config: dict) -> GenericReactAgent:
 - 确保100%测试通过
 """
     
-    # 为调试Agent添加额外的系统提示，指导其使用正确的工具
+    # 简化系统提示，主要依赖知识文件
     agent._system_prompt = (agent._system_prompt or "") + """
 
-## 调试流程指导
+## 调试任务执行
 
-你必须完成完整的调试流程，不要只初始化就返回！
+你是一个专业的调试Agent。你的知识文件已经包含了：
+- 完整的调试工作流程 (debugging_workflow.md)
+- 详细的错误处理策略 (debugging_knowledge.md)  
+- Python语法修复指南 (syntax_fix_strategies.md)
 
-### Python语法错误修复策略（重要）
-**优先使用 fix_python_syntax_errors 工具！**
-- 遇到缩进错误（IndentationError）：立即使用 fix_python_syntax_errors 工具
-- 遇到括号不匹配（SyntaxError: unmatched）：立即使用 fix_python_syntax_errors 工具  
-- 遇到多个语法错误：使用 fix_python_syntax_errors 一次性修复整个文件
-- 避免使用 edit_lines 逐行修复语法错误！这会导致反复修复同样的问题。
+请严格按照知识文件中的工作流程执行调试任务。
 
-### 执行流程（必须全部完成）
-1. 调用 init_debug_notes 工具初始化调试笔记
-2. 使用 execute_command 运行 pytest -xvs 获取测试结果
-3. 如果有失败：
-   - 对于语法错误：立即使用 fix_python_syntax_errors 工具
-   - 对于其他错误：使用 read_file、search_replace 或 write_file 修复
-   - 更新 debug_notes.json 记录修复尝试
-4. 再次运行 pytest 验证修复
-5. 重复步骤3-4直到所有测试通过
-6. 更新最终的 debug_notes.json
-
-### 返回条件
-- 成功：所有测试通过（0 failed），返回"调试完成，所有测试通过"
-- 失败：达到最大尝试次数（10次），返回"需要人工介入"
-- 继续：如果需要更多步骤，返回"需要继续调试，请再次调用"
+记住：你必须完成完整的调试流程，使用正确的工具（特别是 fix_python_syntax_errors），持续修复直到所有测试通过或达到退出条件。
 """
     return agent
 
@@ -122,11 +107,11 @@ def create_coordinator_agent(work_dir: str, llm_config: dict,
                            generation_tool, debug_tool) -> GenericReactAgent:
     """创建协调两个子Agent的主Agent"""
     
-    # 主Agent配置 - 只负责协调
+    # 主Agent配置 - 使用协调知识
     config = ReactAgentConfig(
         work_dir=work_dir,
         memory_level=MemoryLevel.SMART,
-        knowledge_files=[],  # 主Agent不需要领域知识
+        knowledge_files=["knowledge/mda/coordinator_workflow.md"],  # 使用协调工作流知识
         enable_project_exploration=False,
         **llm_config
     )
@@ -150,6 +135,20 @@ def create_coordinator_agent(work_dir: str, llm_config: dict,
 2. 运行测试验证
 3. 如有失败，调用调试Agent修复
 4. 循环直到100%通过
+"""
+    
+    # 简化系统提示，依赖知识文件
+    agent._system_prompt = (agent._system_prompt or "") + """
+
+## 协调任务执行
+
+你是MDA Pipeline的协调者。你的知识文件 coordinator_workflow.md 包含了：
+- 完整的执行流程
+- TODO管理规范
+- 调试Agent循环管理
+- 成功标准定义
+
+请严格按照知识文件中的工作流程执行协调任务。
 """
     
     return agent
@@ -257,7 +256,7 @@ def main():
     
     start_time = time.time()
     
-    # 意图声明风格的任务描述
+    # 简化的任务描述 - 详细流程在知识文件中
     task = f"""
 ## 目标
 从PSM文件生成一个完全可工作的FastAPI应用，确保所有测试100%通过。
@@ -266,77 +265,27 @@ def main():
 - PSM文件：{psm_file}
 - 输出目录：{work_dir}
 
+## 执行要求
+请按照你的知识文件 coordinator_workflow.md 中定义的标准流程执行：
 
-## TODO管理要求
-你必须在 {work_dir}/coordinator_todo.json 文件中维护任务清单。
+1. 初始化TODO笔记 (coordinator_todo.json)
+2. 调用 code_generator 生成FastAPI应用
+3. 运行 pytest 测试验证
+4. 如有失败，调用 code_debugger 修复（记住要循环调用直到完成）
+5. 确认100%测试通过
 
-初始TODO结构：
-```json
-{{
-  "tasks": [
-    {{"id": 1, "task": "生成FastAPI应用代码", "status": "pending"}},
-    {{"id": 2, "task": "运行pytest测试验证", "status": "pending"}},
-    {{"id": 3, "task": "如果测试失败，调用调试Agent修复", "status": "pending"}},
-    {{"id": 4, "task": "确认所有测试100%通过", "status": "pending"}}
-  ],
-  "current_task": null,
-  "completed_count": 0,
-  "total_count": 4
-}}
-```
-
-每次开始和完成任务时，使用 write_file 工具更新TODO文件：
-- 开始任务时：设置 status = "in_progress"，更新 current_task
-- 完成任务时：设置 status = "completed"，更新 completed_count
-- 跳过任务时：设置 status = "skipped"
-
-## 执行策略
-你有以下主要工具可以使用：
-1. **write_file** - 用于创建和更新TODO笔记（以及其他文件）
-2. **execute_command** - 用于运行命令（如pytest）
-3. **code_generator** - 用于生成代码（子Agent工具）
-4. **code_debugger** - 用于修复测试失败（子Agent工具）
-还有其他文件操作和搜索工具。
-
-请按照以下流程执行：
-1. 首先，创建TODO笔记文件（使用write_file写入coordinator_todo.json）
-2. 使用 code_generator 生成FastAPI应用（更新TODO：任务1完成）
-3. 使用 execute_command 运行 `cd {work_dir} && python -m pytest tests/ -xvs` 验证代码（更新TODO：任务2完成）
-4. 如果测试有失败：
-   - 使用 code_debugger 修复所有错误，传递明确的任务：
-     "修复测试错误直到全部通过。你必须完成整个调试流程，不要只初始化就返回。
-      
-      【重要】你有一个专门的工具 fix_python_syntax_errors 用于修复Python语法错误：
-      - 遇到任何缩进错误（IndentationError）：使用 fix_python_syntax_errors 工具
-      - 遇到括号不匹配（SyntaxError）：使用 fix_python_syntax_errors 工具
-      - 这个工具会自动重写整个文件，避免逐行修复的问题
-      
-      使用你的所有工具，特别是 fix_python_syntax_errors 处理语法错误。
-      持续修复直到所有测试通过或达到最大尝试次数。"
-   - 如果 code_debugger 返回"需要继续调试"，立即再次调用它
-   - 循环调用 code_debugger 直到返回"调试完成"或"需要人工介入"
-   - 再次使用 execute_command 运行测试确认修复成功
-   - 检查 debug_notes.json 确认调试Agent记录了所有活动
-5. 确认所有测试通过（更新TODO：任务4完成）
-
-## 重要提示
-- 每个任务开始和结束都要更新TODO笔记
-- 必须完成整个流程，不要在生成代码后就停止
-- 必须实际运行测试并查看结果
-- 如果测试失败，必须调用调试Agent修复
-- **绝对不要自己使用sed或其他命令修改代码，只能通过code_debugger修复**
-- **如果code_debugger需要更多步骤，必须继续调用它，不要放弃**
-- 只有当看到所有测试通过才能结束任务
-
-现在开始执行，记得维护TODO笔记，确保达到100%测试通过的目标。
+## 工具提醒
+- code_generator: 生成代码的子Agent
+- code_debugger: 修复错误的子Agent（支持 fix_python_syntax_errors 工具）
+- execute_command: 运行测试命令
+- write_file: 管理TODO笔记
 
 ## 成功标准
-- TODO列表中的每一项任务都必须完成（status为"completed"或"skipped"）
-- FastAPI应用成功生成在指定目录
-- 运行 `pytest tests/ -xvs` 所有测试必须通过（0个失败）
-- 如果有测试失败，必须修复直到100%通过
-- coordinator_todo.json 的 completed_count 必须等于 total_count
+- 所有TODO任务完成
+- pytest tests/ -xvs 显示 0 failed
+- coordinator_todo.json 记录完整执行过程
 
+开始执行任务，严格遵循知识文件中的工作流程。
 """
     
     try:

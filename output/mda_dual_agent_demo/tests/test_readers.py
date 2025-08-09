@@ -13,13 +13,13 @@ async def test_register_reader():
         phone="12345678901",
         reader_type="student"
     )
-    response = client.post("/readers/", json=reader_data.dict())
+    response = client.post("/api/readers/", json=reader_data.dict())
     assert response.status_code == 200
     assert response.json()["name"] == "Test Reader"
 
 @pytest.mark.asyncio
 async def test_get_reader():
-    response = client.get("/readers/1")
+    response = client.get("/api/readers/1")
     assert response.status_code == 200
     assert response.json()["reader_id"] == "1"
 
@@ -31,12 +31,12 @@ async def test_update_reader():
         phone="12345678901",
         reader_type="student"
     )
-    response = client.put("/readers/1", json=reader_data.dict())
+    response = client.put("/api/readers/1", json=reader_data.dict())
     assert response.status_code == 200
     assert response.json()["name"] == "Updated Reader"
 
 @pytest.mark.asyncio
 async def test_freeze_reader():
-    response = client.delete("/readers/1")
+    response = client.delete("/api/readers/1")
     assert response.status_code == 200
     assert response.json()["message"] == "Reader frozen successfully"

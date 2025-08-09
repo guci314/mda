@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
-from .database import init_db
+from app.database import init_db
 from .routers import books, readers
 
 @asynccontextmanager

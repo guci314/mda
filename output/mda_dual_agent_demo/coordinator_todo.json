@@ -1,0 +1,29 @@
+{
+  "tasks": [
+    {
+      "id": 1,
+      "task": "读取PSM文件内容",
+      "status": "completed"
+    },
+    {
+      "id": 2,
+      "task": "调用code_generator生成FastAPI应用",
+      "status": "completed"
+    },
+    {
+      "id": 3,
+      "task": "运行pytest测试验证",
+      "status": "pending"
+    },
+    {
+      "id": 4,
+      "task": "如有失败，调用code_debugger修复",
+      "status": "pending"
+    },
+    {
+      "id": 5,
+      "task": "确认100%测试通过",
+      "status": "pending"
+    }
+  ]
+}

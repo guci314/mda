@@ -20,15 +20,28 @@ from core.react_agent import GenericReactAgent, ReactAgentConfig, MemoryLevel
 def create_sequential_thinking_agent(work_dir: str) -> GenericReactAgent:
     """创建使用JSON笔记本实现Sequential Thinking的Agent"""
     
+    # 在中国使用Gemini需要配置代理
+    import httpx
+    http_client = httpx.Client(
+        proxy='socks5://127.0.0.1:7890',  # 根据你的代理配置调整
+        timeout=30,
+        verify=False
+    )
+    
     config = ReactAgentConfig(
         work_dir=work_dir,
         memory_level=MemoryLevel.SMART,
-        knowledge_files=["knowledge/sequential_thinking_knowledge.md"],  # 使用知识驱动
+        knowledge_files=[
+            "knowledge/workflow/sequential_thinking.md",  # Sequential Thinking核心知识
+            "knowledge/workflow/json_notebook_patterns.md",  # JSON操作模式
+            "knowledge/workflow/execution_strategies.md"  # 执行策略
+        ],
         enable_project_exploration=False,
-        llm_model="kimi-k2-turbo-preview",
-        llm_base_url="https://api.moonshot.cn/v1",
-        llm_api_key_env="MOONSHOT_API_KEY",
-        llm_temperature=0
+        llm_model="gemini-2.5-pro",  # Google的推理模型
+        llm_base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
+        llm_api_key_env="GEMINI_API_KEY",
+        llm_temperature=0,
+        http_client=http_client  # 启用代理
     )
     
     # 只使用默认工具，无需自定义工具！
@@ -42,154 +55,27 @@ def create_sequential_thinking_agent(work_dir: str) -> GenericReactAgent:
 - 完全可追溯的思维过程
 """
     
-    # 核心：通过系统提示定义Sequential Thinking的实现
+    # 简化系统提示，主要依赖知识文件
     agent._system_prompt = (agent._system_prompt or "") + """
 
-## 任务目标（意图声明）
+## Sequential Thinking 执行任务
 
-你的任务是使用thought_chain.json文件实现完整的Sequential Thinking过程。
+你是一个Sequential Thinking执行器。你的知识文件已经包含了完整的思维链模式和执行策略。
 
-### 成功条件（必须全部满足）
-✅ thought_chain.json包含至少5个思考步骤
-✅ 必须包含至少2个分支探索（不同技术方案）
-✅ 每个thought都有明确的confidence置信度
-✅ 最终conclusions部分包含明确的主要结论
-✅ status字段最终为"completed"
-✅ 生成对应的架构文档（.md文件）
+请根据知识文件中的指导：
+1. 使用thought_chain.json记录结构化思考过程
+2. 遵循JSON笔记本操作模式（完整读-修改-写）
+3. 实现递增式思考（每次添加一个thought）
+4. 支持分支探索和修正机制
+5. 自驱动循环直到完成所有思考步骤
 
-### 失败条件（出现任何一个即为失败）
-❌ 只完成1-2个思考步骤就停止
-❌ 没有探索多个技术分支
-❌ conclusions部分为空
-❌ status仍为"thinking"
-❌ 没有生成最终文档
+### 成功标准
+- 完成预定数量的思考步骤（通常是8个）
+- 包含必要的分支探索
+- 设置最终状态为completed
+- 生成相应的文档
 
-## Sequential Thinking 实现协议
-
-### JSON结构（你必须严格遵守）
-```json
-{
-  "session_id": "唯一会话标识",
-  "created_at": "创建时间",
-  "total_thoughts_estimate": 8,  // 预估需要8个思考步骤
-  "current_thought": 0,  // 当前进行到第几步
-  "status": "thinking",  // thinking|completed|paused
-  "thoughts": [
-    {
-      "id": 1,
-      "content": "详细的思考内容",
-      "timestamp": "时间戳",
-      "type": "initial|continuation|revision|branch|conclusion",
-      "revises": null,
-      "branch_from": null,
-      "branch_id": null,
-      "confidence": 0.8,
-      "tags": ["标签1", "标签2"]
-    }
-  ],
-  "branches": {
-    "协同过滤": {
-      "from_thought": 2,
-      "thoughts": [...]
-    },
-    "深度学习": {
-      "from_thought": 2,
-      "thoughts": [...]
-    }
-  },
-  "conclusions": {
-    "main": "最终选择的方案及理由",
-    "alternatives": ["备选方案1", "备选方案2"]
-  }
-}
-```
-
-## 执行策略（必须按顺序完成）
-
-### 第1步：初始化
-- 创建thought_chain.json，设置初始结构
-- current_thought: 0, status: "thinking"
-
-### 第2步：需求分析（thought 1）
-- type: "initial"
-- 分析所有需求，识别关键挑战
-- confidence: 0.9+（需求明确）
-
-### 第3步：技术方案探索（thought 2-5）
-你必须探索至少2个不同的技术分支：
-
-#### 分支A：协同过滤方案
-- thought 2: 创建分支点
-- thought 3: 探索协同过滤（branch_id: "collaborative_filtering"）
-  - 详细分析UserCF/ItemCF
-  - 评估优缺点
-  - confidence: 基于方案可行性
-
-#### 分支B：深度学习方案  
-- thought 4: 探索深度学习（branch_id: "deep_learning"）
-  - 分析DNN/Wide&Deep/DeepFM等模型
-  - 评估优缺点
-  - confidence: 基于方案可行性
-
-### 第4步：方案评估（thought 5-6）
-- thought 5: 性能对比（延迟、吞吐量）
-- thought 6: 效果对比（CTR提升潜力）
-- 可能需要revision修正之前的分析
-
-### 第5步：综合决策（thought 7-8）
-- thought 7: 最终方案选择
-- thought 8: type="conclusion"，总结所有分析
-- 更新conclusions部分
-- 设置status="completed"
-
-### 第6步：生成文档
-基于thought_chain.json生成recommendation_system.md
-
-## 重要提醒
-
-⚠️ 你必须完成所有8个思考步骤，不能中途停止
-⚠️ 每完成一个thought，立即更新thought_chain.json
-⚠️ 使用read_file读取当前状态，write_file保存更新
-⚠️ 分支探索要详细，不能敷衍了事
-⚠️ 最后必须设置status="completed"
-
-## 强制执行循环
-
-你必须执行以下循环，直到current_thought达到8：
-
-```
-while current_thought < 8:
-    1. 读取thought_chain.json
-    2. 添加下一个thought
-    3. 更新current_thought
-    4. 写回thought_chain.json
-```
-
-不允许在current_thought < 8时返回结果！
-
-## 执行检查清单
-
-在返回结果前，你必须确认ALL条件都满足：
-☐ thought_chain.json存在且格式正确
-☐ thoughts数组包含至少8个元素（当前只有{current}个，还需{remaining}个）
-☐ branches对象包含至少2个分支
-☐ conclusions.main不为空
-☐ status == "completed"（不是"thinking"）
-☐ recommendation_system.md文件已生成
-
-❌ 如果任何检查项未完成，你必须继续工作！
-❌ 绝对不允许在未完成时返回！
-✅ 只有当所有条件都满足时才能返回结果！
-
-## 当前进度追踪
-
-每次更新thought_chain.json后，检查：
-- 当前thought数量：{当前数量}/8
-- 分支数量：{当前分支数}/2
-- 状态：{当前状态} → 必须是"completed"
-- 文档：{是否已生成} → 必须已生成
-
-如果进度不足100%，立即继续下一步！
+记住：知识文件是你的执行指南，严格遵循其中的思维链模式和最佳实践。
 """
     
     return agent

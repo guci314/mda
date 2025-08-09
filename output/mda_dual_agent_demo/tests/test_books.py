@@ -18,13 +18,13 @@ async def test_add_book():
         available_quantity=5,
         location="A1"
     )
-    response = client.post("/books/", json=book_data.dict())
+    response = client.post("/api/books/", json=book_data.dict())
     assert response.status_code == 200
     assert response.json()["title"] == "Test Book"
 
 @pytest.mark.asyncio
 async def test_get_book():
-    response = client.get("/books/1234567890")
+    response = client.get("/api/books/1234567890")
     assert response.status_code == 200
     assert response.json()["isbn"] == "1234567890"
 
@@ -41,12 +41,12 @@ async def test_update_book():
         available_quantity=5,
         location="A1"
     )
-    response = client.put("/books/1234567890", json=book_data.dict())
+    response = client.put("/api/books/1234567890", json=book_data.dict())
     assert response.status_code == 200
     assert response.json()["title"] == "Updated Book"
 
 @pytest.mark.asyncio
 async def test_remove_book():
-    response = client.delete("/books/1234567890")
+    response = client.delete("/api/books/1234567890")
     assert response.status_code == 200
     assert response.json()["message"] == "Book removed successfully"

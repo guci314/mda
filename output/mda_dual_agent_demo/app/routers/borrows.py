@@ -21,6 +21,8 @@ async def return_book(borrow_id: str, service: BorrowingService = Depends(get_bo
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+from datetime import datetime
+
 @router.put("/{borrow_id}/renew", response_model=datetime)
 async def renew_book(borrow_id: str, service: BorrowingService = Depends(get_borrowing_service)):
     try:

@@ -1,54 +1,79 @@
-from sqlalchemy import Column, String, Integer, Enum as SQLEnum, ForeignKey, DateTime, Date, Numeric
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Enum, Boolean
 from sqlalchemy.ext.declarative import declarative_base
-from app.models.enums import BookStatus, ReaderType, ReaderStatus, BorrowStatus, ReservationStatus
+from sqlalchemy.orm import relationship
+from datetime import datetime
+from app.models.enums import BookStatus, ReaderStatus, BorrowStatus, ReservationStatus
 
 Base = declarative_base()
 
+
 class BookDB(Base):
     __tablename__ = "books"
-    isbn = Column(String, primary_key=True)
-    title = Column(String, nullable=False)
-    author = Column(String, nullable=False)
-    publisher = Column(String, nullable=False)
-    publish_year = Column(Integer, nullable=False)
-    category = Column(String, nullable=False)
-    total_quantity = Column(Integer, nullable=False)
-    available_quantity = Column(Integer, nullable=False)
-    location = Column(String, nullable=False)
-    description = Column(String)
-    status = Column(SQLEnum(BookStatus), nullable=False)
+
+    id = Column(Integer, primary_key=True, index=True)
+    isbn = Column(String(13), unique=True, index=True)
+    title = Column(String(255), nullable=False)
+    author = Column(String(255), nullable=False)
+    publisher = Column(String(255))
+    publication_year = Column(Integer)
+    category = Column(String(100))
+    total_copies = Column(Integer, default=1)
+    available_copies = Column(Integer, default=1)
+    status = Column(Enum(BookStatus), default=BookStatus.AVAILABLE)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    borrow_records = relationship("BorrowRecordDB", back_populates="book")
+    reservations = relationship("ReservationRecordDB", back_populates="book")
+
 
 class ReaderDB(Base):
     __tablename__ = "readers"
-    reader_id = Column(String, primary_key=True)
-    name = Column(String, nullable=False)
-    id_card = Column(String, nullable=False, unique=True)
-    phone = Column(String, nullable=False)
-    email = Column(String)
-    reader_type = Column(SQLEnum(ReaderType), nullable=False)
-    register_date = Column(DateTime, nullable=False)
-    valid_until = Column(Date, nullable=False)
-    status = Column(SQLEnum(ReaderStatus), nullable=False)
-    credit_score = Column(Integer, nullable=False, default=100)
+
+    id = Column(Integer, primary_key=True, index=True)
+    library_card_number = Column(String(20), unique=True, index=True)
+    name = Column(String(100), nullable=False)
+    email = Column(String(255), unique=True, index=True)
+    phone = Column(String(20))
+    address = Column(String(500))
+    status = Column(Enum(ReaderStatus), default=ReaderStatus.ACTIVE)
+    registration_date = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    borrow_records = relationship("BorrowRecordDB", back_populates="reader")
+    reservations = relationship("ReservationRecordDB", back_populates="reader")
+
 
 class BorrowRecordDB(Base):
     __tablename__ = "borrow_records"
-    borrow_id = Column(String, primary_key=True)
-    reader_id = Column(String, ForeignKey("readers.reader_id"), nullable=False)
-    isbn = Column(String, ForeignKey("books.isbn"), nullable=False)
-    borrow_date = Column(DateTime, nullable=False)
-    due_date = Column(Date, nullable=False)
+
+    id = Column(Integer, primary_key=True, index=True)
+    book_id = Column(Integer, ForeignKey("books.id"), nullable=False)
+    reader_id = Column(Integer, ForeignKey("readers.id"), nullable=False)
+    borrow_date = Column(DateTime, default=datetime.utcnow)
+    due_date = Column(DateTime, nullable=False)
     return_date = Column(DateTime)
-    renew_count = Column(Integer, nullable=False, default=0)
-    status = Column(SQLEnum(BorrowStatus), nullable=False)
-    fine = Column(Numeric(10, 2))
+    status = Column(Enum(BorrowStatus), default=BorrowStatus.BORROWED)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    book = relationship("BookDB", back_populates="borrow_records")
+    reader = relationship("ReaderDB", back_populates="borrow_records")
+
 
 class ReservationRecordDB(Base):
     __tablename__ = "reservation_records"
-    reservation_id = Column(String, primary_key=True)
-    reader_id = Column(String, ForeignKey("readers.reader_id"), nullable=False)
-    isbn = Column(String, ForeignKey("books.isbn"), nullable=False)
-    reserve_date = Column(DateTime, nullable=False)
-    status = Column(SQLEnum(ReservationStatus), nullable=False)
-    notify_date = Column(DateTime)
-    expire_date = Column(DateTime)
+
+    id = Column(Integer, primary_key=True, index=True)
+    book_id = Column(Integer, ForeignKey("books.id"), nullable=False)
+    reader_id = Column(Integer, ForeignKey("readers.id"), nullable=False)
+    reservation_date = Column(DateTime, default=datetime.utcnow)
+    expiry_date = Column(DateTime, nullable=False)
+    status = Column(Enum(ReservationStatus), default=ReservationStatus.PENDING)
+    notification_sent = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    book = relationship("BookDB", back_populates="reservations")
+    reader = relationship("ReaderDB", back_populates="reservations")
