@@ -30,20 +30,25 @@
 
 ### 调试模块
 
-#### debugging_knowledge.md
-- **用途**: 系统性调试知识库
+#### debugging_complete.md
+- **用途**: 完整调试知识库（整合版）
 - **适用对象**: 调试Agent
-- **主要内容**: 错误模式识别、修复策略、调试笔记维护
+- **主要内容**: 
+  - 完整调试工作流程和执行模板
+  - Python语法错误处理策略
+  - 错误模式识别与解决方案
+  - 调试笔记维护规范
+  - 测试结果解析方法
+  - 与协调Agent的交互协议
 
-#### debugging_workflow.md
-- **用途**: 完整的调试工作流程
+#### debugging_validation.md
+- **用途**: 调试验证增强策略
 - **适用对象**: 调试Agent
-- **主要内容**: 执行流程、工具使用、返回条件
-
-#### syntax_fix_strategies.md
-- **用途**: Python语法错误修复策略
-- **适用对象**: 调试Agent
-- **主要内容**: 缩进修复、括号匹配、整体重写策略
+- **主要内容**:
+  - 严格的成功判定标准
+  - 失败分类与处理策略
+  - 防止过早退出机制
+  - 进度追踪和诚实报告
 
 ### 协调模块
 
@@ -66,11 +71,9 @@ knowledge_files = [
 
 ### 2. 调试Agent配置
 ```python
-# 完整的调试能力
+# 完整的调试能力（使用合并版）
 knowledge_files = [
-    "knowledge/mda/debugging_knowledge.md",
-    "knowledge/mda/debugging_workflow.md",
-    "knowledge/mda/syntax_fix_strategies.md"
+    "knowledge/mda/debugging_complete.md"
 ]
 ```
 
@@ -97,9 +100,7 @@ coordinator_workflow.md
     ├── generation_knowledge.md
     │   ├── fastapi_generation_knowledge.md
     │   └── generate_fastapi_app.md
-    └── debugging_workflow.md
-        ├── debugging_knowledge.md
-        └── syntax_fix_strategies.md
+    └── debugging_complete.md (整合了所有调试知识)
 ```
 
 ## 最佳实践
@@ -133,3 +134,4 @@ coordinator_workflow.md
 - 2024-01: 初始版本，包含基础MDA流程
 - 2024-08: 添加调试工作流和协调工作流
 - 2024-08: 优化知识模块组织结构
+- 2024-08: 合并调试知识文件为 debugging_complete.md

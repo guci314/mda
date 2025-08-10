@@ -4,5 +4,23 @@
     "duration_seconds": 119.000764,
     "result_size": 3137,
     "prompt_type": "default"
+  },
+  {
+    "timestamp": "2025-08-10T04:14:57.413039",
+    "duration_seconds": 89.266108,
+    "result_size": 12072,
+    "prompt_type": "default"
+  },
+  {
+    "timestamp": "2025-08-10T04:33:24.031780",
+    "duration_seconds": 68.672907,
+    "result_size": 7986,
+    "prompt_type": "default"
+  },
+  {
+    "timestamp": "2025-08-10T05:09:31.463353",
+    "duration_seconds": 57.95052,
+    "result_size": 7132,
+    "prompt_type": "default"
   }
 ]

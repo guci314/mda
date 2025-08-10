@@ -1,14 +1,16 @@
 from fastapi import FastAPI
-from contextlib import asynccontextmanager
-from app.database import init_db
-from .routers import books, readers
+from .database import engine
+from . import models
+from .routers import articles, categories, comments
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    init_db()
-    yield
+models.Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="图书借阅系统API", lifespan=lifespan)
+app = FastAPI()
 
-app.include_router(books.router)
-app.include_router(readers.router)
+app.include_router(articles.router)
+app.include_router(categories.router)
+app.include_router(comments.router)
+
+@app.get("/")
+def read_root():
+    return {"message": "Welcome to the Blog API"}

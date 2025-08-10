@@ -1,1 +1,1 @@
-# Initialize the tests module
+# Initialize the tests package

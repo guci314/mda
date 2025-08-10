@@ -1,1 +1,1 @@
-# Initialize the app module
+# Initialize the app package

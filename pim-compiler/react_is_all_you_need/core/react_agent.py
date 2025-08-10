@@ -424,7 +424,7 @@ class ReactAgentConfig:
                  enable_world_overview=True,
                  enable_perspective=False,
                  show_memory_updates=True,
-                 enable_project_exploration=True,
+                 enable_project_exploration=False,
                  exploration_interval=86400,
                  exploration_prompt=None,
                  exploration_prompt_file=None,
@@ -1828,7 +1828,7 @@ class GenericReactAgent:
         
         # 执行任务，设置更高的递归限制和配置
         invoke_config = RunnableConfig(
-            recursion_limit=100,  # 增加递归限制
+            recursion_limit=300,  # 增加递归限制
             max_concurrency=5,    # 限制并发
             configurable={}
         )

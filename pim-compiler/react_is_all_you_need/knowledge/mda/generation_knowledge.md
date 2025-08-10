@@ -14,41 +14,30 @@
 - **单一职责**：你只负责生成，调试工作交给调试Agent
 
 ### 2. 生成策略
-- **一次性生成**：尽可能一次生成完整的代码结构
+- **增量生成**：检查文件是否存在，避免重复生成
 - **遵循最佳实践**：使用标准的项目结构和命名规范
 - **保持一致性**：确保生成的代码风格一致
+- **跳过已存在的文件**：如果文件已存在，记录并跳过
 
-## PIM到PSM转换规则
+### 3. 必须生成单元测试
 
-### 转换流程
-1. **读取PIM文件**
-   - 解析领域模型定义
-   - 提取实体、属性、关系
-   - 识别业务规则和约束
+## 从PSM生成代码
 
-2. **生成PSM结构**
-   ```yaml
-   platform: FastAPI
-   database: SQLAlchemy with SQLite
-   components:
-     models:
-       - 每个PIM实体对应一个SQLAlchemy模型
-       - 添加数据库特定的配置（索引、约束等）
-     schemas:
-       - 每个模型对应Pydantic schemas
-       - 包含Create、Update、Response变体
-     services:
-       - 实现业务逻辑
-       - 处理数据验证和转换
-     routers:
-       - RESTful API端点
-       - 遵循REST最佳实践
-   ```
+### 生成流程
+1. **读取PSM文件**
+   - 解析平台特定模型
+   - 提取技术实现细节
+   - 识别API端点和数据结构
 
-3. **输出PSM文件**
-   - 使用YAML格式
-   - 包含完整的技术细节
-   - 保持可读性和可维护性
+2. **检查现有文件**
+   - 使用`list_directory`或`read_file`检查文件是否存在
+   - 记录已存在的文件列表
+   - 只生成缺失的文件
+
+3. **增量生成代码**
+   - 根据PSM定义生成缺失的文件
+   - 跳过已存在的文件，避免覆盖
+   - 记录生成和跳过的文件
 
 ## FastAPI代码生成模板
 
@@ -75,6 +64,30 @@ project/
 │   ├── __init__.py
 │   └── test_*.py
 └── requirements.txt      # 依赖列表
+```
+
+### 增量生成规则
+
+#### 文件存在性检查
+```python
+# 在生成文件前先检查
+import os
+
+def should_generate_file(file_path):
+    """检查是否应该生成文件"""
+    if os.path.exists(file_path):
+        print(f"⏭️ 跳过已存在的文件: {file_path}")
+        return False
+    return True
+
+# 使用示例
+file_path = "app/models/book.py"
+if should_generate_file(file_path):
+    # 生成文件
+    write_file(file_path, content)
+else:
+    # 跳过，文件已存在
+    pass
 ```
 
 ### 代码生成规则
@@ -204,6 +217,26 @@ def create(db: Session, item: schemas.[Entity]Create):
 # 其他业务逻辑...
 ```
 
+## 增量生成的特殊场景
+
+### 1. 部分生成场景
+当项目已经部分完成时：
+- 先扫描现有文件结构
+- 识别缺失的模块
+- 只生成缺失部分
+
+### 2. 文件冲突处理
+如果文件已存在：
+- **不要覆盖**：保持现有文件不变
+- **记录跳过**：在报告中说明
+- **建议手动处理**：如需更新，由调试Agent处理
+
+### 3. 依赖文件处理
+某些文件相互依赖：
+- 检查依赖文件是否存在
+- 如果依赖缺失，优先生成依赖
+- 保持生成顺序的正确性
+
 ## 特殊处理规则
 
 ### 1. 关系处理
@@ -261,14 +294,21 @@ def complex_operation():
 ### 生成完成后的报告
 ```
 === 代码生成完成 ===
-✅ 已生成文件：
+✅ 新生成的文件：
 - main.py
 - database.py
-- models/*.py (X个文件)
-- schemas/*.py (X个文件)
-- routers/*.py (X个文件)
-- services/*.py (X个文件)
-- tests/*.py (X个文件)
+- models/book.py
+- [其他新生成的文件列表]
+
+⏭️ 跳过的文件（已存在）：
+- models/user.py
+- schemas/user.py
+- [其他已存在的文件列表]
+
+📊 统计：
+- 新生成：X个文件
+- 已跳过：Y个文件
+- 总文件：X+Y个文件
 
 📝 需要注意的问题：
 - [如果有潜在问题，列出但不修复]
@@ -280,10 +320,10 @@ def complex_operation():
 
 ## 性能优化建议
 
-### 1. 批量生成
-- 一次性生成所有相关文件
-- 使用模板减少重复代码
-- 保持代码结构的一致性
+### 1. 增量优化
+- 只生成缺失的文件，避免重复工作
+- 使用文件检查减少不必要的写入
+- 保持已有代码不被覆盖
 
 ### 2. 避免过度工程
 - 生成简单直接的代码

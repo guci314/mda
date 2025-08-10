@@ -1,44 +1,96 @@
 # 知识库
 
 ## 元知识
-- **路由路径调试流程**：检查测试请求路径 → 验证路由注册路径 → 确认前缀匹配 → 检查HTTP方法匹配
-- **字段名映射策略**：当Pydantic模型与数据库模型字段名不一致时，使用显式映射而非自动赋值
-- **测试路径修正方法**：测试代码中的URL路径必须与路由注册的前缀一致（如 `/api/books/` vs `/books/`）
-- **同步/异步代码一致性检查**：路由层使用同步代码时，服务层也必须是同步的，反之亦然
-- **模块导入路径验证**：检查 `__init__.py` 是否正确定义了子模块导出，验证 `from package import module` 的可用性
+- **任务前置验证**：在开始修复任务（如“修复测试”）前，首先运行相关命令（如`pytest`）验证问题是否确实存在，避免在已经正常工作的系统上进行不必要的操作。
+- **缺失文件诊断**：当遇到导入错误时，优先检查缺失的模块/文件，而非立即修改导入路径。
+- **项目结构推断方法**：通过分析models、schemas、database.py等文件推断项目架构，然后反向验证缺失的组件。
+- **测试文件创建策略**：当测试文件不存在时，根据项目结构创建基础测试套件，而非等待测试失败。
+- **路由前缀验证**：检查路由注册路径（如`/api/articles`）与测试期望路径的一致性。
+- **批量创建模式**：发现多个缺失文件时，一次性创建所有相关文件（路由、模型、模式）。
+- **路径重复诊断**：当测试返回404但路由已注册时，检查是否存在双重前缀（router内prefix + include_router prefix）。
+- **API路径验证**：使用`curl`或`TestClient`直接访问预期路径，确认实际可用路由列表。
 
 ## 原理与设计
-- **路由前缀设计**：FastAPI应用采用 `/api` 前缀作为所有REST API的统一入口
-- **模型字段命名规范**：数据库模型使用 `publication_year`，API模型使用 `publish_year`，通过服务层进行转换
-- **测试路径设计原则**：测试代码应使用完整路径（包含前缀），避免硬编码相对路径
-- **路由模块化**：每个业务领域（books/readers/borrows/reservations）拥有独立的路由文件
-- **同步异步架构分离**：路由层可以同步，但服务层必须异步，通过依赖注入处理会话
+- **完整MVC架构要求**：博客系统需要完整的四层结构 - models（数据层）、schemas（验证层）、services（业务层）、routers（接口层）。
+- **路由模块化设计**：每个资源应有独立的路由文件（articles.py、categories.py、comments.py）。
+- **测试驱动开发原则**：测试文件定义了期望的API契约，即使测试文件缺失，也应根据项目结构推断测试需求。
+- **统一路由前缀**：API路由应使用统一前缀（如`/api/`）进行版本和作用域隔离。
+- **渐进式修复策略**：从解决导入错误开始，逐步构建完整功能，而非一次性实现所有功能。
+- **单一前缀原则**：路由前缀应在注册时（include_router）统一设置，避免在router定义中重复设置。
 
 ## 接口与API
-- **路由注册规范**：
+- **测试套件执行**：使用`pytest`命令在项目根目录运行完整的单元测试套件。
+- **FastAPI路由注册**：
   ```python
-  app.include_router(books.router, prefix="/api")
-  app.include_router(readers.router, prefix="/api")
+  app.include_router(articles.router, prefix="/api/articles", tags=["articles"])
   ```
-- **字段映射实现**：
+- **测试数据库配置**：
   ```python
-  book.publication_year = book_data.publish_year
+  SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db"
+  engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
+  TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
   ```
-- **测试路径格式**：所有测试请求必须使用 `/api/{resource}/` 格式
-- **路由文件命名**：使用 `{domain}_router.py` 或 `{domain}.py` 两种模式并存
-- **HTTP方法覆盖**：需要实现 POST/PUT/DELETE/GET 完整CRUD操作
+- **pytest fixture模式**：
+  ```python
+  @pytest.fixture(scope="function")
+  def db_session():
+      Base.metadata.create_all(bind=engine)
+      # ... 测试逻辑 ...
+      Base.metadata.drop_all(bind=engine)
+  ```
+- **路由文件模板**：
+  ```python
+  from fastapi import APIRouter, Depends, HTTPException
+  from sqlalchemy.orm import Session
+  from app.database import get_db
+  
+  router = APIRouter()
+  
+  @router.get("/")
+  def get_items(db: Session = Depends(get_db)):
+      return {"message": "Hello World"}
+  ```
+- **路由路径检查**：使用`TestClient(app).get("/openapi.json")`获取实际注册的所有路由路径。
 
 ## 实现细节（需验证）
-- **路由文件位置**：`app/routers/` 目录下存在两种命名模式（`books.py` 和 `book_router.py`）
-- **模型字段差异**：`BookDB.publication_year` vs `BookCreate.publish_year`
-- **路由前缀**：主应用在 `main.py` 中统一添加 `/api` 前缀
-- **测试路径修正**：所有测试文件已从 `/books/` 改为 `/api/books/`
-- **服务层字段映射**：`app/services/book_service.py` 中需要显式处理字段名映射
-- **路由导入问题**：`app/routers/__init__.py` 需要正确导出子模块
+- **项目文件结构**（可能已变化）：
+  ```
+  blog/
+  ├── app/
+  │   ├── __init__.py
+  │   ├── main.py
+  │   ├── database.py
+  │   ├── models/
+  │   │   ├── __init__.py
+  │   │   ├── article.py
+  │   │   ├── category.py
+  │   │   └── comment.py
+  │   ├── schemas/
+  │   │   ├── __init__.py
+  │   │   ├── article.py
+  │   │   ├── category.py
+  │   │   └── comment.py
+  │   ├── routers/
+  │   │   ├── __init__.py
+  │   │   ├── articles.py
+  │   │   ├── categories.py
+  │   │   └── comments.py
+  │   └── services/
+  │       ├── __init__.py
+  │       ├── article.py
+  │       ├── category.py
+  │       └── comment.py
+  └── tests/
+      ├── __init__.py
+      ├── conftest.py
+      └── test_articles.py
+  ```
+- **路由初始化顺序**：需要在routers/__init__.py中显式导入所有路由模块。
+- **测试文件命名约定**：测试文件应以`test_`前缀命名，与被测试模块对应。
+- **数据库初始化**：测试前需调用`Base.metadata.create_all(bind=engine)`创建表结构。
+- **路由前缀设置位置**：应在`main.py`的`include_router`中设置prefix，**不应**在router文件中设置prefix。
 
 ## 用户偏好与项目特点
-- **严格路径匹配**：测试期望精确的路径，不接受模糊匹配
-- **完整CRUD要求**：测试期望所有HTTP方法（POST/PUT/DELETE/GET）都实现
-- **前缀一致性**：所有API路由必须使用统一的 `/api` 前缀
-- **字段命名分离**：API层和数据库层可以使用不同字段名，通过服务层转换
-- **测试驱动验证**：任何路由变更必须同步更新测试中的请求路径
+- **标准MVC结构**：项目采用标准MVC结构，每个资源有独立的model、schema、service、router文件。
+- **API前缀约定**：所有API路由使用`/api/`前缀。
+- **测试隔离**：测试数据库使用独立的test.db文件，与开发数据库。
