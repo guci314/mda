@@ -94,15 +94,15 @@ def create_tools(work_dir: str):
     
     @tool("write_file", args_schema=FileInput)
     def write_file(file_path: str, content: str) -> str:
-        """写入文件到指定路径
+        """写入文件到指定路径（覆盖模式）
         
-        将内容写入到指定的文件路径。
+        将内容写入到指定的文件路径，会覆盖原有内容。
         如果传入绝对路径，直接使用；如果传入相对路径，则相对于 work_dir。
         如果目录不存在会自动创建。
         
         Args:
             file_path: 文件路径（可以是绝对路径或相对路径）
-            content: 要写入的内容
+            content: 要写入的内容（会覆盖原文件）
             
         Returns:
             str: 成功或错误消息
@@ -132,6 +132,52 @@ def create_tools(work_dir: str):
             if os.environ.get('DEBUG'):
                 print(f"[DEBUG] write_file: Error occurred: {str(e)}")
             return f"Error writing file: {str(e)}"
+    
+    @tool("append_file", args_schema=FileInput)
+    def append_file(file_path: str, content: str) -> str:
+        """追加内容到文件末尾
+        
+        将内容追加到指定的文件路径，不会覆盖原有内容。
+        如果文件不存在，会创建新文件。
+        如果传入绝对路径，直接使用；如果传入相对路径，则相对于 work_dir。
+        如果目录不存在会自动创建。
+        
+        Args:
+            file_path: 文件路径（可以是绝对路径或相对路径）
+            content: 要追加的内容
+            
+        Returns:
+            str: 成功或错误消息
+        """
+        try:
+            # 检查是否为绝对路径
+            if Path(file_path).is_absolute():
+                file_full_path = Path(file_path)
+                if os.environ.get('DEBUG'):
+                    print(f"[DEBUG] append_file: Using absolute path: {file_full_path}")
+            else:
+                file_full_path = Path(work_dir) / file_path
+                if os.environ.get('DEBUG'):
+                    print(f"[DEBUG] append_file: Using relative path '{file_path}' -> absolute: {file_full_path}")
+                    print(f"[DEBUG] append_file: work_dir is: {work_dir}")
+            
+            # 确保目录存在
+            file_full_path.parent.mkdir(parents=True, exist_ok=True)
+            
+            # 使用 'a' 模式追加内容
+            with open(file_full_path, 'a', encoding='utf-8') as f:
+                f.write(content)
+            
+            if os.environ.get('DEBUG'):
+                print(f"[DEBUG] append_file: Content appended successfully to: {file_full_path}")
+                print(f"[DEBUG] append_file: File exists check: {file_full_path.exists()}")
+                print(f"[DEBUG] append_file: File size: {file_full_path.stat().st_size} bytes")
+            
+            return f"Successfully appended to file: {file_path}"
+        except Exception as e:
+            if os.environ.get('DEBUG'):
+                print(f"[DEBUG] append_file: Error occurred: {str(e)}")
+            return f"Error appending to file: {str(e)}"
 
     @tool("read_file")
     def read_file(file_path: str) -> str:
@@ -1070,6 +1116,7 @@ def create_tools(work_dir: str):
     # 构建工具列表
     tools = [
         write_file,
+        append_file,  # 新增追加文件工具
         read_file,
         create_directory,
         list_directory,
