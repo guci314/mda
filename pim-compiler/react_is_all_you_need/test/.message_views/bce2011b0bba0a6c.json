@@ -1,0 +1,72 @@
+{
+  "id": "bce2011b0bba0a6c",
+  "timestamp": "2025-08-19T22:00:07.273396",
+  "metadata": {
+    "role": "assistant",
+    "round": 19,
+    "importance": null
+  },
+  "views": {
+    "FULL": {
+      "content": {
+        "role": "assistant",
+        "content": "让我查看与四层记忆系统相关的知识文件，特别是定义记忆观察者、海马体和元认知反思的文件。\n\n",
+        "refusal": null,
+        "reasoning": null,
+        "tool_calls": [
+          {
+            "index": 0,
+            "id": "0",
+            "type": "function",
+            "function": {
+              "name": "list_directory",
+              "arguments": "{\"directory_path\": \"/home/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/knowledge/memory/agents\"}"
+            }
+          }
+        ]
+      },
+      "tokens": 140,
+      "generated_at": "2025-08-19T22:00:07.273431"
+    },
+    "MINIMAL": {
+      "content": {
+        "marker": "[assistant:tools]"
+      },
+      "tokens": 5,
+      "generated_at": "2025-08-19T22:00:07.273440"
+    },
+    "HIGH": {
+      "content": {
+        "role": "assistant",
+        "content": "让我查看与四层记忆系统相关的知识文件，特别是定义记忆观察者、海马体和元认知反思的文件。\n\n",
+        "tool_calls_summary": [
+          {
+            "name": "list_directory",
+            "args_preview": "{\"directory_path\": \"/home/guci/aiProjects/mda/pim-"
+          }
+        ]
+      },
+      "tokens": 105,
+      "generated_at": "2025-08-19T22:00:07.291124"
+    },
+    "MEDIUM": {
+      "content": {
+        "role": "assistant",
+        "content_preview": "让我查看与四层记忆系统相关的知识文件，特别是定义记忆观察者、海马体和元认知反思的文件。\n\n",
+        "tools_used": [
+          "list_directory"
+        ]
+      },
+      "tokens": 85,
+      "generated_at": "2025-08-19T22:00:07.291160"
+    },
+    "LOW": {
+      "content": {
+        "role": "assistant",
+        "summary": "调用了1个工具: list_directory"
+      },
+      "tokens": 22,
+      "generated_at": "2025-08-19T22:00:07.291191"
+    }
+  }
+}

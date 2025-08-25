@@ -1,0 +1,70 @@
+{
+  "id": "1bd8f9e2889f9cdc",
+  "timestamp": "2025-08-18T19:48:31.145874",
+  "metadata": {
+    "role": "assistant",
+    "round": 12,
+    "importance": null
+  },
+  "views": {
+    "FULL": {
+      "content": {
+        "role": "assistant",
+        "content": "",
+        "refusal": null,
+        "reasoning": null,
+        "tool_calls": [
+          {
+            "id": "call_9c2b5719ccaf4fb68907385e",
+            "index": 0,
+            "type": "function",
+            "function": {
+              "name": "read_file",
+              "arguments": "{\"file_path\": \"/home/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/agent_driven_validation/message_buffer/message_batch_20.json\"}"
+            }
+          }
+        ]
+      },
+      "tokens": 88,
+      "generated_at": "2025-08-18T19:48:31.145910"
+    },
+    "MINIMAL": {
+      "content": {
+        "marker": "[assistant:tools]"
+      },
+      "tokens": 5,
+      "generated_at": "2025-08-18T19:48:31.145921"
+    },
+    "HIGH": {
+      "content": {
+        "role": "assistant",
+        "tool_calls_summary": [
+          {
+            "name": "read_file",
+            "args_preview": "{\"file_path\": \"/home/guci/aiProjects/mda/pim-compi"
+          }
+        ]
+      },
+      "tokens": 35,
+      "generated_at": "2025-08-18T19:48:31.147724"
+    },
+    "MEDIUM": {
+      "content": {
+        "role": "assistant",
+        "tools_used": [
+          "read_file"
+        ]
+      },
+      "tokens": 12,
+      "generated_at": "2025-08-18T19:48:31.147755"
+    },
+    "LOW": {
+      "content": {
+        "role": "assistant",
+        "summary": "调用了1个工具: read_file"
+      },
+      "tokens": 21,
+      "generated_at": "2025-08-18T19:48:31.147780"
+    }
+  }
+}

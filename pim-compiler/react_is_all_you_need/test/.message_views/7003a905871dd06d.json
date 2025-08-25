@@ -1,0 +1,72 @@
+{
+  "id": "7003a905871dd06d",
+  "timestamp": "2025-08-19T21:52:11.413801",
+  "metadata": {
+    "role": "assistant",
+    "round": 16,
+    "importance": null
+  },
+  "views": {
+    "FULL": {
+      "content": {
+        "role": "assistant",
+        "content": "让我再检查一下当前工作目录：\n\n",
+        "refusal": null,
+        "reasoning": null,
+        "tool_calls": [
+          {
+            "id": "call_b27ed1f064fc4abfbc003ec6",
+            "type": "function",
+            "index": 0,
+            "function": {
+              "name": "execute_command",
+              "arguments": "{\"command\": \"pwd\"}"
+            }
+          }
+        ]
+      },
+      "tokens": 82,
+      "generated_at": "2025-08-19T21:52:11.413827"
+    },
+    "MINIMAL": {
+      "content": {
+        "marker": "[assistant:tools]"
+      },
+      "tokens": 5,
+      "generated_at": "2025-08-19T21:52:11.413836"
+    },
+    "HIGH": {
+      "content": {
+        "role": "assistant",
+        "content": "让我再检查一下当前工作目录：\n\n",
+        "tool_calls_summary": [
+          {
+            "name": "execute_command",
+            "args_preview": "{\"command\": \"pwd\"}"
+          }
+        ]
+      },
+      "tokens": 54,
+      "generated_at": "2025-08-19T21:52:11.419485"
+    },
+    "MEDIUM": {
+      "content": {
+        "role": "assistant",
+        "content_preview": "让我再检查一下当前工作目录：\n\n",
+        "tools_used": [
+          "execute_command"
+        ]
+      },
+      "tokens": 41,
+      "generated_at": "2025-08-19T21:52:11.419547"
+    },
+    "LOW": {
+      "content": {
+        "role": "assistant",
+        "summary": "调用了1个工具: execute_command"
+      },
+      "tokens": 22,
+      "generated_at": "2025-08-19T21:52:11.419575"
+    }
+  }
+}

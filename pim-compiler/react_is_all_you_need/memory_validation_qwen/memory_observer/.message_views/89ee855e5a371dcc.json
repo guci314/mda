@@ -1,0 +1,72 @@
+{
+  "id": "89ee855e5a371dcc",
+  "timestamp": "2025-08-18T17:55:05.736308",
+  "metadata": {
+    "role": "assistant",
+    "round": 4,
+    "importance": null
+  },
+  "views": {
+    "FULL": {
+      "content": {
+        "role": "assistant",
+        "content": "让我检查一下工作目录中的文件，以更好地构建记忆。\n\n",
+        "refusal": null,
+        "reasoning": null,
+        "tool_calls": [
+          {
+            "id": "call_8777e07f5bea4f4fa2c51b15",
+            "index": 0,
+            "type": "function",
+            "function": {
+              "name": "list_directory",
+              "arguments": "{\"directory_path\": \"/home/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/memory_validation_qwen\"}"
+            }
+          }
+        ]
+      },
+      "tokens": 118,
+      "generated_at": "2025-08-18T17:55:05.736351"
+    },
+    "MINIMAL": {
+      "content": {
+        "marker": "[assistant:tools]"
+      },
+      "tokens": 5,
+      "generated_at": "2025-08-18T17:55:05.736363"
+    },
+    "HIGH": {
+      "content": {
+        "role": "assistant",
+        "content": "让我检查一下工作目录中的文件，以更好地构建记忆。\n\n",
+        "tool_calls_summary": [
+          {
+            "name": "list_directory",
+            "args_preview": "{\"directory_path\": \"/home/guci/aiProjects/mda/pim-"
+          }
+        ]
+      },
+      "tokens": 77,
+      "generated_at": "2025-08-18T17:55:05.739398"
+    },
+    "MEDIUM": {
+      "content": {
+        "role": "assistant",
+        "content_preview": "让我检查一下工作目录中的文件，以更好地构建记忆。\n\n",
+        "tools_used": [
+          "list_directory"
+        ]
+      },
+      "tokens": 56,
+      "generated_at": "2025-08-18T17:55:05.739728"
+    },
+    "LOW": {
+      "content": {
+        "role": "assistant",
+        "summary": "调用了1个工具: list_directory"
+      },
+      "tokens": 22,
+      "generated_at": "2025-08-18T17:55:05.739824"
+    }
+  }
+}

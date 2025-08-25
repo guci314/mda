@@ -1,0 +1,52 @@
+{
+  "id": "7998ddb34eeac30a",
+  "timestamp": "2025-08-17T12:37:16.626032",
+  "metadata": {
+    "role": "tool",
+    "round": 26,
+    "importance": null
+  },
+  "views": {
+    "FULL": {
+      "content": {
+        "role": "tool",
+        "tool_call_id": "call_5c02f5dd339c4e9dafd34ab8",
+        "name": "write_file",
+        "content": "成功写入文件: enhanced_level3.md"
+      },
+      "tokens": 39,
+      "generated_at": "2025-08-17T12:37:16.626111"
+    },
+    "MINIMAL": {
+      "content": {
+        "marker": "[tool:result]"
+      },
+      "tokens": 5,
+      "generated_at": "2025-08-17T12:37:16.626143"
+    },
+    "HIGH": {
+      "content": {
+        "role": "tool",
+        "content": "成功写入文件: enhanced_level3.md"
+      },
+      "tokens": 21,
+      "generated_at": "2025-08-17T12:37:16.631911"
+    },
+    "MEDIUM": {
+      "content": {
+        "role": "tool",
+        "content_preview": "成功写入文件: enhanced_level3.md"
+      },
+      "tokens": 23,
+      "generated_at": "2025-08-17T12:37:16.632008"
+    },
+    "LOW": {
+      "content": {
+        "role": "tool",
+        "summary": "工具执行成功"
+      },
+      "tokens": 16,
+      "generated_at": "2025-08-17T12:37:16.632085"
+    }
+  }
+}

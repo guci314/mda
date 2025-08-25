@@ -1,0 +1,12 @@
+{
+  "numbers": [5, 10, 15, 20, 25],
+  "sum": 0,
+  "count": 0,
+  "min": null,
+  "max": null,
+  "mean": 0.0,
+  "median": 0.0,
+  "mode": [],
+  "variance": 0.0,
+  "standard_deviation": 0.0
+}

@@ -1,0 +1,52 @@
+{
+  "id": "97cfc08ab7218d9c",
+  "timestamp": "2025-08-17T12:39:23.457881",
+  "metadata": {
+    "role": "tool",
+    "round": 2,
+    "importance": null
+  },
+  "views": {
+    "FULL": {
+      "content": {
+        "role": "tool",
+        "tool_call_id": "call_c0898defc3824e7895075d1f",
+        "name": "list_directory",
+        "content": "data.csv\noutput\npipeline.md\nlogs\n.message_views\ndata\n.vscode_memory\n__pycache__\npipeline_task.txt\nanalysis.md"
+      },
+      "tokens": 56,
+      "generated_at": "2025-08-17T12:39:23.457913"
+    },
+    "MINIMAL": {
+      "content": {
+        "marker": "[tool:result]"
+      },
+      "tokens": 5,
+      "generated_at": "2025-08-17T12:39:23.457924"
+    },
+    "HIGH": {
+      "content": {
+        "role": "tool",
+        "content": "data.csv\noutput\npipeline.md\nlogs\n.message_views\ndata\n.vscode_memory\n__pycache__\npipeline_task.txt\nanalysis.md"
+      },
+      "tokens": 37,
+      "generated_at": "2025-08-17T12:39:23.460851"
+    },
+    "MEDIUM": {
+      "content": {
+        "role": "tool",
+        "content_preview": "data.csv\noutput\npipeline.md\nlogs\n.message_views\ndata\n.vscode_memory\n__pycache__\npipeline_task.txt\nanalysis.md"
+      },
+      "tokens": 39,
+      "generated_at": "2025-08-17T12:39:23.460890"
+    },
+    "LOW": {
+      "content": {
+        "role": "tool",
+        "summary": "工具返回结果"
+      },
+      "tokens": 16,
+      "generated_at": "2025-08-17T12:39:23.460918"
+    }
+  }
+}

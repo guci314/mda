@@ -1,0 +1,8 @@
+{
+  "id": "task_timeout_20250818_180759",
+  "timestamp": "2025-08-18T18:07:59.267000",
+  "event": "task_timeout",
+  "data": {
+    "rounds": 20
+  }
+}

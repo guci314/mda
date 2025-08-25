@@ -1,0 +1,70 @@
+{
+  "id": "6c0c5fb5a0fad86b",
+  "timestamp": "2025-08-18T17:56:21.957867",
+  "metadata": {
+    "role": "assistant",
+    "round": 16,
+    "importance": null
+  },
+  "views": {
+    "FULL": {
+      "content": {
+        "role": "assistant",
+        "content": "",
+        "refusal": null,
+        "reasoning": null,
+        "tool_calls": [
+          {
+            "id": "call_0f128fa959ba423cae504b96",
+            "type": "function",
+            "index": 0,
+            "function": {
+              "name": "search_memory",
+              "arguments": "{\"query\": \"Flask\\u5e94\\u7528\\u521b\\u5efa\\u4efb\\u52a1\\u7684\\u5b8c\\u6574\\u8fc7\\u7a0b\\u548c\\u7ed3\\u679c\"}"
+            }
+          }
+        ]
+      },
+      "tokens": 84,
+      "generated_at": "2025-08-18T17:56:21.957890"
+    },
+    "MINIMAL": {
+      "content": {
+        "marker": "[assistant:tools]"
+      },
+      "tokens": 5,
+      "generated_at": "2025-08-18T17:56:21.957897"
+    },
+    "HIGH": {
+      "content": {
+        "role": "assistant",
+        "tool_calls_summary": [
+          {
+            "name": "search_memory",
+            "args_preview": "{\"query\": \"Flask\\u5e94\\u7528\\u521b\\u5efa\\u4efb\\u52"
+          }
+        ]
+      },
+      "tokens": 37,
+      "generated_at": "2025-08-18T17:56:21.960357"
+    },
+    "MEDIUM": {
+      "content": {
+        "role": "assistant",
+        "tools_used": [
+          "search_memory"
+        ]
+      },
+      "tokens": 13,
+      "generated_at": "2025-08-18T17:56:21.960378"
+    },
+    "LOW": {
+      "content": {
+        "role": "assistant",
+        "summary": "调用了1个工具: search_memory"
+      },
+      "tokens": 22,
+      "generated_at": "2025-08-18T17:56:21.960395"
+    }
+  }
+}

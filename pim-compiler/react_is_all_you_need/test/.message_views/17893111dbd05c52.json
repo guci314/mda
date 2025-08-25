@@ -1,0 +1,72 @@
+{
+  "id": "17893111dbd05c52",
+  "timestamp": "2025-08-19T22:00:50.594830",
+  "metadata": {
+    "role": "assistant",
+    "round": 40,
+    "importance": null
+  },
+  "views": {
+    "FULL": {
+      "content": {
+        "role": "assistant",
+        "content": "让我查看一下四层记忆系统的具体实现和测试结果。\n\n",
+        "refusal": null,
+        "reasoning": null,
+        "tool_calls": [
+          {
+            "index": 0,
+            "id": "call_8886f7755ef6f82b",
+            "function": {
+              "arguments": "{\"file_path\": \"/home/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/memory_validation_qwen/memory_validation_report.md\"}",
+              "name": "read_file"
+            },
+            "type": "function"
+          }
+        ]
+      },
+      "tokens": 119,
+      "generated_at": "2025-08-19T22:00:50.594860"
+    },
+    "MINIMAL": {
+      "content": {
+        "marker": "[assistant:tools]"
+      },
+      "tokens": 5,
+      "generated_at": "2025-08-19T22:00:50.594869"
+    },
+    "HIGH": {
+      "content": {
+        "role": "assistant",
+        "content": "让我查看一下四层记忆系统的具体实现和测试结果。\n\n",
+        "tool_calls_summary": [
+          {
+            "name": "read_file",
+            "args_preview": "{\"file_path\": \"/home/guci/aiProjects/mda/pim-compi"
+          }
+        ]
+      },
+      "tokens": 74,
+      "generated_at": "2025-08-19T22:00:50.595611"
+    },
+    "MEDIUM": {
+      "content": {
+        "role": "assistant",
+        "content_preview": "让我查看一下四层记忆系统的具体实现和测试结果。\n\n",
+        "tools_used": [
+          "read_file"
+        ]
+      },
+      "tokens": 53,
+      "generated_at": "2025-08-19T22:00:50.595644"
+    },
+    "LOW": {
+      "content": {
+        "role": "assistant",
+        "summary": "调用了1个工具: read_file"
+      },
+      "tokens": 21,
+      "generated_at": "2025-08-19T22:00:50.595670"
+    }
+  }
+}

@@ -1,0 +1,72 @@
+{
+  "id": "03ff534490d05044",
+  "timestamp": "2025-08-19T18:00:31.744745",
+  "metadata": {
+    "role": "assistant",
+    "round": 25,
+    "importance": null
+  },
+  "views": {
+    "FULL": {
+      "content": {
+        "role": "assistant",
+        "content": "创建requirements.txt文件：\n\n",
+        "refusal": null,
+        "reasoning": null,
+        "tool_calls": [
+          {
+            "id": "call_5e13751a0ae34d68964d4e64",
+            "index": 0,
+            "type": "function",
+            "function": {
+              "name": "write_file",
+              "arguments": "{\"content\": \"fastapi==0.68.0\\nuvicorn==0.15.0\\npytest==6.2.4\\nhttpx==0.18.2\", \"file_path\": \"blog_system/requirements.txt\"}"
+            }
+          }
+        ]
+      },
+      "tokens": 99,
+      "generated_at": "2025-08-19T18:00:31.744781"
+    },
+    "MINIMAL": {
+      "content": {
+        "marker": "[assistant:tools]"
+      },
+      "tokens": 5,
+      "generated_at": "2025-08-19T18:00:31.744791"
+    },
+    "HIGH": {
+      "content": {
+        "role": "assistant",
+        "content": "创建requirements.txt文件：\n\n",
+        "tool_calls_summary": [
+          {
+            "name": "write_file",
+            "args_preview": "{\"content\": \"fastapi==0.68.0\\nuvicorn==0.15.0\\npyt"
+          }
+        ]
+      },
+      "tokens": 52,
+      "generated_at": "2025-08-19T18:00:31.746160"
+    },
+    "MEDIUM": {
+      "content": {
+        "role": "assistant",
+        "content_preview": "创建requirements.txt文件：\n\n",
+        "tools_used": [
+          "write_file"
+        ]
+      },
+      "tokens": 31,
+      "generated_at": "2025-08-19T18:00:31.746245"
+    },
+    "LOW": {
+      "content": {
+        "role": "assistant",
+        "summary": "调用了1个工具: write_file"
+      },
+      "tokens": 21,
+      "generated_at": "2025-08-19T18:00:31.746291"
+    }
+  }
+}

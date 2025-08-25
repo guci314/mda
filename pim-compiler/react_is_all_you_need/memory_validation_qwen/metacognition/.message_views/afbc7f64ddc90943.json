@@ -1,0 +1,52 @@
+{
+  "id": "afbc7f64ddc90943",
+  "timestamp": "2025-08-18T18:08:07.018707",
+  "metadata": {
+    "role": "tool",
+    "round": 2,
+    "importance": null
+  },
+  "views": {
+    "FULL": {
+      "content": {
+        "role": "tool",
+        "tool_call_id": "call_132e43663b5840e4",
+        "name": "read_file",
+        "content": "参数解析失败"
+      },
+      "tokens": 32,
+      "generated_at": "2025-08-18T18:08:07.018727"
+    },
+    "MINIMAL": {
+      "content": {
+        "marker": "[tool:result]"
+      },
+      "tokens": 5,
+      "generated_at": "2025-08-18T18:08:07.018736"
+    },
+    "HIGH": {
+      "content": {
+        "role": "tool",
+        "content": "参数解析失败"
+      },
+      "tokens": 16,
+      "generated_at": "2025-08-18T18:08:07.020259"
+    },
+    "MEDIUM": {
+      "content": {
+        "role": "tool",
+        "content_preview": "参数解析失败"
+      },
+      "tokens": 18,
+      "generated_at": "2025-08-18T18:08:07.020279"
+    },
+    "LOW": {
+      "content": {
+        "role": "tool",
+        "summary": "工具返回结果"
+      },
+      "tokens": 16,
+      "generated_at": "2025-08-18T18:08:07.020297"
+    }
+  }
+}

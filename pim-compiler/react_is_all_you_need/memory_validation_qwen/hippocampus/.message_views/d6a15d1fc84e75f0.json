@@ -1,0 +1,52 @@
+{
+  "id": "d6a15d1fc84e75f0",
+  "timestamp": "2025-08-18T18:07:52.921420",
+  "metadata": {
+    "role": "tool",
+    "round": 56,
+    "importance": null
+  },
+  "views": {
+    "FULL": {
+      "content": {
+        "role": "tool",
+        "tool_call_id": "0",
+        "name": "read_file",
+        "content": "文件不存在: /home/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/memory_validation_qwen/.vscode_memory/workspace/requirements.txt"
+      },
+      "tokens": 57,
+      "generated_at": "2025-08-18T18:07:52.921551"
+    },
+    "MINIMAL": {
+      "content": {
+        "marker": "[tool:result]"
+      },
+      "tokens": 5,
+      "generated_at": "2025-08-18T18:07:52.921597"
+    },
+    "HIGH": {
+      "content": {
+        "role": "tool",
+        "content": "文件不存在: /home/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/memory_validation_qwen/.vscode_memory/workspace/requirements.txt"
+      },
+      "tokens": 47,
+      "generated_at": "2025-08-18T18:07:52.928978"
+    },
+    "MEDIUM": {
+      "content": {
+        "role": "tool",
+        "content_preview": "文件不存在: /home/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/memory_validation_qwen/.vscode_memory/workspace/requirements.txt"
+      },
+      "tokens": 49,
+      "generated_at": "2025-08-18T18:07:52.929159"
+    },
+    "LOW": {
+      "content": {
+        "role": "tool",
+        "summary": "工具返回结果"
+      },
+      "tokens": 16,
+      "generated_at": "2025-08-18T18:07:52.929320"
+    }
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "id": "a4f9a6b7e76d4bb2",
+  "timestamp": "2025-08-18T17:55:40.241834",
+  "metadata": {
+    "role": "tool",
+    "round": 26,
+    "importance": null
+  },
+  "views": {
+    "FULL": {
+      "content": {
+        "role": "tool",
+        "tool_call_id": "call_185ea3a862b2456c8deebcff",
+        "name": "read_file",
+        "content": "# Simple Flask App\n\nThis is a simple Flask web application.\n\n## Requirements\n\n- Python 3.6+\n- Flask\n\n## Installation\n\n1. Create a virtual environment:\n   ```\n   python -m venv venv\n   source venv/bin/activate  # On Windows use `venv\\Scripts\\activate`\n   ```\n\n2. Install the dependencies:\n   ```\n   pip install -r requirements.txt\n   ```\n\n## Running the App\n\nTo run the application, execute:\n```\npython app.py\n```\n\nThe app will be available at `http://127.0.0.1:5000`.\n\n## Routes\n\n- `/` - Returns \"Hello, World!\""
+      },
+      "tokens": 162,
+      "generated_at": "2025-08-18T17:55:40.241846"
+    },
+    "MINIMAL": {
+      "content": {
+        "marker": "[tool:result]"
+      },
+      "tokens": 5,
+      "generated_at": "2025-08-18T17:55:40.241850"
+    },
+    "HIGH": {
+      "content": {
+        "role": "tool",
+        "content": "# Simple Flask App\n\nThis is a simple Flask web application.\n\n## Requirements\n\n- Python 3.6+\n- Flask\n\n## Installation\n\n1. Create a virtual environment:\n   ```\n   python -m venv venv\n   source venv/bin/activate  # On Windows use `venv\\Scripts\\activate`\n   ```\n\n2. Install the dependencies:\n   ```\n   pip install -r requirements.txt\n   ```\n\n## Running the App\n\nTo run the application, execute:\n```\npython app.py\n```\n\nThe app will be available at `http://127.0.0.1:5000`.\n\n## Routes\n\n- `/` - Returns \"Hello, World!\""
+      },
+      "tokens": 144,
+      "generated_at": "2025-08-18T17:55:40.244394"
+    },
+    "MEDIUM": {
+      "content": {
+        "role": "tool",
+        "content_preview": "# Simple Flask App\n\nThis is a simple Flask web application.\n\n## Requirements\n\n- Python 3.6+\n- Flask\n\n## Installation\n\n1. Create a virtual environment:\n   ```\n   python -m venv venv\n   source venv/bin/activate  # On Windows use `venv\\Scripts\\activate`\n   ```\n\n2. Install the dependencies:\n   ```\n   pi..."
+      },
+      "tokens": 90,
+      "generated_at": "2025-08-18T17:55:40.244421"
+    },
+    "LOW": {
+      "content": {
+        "role": "tool",
+        "summary": "工具返回结果"
+      },
+      "tokens": 16,
+      "generated_at": "2025-08-18T17:55:40.244441"
+    }
+  }
+}

@@ -1,0 +1,72 @@
+{
+  "id": "67e40e4cc612a5f6",
+  "timestamp": "2025-08-19T21:56:37.998009",
+  "metadata": {
+    "role": "assistant",
+    "round": 49,
+    "importance": null
+  },
+  "views": {
+    "FULL": {
+      "content": {
+        "role": "assistant",
+        "content": "现在让我逐一查看这些文件，以了解四层记忆系统的每个层次。\n\n",
+        "refusal": null,
+        "reasoning": null,
+        "tool_calls": [
+          {
+            "index": 0,
+            "id": "0",
+            "type": "function",
+            "function": {
+              "name": "read_file",
+              "arguments": "{\"file_path\": \"/home/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/knowledge/memory/agents/memory_observer.md\"}"
+            }
+          }
+        ]
+      },
+      "tokens": 120,
+      "generated_at": "2025-08-19T21:56:37.998045"
+    },
+    "MINIMAL": {
+      "content": {
+        "marker": "[assistant:tools]"
+      },
+      "tokens": 5,
+      "generated_at": "2025-08-19T21:56:37.998057"
+    },
+    "HIGH": {
+      "content": {
+        "role": "assistant",
+        "content": "现在让我逐一查看这些文件，以了解四层记忆系统的每个层次。\n\n",
+        "tool_calls_summary": [
+          {
+            "name": "read_file",
+            "args_preview": "{\"file_path\": \"/home/guci/aiProjects/mda/pim-compi"
+          }
+        ]
+      },
+      "tokens": 82,
+      "generated_at": "2025-08-19T21:56:37.999024"
+    },
+    "MEDIUM": {
+      "content": {
+        "role": "assistant",
+        "content_preview": "现在让我逐一查看这些文件，以了解四层记忆系统的每个层次。\n\n",
+        "tools_used": [
+          "read_file"
+        ]
+      },
+      "tokens": 61,
+      "generated_at": "2025-08-19T21:56:37.999051"
+    },
+    "LOW": {
+      "content": {
+        "role": "assistant",
+        "summary": "调用了1个工具: read_file"
+      },
+      "tokens": 21,
+      "generated_at": "2025-08-19T21:56:37.999073"
+    }
+  }
+}

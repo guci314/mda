@@ -1,0 +1,140 @@
+{
+  "files": {
+    "/home/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/memory_validation_qwen/work_agent_log.json": {
+      "path": "/home/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/memory_validation_qwen/metacognition/.vscode_memory/workspace/work_agent_log.json",
+      "hash": "0ebf04f8",
+      "size": 228,
+      "tokens": 81,
+      "last_access": "2025-08-18T18:08:12.246430"
+    },
+    "/home/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/memory_validation_qwen/memory_snapshot.md": {
+      "path": "/home/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/memory_validation_qwen/metacognition/.vscode_memory/workspace/memory_snapshot.md",
+      "hash": "9eaa4946",
+      "size": 268,
+      "tokens": 80,
+      "last_access": "2025-08-18T17:56:12.364336"
+    },
+    "/home/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/memory_validation_qwen/work_agent/requirements.txt": {
+      "path": "/home/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/memory_validation_qwen/metacognition/.vscode_memory/workspace/requirements.txt",
+      "hash": "e49bdf4c",
+      "size": 12,
+      "tokens": 3,
+      "last_access": "2025-08-18T17:56:15.639306"
+    },
+    "/home/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/memory_validation_qwen/work_agent/README.md": {
+      "path": "/home/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/memory_validation_qwen/metacognition/.vscode_memory/workspace/README.md",
+      "hash": "4bcb9916",
+      "size": 511,
+      "tokens": 127,
+      "last_access": "2025-08-18T17:56:17.952654"
+    },
+    "/home/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/memory_validation_qwen/consolidation_report.md": {
+      "path": "/home/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/memory_validation_qwen/metacognition/.vscode_memory/workspace/consolidation_report.md",
+      "hash": "bfab9318",
+      "size": 1544,
+      "tokens": 684,
+      "last_access": "2025-08-18T17:56:20.086576"
+    }
+  },
+  "episodes": [
+    {
+      "id": "task_start_20250818_175605",
+      "timestamp": "2025-08-18T17:56:05.032503",
+      "event": "task_start",
+      "summary": ""
+    },
+    {
+      "id": "tool_read_file_20250818_175608",
+      "timestamp": "2025-08-18T17:56:08.096737",
+      "event": "tool_read_file",
+      "summary": ""
+    },
+    {
+      "id": "tool_read_file_20250818_175612",
+      "timestamp": "2025-08-18T17:56:12.364725",
+      "event": "tool_read_file",
+      "summary": ""
+    },
+    {
+      "id": "tool_read_file_20250818_175615",
+      "timestamp": "2025-08-18T17:56:15.641741",
+      "event": "tool_read_file",
+      "summary": ""
+    },
+    {
+      "id": "tool_read_file_20250818_175617",
+      "timestamp": "2025-08-18T17:56:17.953080",
+      "event": "tool_read_file",
+      "summary": ""
+    },
+    {
+      "id": "tool_read_file_20250818_175620",
+      "timestamp": "2025-08-18T17:56:20.086886",
+      "event": "tool_read_file",
+      "summary": ""
+    },
+    {
+      "id": "tool_search_memory_20250818_175621",
+      "timestamp": "2025-08-18T17:56:21.956996",
+      "event": "tool_search_memory",
+      "summary": ""
+    },
+    {
+      "id": "tool_search_memory_20250818_175625",
+      "timestamp": "2025-08-18T17:56:25.006574",
+      "event": "tool_search_memory",
+      "summary": ""
+    },
+    {
+      "id": "task_start_20250818_180759",
+      "timestamp": "2025-08-18T18:07:59.269034",
+      "event": "task_start",
+      "summary": ""
+    },
+    {
+      "id": "tool_read_file_20250818_180812",
+      "timestamp": "2025-08-18T18:08:12.247232",
+      "event": "tool_read_file",
+      "summary": ""
+    },
+    {
+      "id": "task_complete_20250818_180814",
+      "timestamp": "2025-08-18T18:08:14.596665",
+      "event": "task_complete",
+      "summary": ""
+    }
+  ],
+  "states": [
+    {
+      "id": "task_completion_20250818_180814",
+      "name": "task_completion",
+      "timestamp": "2025-08-18T18:08:14.599501"
+    }
+  ],
+  "access_log": [
+    {
+      "item": "/home/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/memory_validation_qwen/work_agent_log.json",
+      "timestamp": "2025-08-18T17:56:08.096719"
+    },
+    {
+      "item": "/home/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/memory_validation_qwen/memory_snapshot.md",
+      "timestamp": "2025-08-18T17:56:12.364706"
+    },
+    {
+      "item": "/home/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/memory_validation_qwen/work_agent/requirements.txt",
+      "timestamp": "2025-08-18T17:56:15.641629"
+    },
+    {
+      "item": "/home/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/memory_validation_qwen/work_agent/README.md",
+      "timestamp": "2025-08-18T17:56:17.953063"
+    },
+    {
+      "item": "/home/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/memory_validation_qwen/consolidation_report.md",
+      "timestamp": "2025-08-18T17:56:20.086873"
+    },
+    {
+      "item": "/home/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/memory_validation_qwen/work_agent_log.json",
+      "timestamp": "2025-08-18T18:08:12.247180"
+    }
+  ]
+}

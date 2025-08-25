@@ -1,0 +1,52 @@
+{
+  "id": "e60087d3b87a0593",
+  "timestamp": "2025-08-18T18:06:55.541770",
+  "metadata": {
+    "role": "tool",
+    "round": 20,
+    "importance": null
+  },
+  "views": {
+    "FULL": {
+      "content": {
+        "role": "tool",
+        "tool_call_id": "call_bf1a2deffa5c46e8a62f399b",
+        "name": "list_directory",
+        "content": "requirements.txt\napp.py\n.vscode_memory\nREADME.md\ntemplates"
+      },
+      "tokens": 42,
+      "generated_at": "2025-08-18T18:06:55.541846"
+    },
+    "MINIMAL": {
+      "content": {
+        "marker": "[tool:result]"
+      },
+      "tokens": 5,
+      "generated_at": "2025-08-18T18:06:55.541870"
+    },
+    "HIGH": {
+      "content": {
+        "role": "tool",
+        "content": "requirements.txt\napp.py\n.vscode_memory\nREADME.md\ntemplates"
+      },
+      "tokens": 23,
+      "generated_at": "2025-08-18T18:06:55.545882"
+    },
+    "MEDIUM": {
+      "content": {
+        "role": "tool",
+        "content_preview": "requirements.txt\napp.py\n.vscode_memory\nREADME.md\ntemplates"
+      },
+      "tokens": 25,
+      "generated_at": "2025-08-18T18:06:55.545974"
+    },
+    "LOW": {
+      "content": {
+        "role": "tool",
+        "summary": "工具返回结果"
+      },
+      "tokens": 16,
+      "generated_at": "2025-08-18T18:06:55.546049"
+    }
+  }
+}

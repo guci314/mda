@@ -1,0 +1,12 @@
+id,name,age,city,salary,department
+1,Alice,25.0,New York,50000.0,IT
+2,Bob,30.0,London,60000.0,HR
+3,Charlie,30.666666666666668,Paris,55000.0,Finance
+4,David,40.0,New York,56666.666666666664,IT
+5,Eve,35.0,Tokyo,70000.0,Marketing
+6,Frank,28.0,Berlin,52000.0,IT
+7,Grace,33.0,London,56666.666666666664,HR
+8,Henry,30.666666666666668,Paris,58000.0,Finance
+9,Ivy,29.0,New York,54000.0,Marketing
+10,Jack,31.0,Tokyo,61000.0,IT
+11,Alice,25.0,New York,50000.0,IT

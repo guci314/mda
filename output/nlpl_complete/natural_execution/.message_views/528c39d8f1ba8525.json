@@ -1,0 +1,72 @@
+{
+  "id": "528c39d8f1ba8525",
+  "timestamp": "2025-08-17T12:38:07.473221",
+  "metadata": {
+    "role": "assistant",
+    "round": 1,
+    "importance": null
+  },
+  "views": {
+    "FULL": {
+      "content": {
+        "role": "assistant",
+        "content": "我将计算1到100的和，并将结果保存到sum_result.txt文件中。\n\n首先，让我计算1到100的和：\n1+2+3+...+100 = (100×101)/2 = 5050\n\n现在我将把这个结果写入文件。\n\n",
+        "refusal": null,
+        "reasoning": null,
+        "tool_calls": [
+          {
+            "id": "call_3bd49245da2e44188b2a66f7",
+            "index": 0,
+            "type": "function",
+            "function": {
+              "name": "write_file",
+              "arguments": "{\"file_path\": \"sum_result.txt\", \"content\": 5050}"
+            }
+          }
+        ]
+      },
+      "tokens": 151,
+      "generated_at": "2025-08-17T12:38:07.473299"
+    },
+    "MINIMAL": {
+      "content": {
+        "marker": "[assistant:tools]"
+      },
+      "tokens": 5,
+      "generated_at": "2025-08-17T12:38:07.473329"
+    },
+    "HIGH": {
+      "content": {
+        "role": "assistant",
+        "content": "我将计算1到100的和，并将结果保存到sum_result.txt文件中。\n\n首先，让我计算1到100的和：\n1+2+3+...+100 = (100×101)/2 = 5050\n\n现在我将把这个结果写入文件。\n\n",
+        "tool_calls_summary": [
+          {
+            "name": "write_file",
+            "args_preview": "{\"file_path\": \"sum_result.txt\", \"content\": 5050}"
+          }
+        ]
+      },
+      "tokens": 124,
+      "generated_at": "2025-08-17T12:38:07.475433"
+    },
+    "MEDIUM": {
+      "content": {
+        "role": "assistant",
+        "content_preview": "我将计算1到100的和，并将结果保存到sum_result.txt文件中。\n\n首先，让我计算1到100的和：\n1+2+3+...+100 = (100×101)/2 = 5050\n\n现在我将把这个结果写入文件。\n\n",
+        "tools_used": [
+          "write_file"
+        ]
+      },
+      "tokens": 103,
+      "generated_at": "2025-08-17T12:38:07.475519"
+    },
+    "LOW": {
+      "content": {
+        "role": "assistant",
+        "summary": "调用了1个工具: write_file"
+      },
+      "tokens": 21,
+      "generated_at": "2025-08-17T12:38:07.475579"
+    }
+  }
+}

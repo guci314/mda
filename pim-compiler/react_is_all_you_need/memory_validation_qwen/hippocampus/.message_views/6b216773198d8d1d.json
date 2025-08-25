@@ -1,0 +1,70 @@
+{
+  "id": "6b216773198d8d1d",
+  "timestamp": "2025-08-18T18:06:48.359216",
+  "metadata": {
+    "role": "assistant",
+    "round": 13,
+    "importance": null
+  },
+  "views": {
+    "FULL": {
+      "content": {
+        "role": "assistant",
+        "content": "",
+        "refusal": null,
+        "reasoning": null,
+        "tool_calls": [
+          {
+            "id": "call_4b87426f58c34fcc95d098f5",
+            "index": 0,
+            "type": "function",
+            "function": {
+              "name": "search_memory",
+              "arguments": "{\"query\": \"创建Flask应用\"}"
+            }
+          }
+        ]
+      },
+      "tokens": 65,
+      "generated_at": "2025-08-18T18:06:48.359288"
+    },
+    "MINIMAL": {
+      "content": {
+        "marker": "[assistant:tools]"
+      },
+      "tokens": 5,
+      "generated_at": "2025-08-18T18:06:48.359315"
+    },
+    "HIGH": {
+      "content": {
+        "role": "assistant",
+        "tool_calls_summary": [
+          {
+            "name": "search_memory",
+            "args_preview": "{\"query\": \"创建Flask应用\"}"
+          }
+        ]
+      },
+      "tokens": 34,
+      "generated_at": "2025-08-18T18:06:48.364596"
+    },
+    "MEDIUM": {
+      "content": {
+        "role": "assistant",
+        "tools_used": [
+          "search_memory"
+        ]
+      },
+      "tokens": 13,
+      "generated_at": "2025-08-18T18:06:48.364665"
+    },
+    "LOW": {
+      "content": {
+        "role": "assistant",
+        "summary": "调用了1个工具: search_memory"
+      },
+      "tokens": 22,
+      "generated_at": "2025-08-18T18:06:48.364723"
+    }
+  }
+}

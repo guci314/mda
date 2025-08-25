@@ -1,0 +1,13 @@
+{
+  "id": "tool_write_file_20250818_203239",
+  "timestamp": "2025-08-18T20:32:39.835703",
+  "event": "tool_write_file",
+  "data": {
+    "tool": "write_file",
+    "arguments": {
+      "content": "from functools import wraps\nfrom flask import jsonify, request\nimport jwt\nfrom models import User\nfrom database import db\nfrom config import Config\n\ndef token_required(f):\n    @wraps(f)\n    def decorated(*args, **kwargs):\n        token = None\n        \n        if 'Authorization' in request.headers:\n            auth_header = request.headers['Authorization']\n            try:\n                token = auth_header.split(\" \")[1]\n            except IndexError:\n                return jsonify({'message': 'Token is missing!'}), 401\n\n        if not token:\n            return jsonify({'message': 'Token is missing!'}), 401\n\n        try:\n            data = jwt.decode(token, Config.JWT_SECRET_KEY, algorithms=['HS256'])\n            current_user = User.query.filter_by(id=data['user_id']).first()\n            if not current_user:\n                return jsonify({'message': 'Token is invalid!'}), 401\n        except jwt.ExpiredSignatureError:\n            return jsonify({'message': 'Token has expired!'}), 401\n        except jwt.InvalidTokenError:\n            return jsonify({'message': 'Token is invalid!'}), 401\n\n        return f(current_user, *args, **kwargs)\n\n    return decorated",
+      "file_path": "webapp/backend/auth.py"
+    },
+    "round": 5
+  }
+}

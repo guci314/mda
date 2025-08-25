@@ -1,0 +1,52 @@
+{
+  "id": "2e9330263841cbbe",
+  "timestamp": "2025-08-17T12:38:07.478639",
+  "metadata": {
+    "role": "tool",
+    "round": 2,
+    "importance": null
+  },
+  "views": {
+    "FULL": {
+      "content": {
+        "role": "tool",
+        "tool_call_id": "call_3bd49245da2e44188b2a66f7",
+        "name": "write_file",
+        "content": "工具执行错误: object of type 'int' has no len()"
+      },
+      "tokens": 43,
+      "generated_at": "2025-08-17T12:38:07.478713"
+    },
+    "MINIMAL": {
+      "content": {
+        "marker": "[tool:result]"
+      },
+      "tokens": 5,
+      "generated_at": "2025-08-17T12:38:07.478744"
+    },
+    "HIGH": {
+      "content": {
+        "role": "tool",
+        "content": "工具执行错误: object of type 'int' has no len()"
+      },
+      "tokens": 25,
+      "generated_at": "2025-08-17T12:38:07.486855"
+    },
+    "MEDIUM": {
+      "content": {
+        "role": "tool",
+        "content_preview": "工具执行错误: object of type 'int' has no len()"
+      },
+      "tokens": 27,
+      "generated_at": "2025-08-17T12:38:07.486911"
+    },
+    "LOW": {
+      "content": {
+        "role": "tool",
+        "summary": "工具返回结果"
+      },
+      "tokens": 16,
+      "generated_at": "2025-08-17T12:38:07.486955"
+    }
+  }
+}

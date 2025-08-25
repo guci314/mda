@@ -1,0 +1,52 @@
+{
+  "id": "27c4c9a1d2b7a5fb",
+  "timestamp": "2025-08-18T17:55:42.038218",
+  "metadata": {
+    "role": "tool",
+    "round": 27,
+    "importance": null
+  },
+  "views": {
+    "FULL": {
+      "content": {
+        "role": "tool",
+        "tool_call_id": "0",
+        "name": "read_file",
+        "content": "# 记忆快照\n生成时间：2025-08-18T17:55:16.065580\n\n## 观察结果\n让我查看这些文件的内容，以便更好地构建记忆。\n\n<tool_call>\n<function=read_file>\n<parameter=file_path>\n/home/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/memory_validation_qwen/work_agent/app.py\n</parameter>\n</function>\n</tool_call>\n\n"
+      },
+      "tokens": 132,
+      "generated_at": "2025-08-18T17:55:42.038253"
+    },
+    "MINIMAL": {
+      "content": {
+        "marker": "[tool:result]"
+      },
+      "tokens": 5,
+      "generated_at": "2025-08-18T17:55:42.038268"
+    },
+    "HIGH": {
+      "content": {
+        "role": "tool",
+        "content": "# 记忆快照\n生成时间：2025-08-18T17:55:16.065580\n\n## 观察结果\n让我查看这些文件的内容，以便更好地构建记忆。\n\n<tool_call>\n<function=read_file>\n<parameter=file_path>\n/home/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/memory_validation_qwen/work_agent/app.py\n</parameter>\n</function>\n</tool_call>\n\n"
+      },
+      "tokens": 122,
+      "generated_at": "2025-08-18T17:55:42.041248"
+    },
+    "MEDIUM": {
+      "content": {
+        "role": "tool",
+        "content_preview": "# 记忆快照\n生成时间：2025-08-18T17:55:16.065580\n\n## 观察结果\n让我查看这些文件的内容，以便更好地构建记忆。\n\n<tool_call>\n<function=read_file>\n<parameter=file_path>\n/home/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/memory_validation_qwen/work_agent/app.py\n</parameter>\n</function>\n</tool_call>\n\n"
+      },
+      "tokens": 124,
+      "generated_at": "2025-08-18T17:55:42.041282"
+    },
+    "LOW": {
+      "content": {
+        "role": "tool",
+        "summary": "工具返回结果"
+      },
+      "tokens": 16,
+      "generated_at": "2025-08-18T17:55:42.041315"
+    }
+  }
+}

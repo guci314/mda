@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>简单Web应用</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        h1 {
+            color: #333;
+        }
+        .api-section {
+            margin-top: 30px;
+            text-align: left;
+        }
+        code {
+            background-color: #f0f0f0;
+            padding: 2px 5px;
+            border-radius: 3px;
+        }
+        pre {
+            background-color: #f0f0f0;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>欢迎来到简单Web应用</h1>
+        <p>这是一个使用Flask构建的简单Web应用程序示例。</p>
+        
+        <div class="api-section">
+            <h2>API接口</h2>
+            <p>您可以使用以下API接口：</p>
+            
+            <h3>1. 获取欢迎信息</h3>
+            <p>请求方式：<code>GET</code></p>
+            <p>URL：<code>/api/hello</code></p>
+            <p>示例响应：</p>
+            <pre>{
+  "message": "Hello, World!",
+  "status": "success"
+}</pre>
+            
+            <h3>2. 回显数据</h3>
+            <p>请求方式：<code>POST</code></p>
+            <p>URL：<code>/api/echo</code></p>
+            <p>请求体示例：</p>
+            <pre>{
+  "your_data": "value"
+}</pre>
+        </div>
+    </div>
+</body>
+</html>

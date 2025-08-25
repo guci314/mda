@@ -1,0 +1,52 @@
+{
+  "id": "a0e0526464bee437",
+  "timestamp": "2025-08-18T17:56:21.957982",
+  "metadata": {
+    "role": "tool",
+    "round": 17,
+    "importance": null
+  },
+  "views": {
+    "FULL": {
+      "content": {
+        "role": "tool",
+        "tool_call_id": "call_0f128fa959ba423cae504b96",
+        "name": "search_memory",
+        "content": "未找到相关内容"
+      },
+      "tokens": 36,
+      "generated_at": "2025-08-18T17:56:21.957998"
+    },
+    "MINIMAL": {
+      "content": {
+        "marker": "[tool:result]"
+      },
+      "tokens": 5,
+      "generated_at": "2025-08-18T17:56:21.958004"
+    },
+    "HIGH": {
+      "content": {
+        "role": "tool",
+        "content": "未找到相关内容"
+      },
+      "tokens": 18,
+      "generated_at": "2025-08-18T17:56:21.960804"
+    },
+    "MEDIUM": {
+      "content": {
+        "role": "tool",
+        "content_preview": "未找到相关内容"
+      },
+      "tokens": 20,
+      "generated_at": "2025-08-18T17:56:21.960823"
+    },
+    "LOW": {
+      "content": {
+        "role": "tool",
+        "summary": "工具返回结果"
+      },
+      "tokens": 16,
+      "generated_at": "2025-08-18T17:56:21.960843"
+    }
+  }
+}

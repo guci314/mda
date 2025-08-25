@@ -1,0 +1,72 @@
+{
+  "id": "4e601846358b667e",
+  "timestamp": "2025-08-17T12:39:12.821144",
+  "metadata": {
+    "role": "assistant",
+    "round": 10,
+    "importance": null
+  },
+  "views": {
+    "FULL": {
+      "content": {
+        "role": "assistant",
+        "content": "让我检查一下生成的文件内容，确保它们符合要求：\n\n",
+        "refusal": null,
+        "reasoning": null,
+        "tool_calls": [
+          {
+            "index": 0,
+            "id": "0",
+            "type": "function",
+            "function": {
+              "name": "read_file",
+              "arguments": "{\"file_path\": \"analysis.md\"}"
+            }
+          }
+        ]
+      },
+      "tokens": 89,
+      "generated_at": "2025-08-17T12:39:12.821175"
+    },
+    "MINIMAL": {
+      "content": {
+        "marker": "[assistant:tools]"
+      },
+      "tokens": 5,
+      "generated_at": "2025-08-17T12:39:12.821185"
+    },
+    "HIGH": {
+      "content": {
+        "role": "assistant",
+        "content": "让我检查一下生成的文件内容，确保它们符合要求：\n\n",
+        "tool_calls_summary": [
+          {
+            "name": "read_file",
+            "args_preview": "{\"file_path\": \"analysis.md\"}"
+          }
+        ]
+      },
+      "tokens": 69,
+      "generated_at": "2025-08-17T12:39:12.825147"
+    },
+    "MEDIUM": {
+      "content": {
+        "role": "assistant",
+        "content_preview": "让我检查一下生成的文件内容，确保它们符合要求：\n\n",
+        "tools_used": [
+          "read_file"
+        ]
+      },
+      "tokens": 53,
+      "generated_at": "2025-08-17T12:39:12.825183"
+    },
+    "LOW": {
+      "content": {
+        "role": "assistant",
+        "summary": "调用了1个工具: read_file"
+      },
+      "tokens": 21,
+      "generated_at": "2025-08-17T12:39:12.825211"
+    }
+  }
+}

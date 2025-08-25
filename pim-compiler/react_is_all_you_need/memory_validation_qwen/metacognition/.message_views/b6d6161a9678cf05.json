@@ -1,0 +1,70 @@
+{
+  "id": "b6d6161a9678cf05",
+  "timestamp": "2025-08-18T17:56:25.008595",
+  "metadata": {
+    "role": "assistant",
+    "round": 19,
+    "importance": null
+  },
+  "views": {
+    "FULL": {
+      "content": {
+        "role": "assistant",
+        "content": "",
+        "refusal": null,
+        "reasoning": null,
+        "tool_calls": [
+          {
+            "id": "call_41882ff516364d179cc0fde9",
+            "index": 0,
+            "type": "function",
+            "function": {
+              "name": "search_memory",
+              "arguments": "{\"query\": \"Python Web应用创建任务\"}"
+            }
+          }
+        ]
+      },
+      "tokens": 70,
+      "generated_at": "2025-08-18T17:56:25.008628"
+    },
+    "MINIMAL": {
+      "content": {
+        "marker": "[assistant:tools]"
+      },
+      "tokens": 5,
+      "generated_at": "2025-08-18T17:56:25.008637"
+    },
+    "HIGH": {
+      "content": {
+        "role": "assistant",
+        "tool_calls_summary": [
+          {
+            "name": "search_memory",
+            "args_preview": "{\"query\": \"Python Web应用创建任务\"}"
+          }
+        ]
+      },
+      "tokens": 38,
+      "generated_at": "2025-08-18T17:56:25.011498"
+    },
+    "MEDIUM": {
+      "content": {
+        "role": "assistant",
+        "tools_used": [
+          "search_memory"
+        ]
+      },
+      "tokens": 13,
+      "generated_at": "2025-08-18T17:56:25.011529"
+    },
+    "LOW": {
+      "content": {
+        "role": "assistant",
+        "summary": "调用了1个工具: search_memory"
+      },
+      "tokens": 22,
+      "generated_at": "2025-08-18T17:56:25.011555"
+    }
+  }
+}

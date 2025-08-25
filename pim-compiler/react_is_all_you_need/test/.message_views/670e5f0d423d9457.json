@@ -1,0 +1,72 @@
+{
+  "id": "670e5f0d423d9457",
+  "timestamp": "2025-08-19T21:56:50.659021",
+  "metadata": {
+    "role": "assistant",
+    "round": 58,
+    "importance": null
+  },
+  "views": {
+    "FULL": {
+      "content": {
+        "role": "assistant",
+        "content": "现在让我查看测试文件，了解四层记忆系统的实际实现。\n\n",
+        "refusal": null,
+        "reasoning": null,
+        "tool_calls": [
+          {
+            "index": 0,
+            "id": "call_264a7a466c04df53",
+            "function": {
+              "arguments": "{\"file_path\": \"/home/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/test_4layer_final.py\"}",
+              "name": "read_file"
+            },
+            "type": "function"
+          }
+        ]
+      },
+      "tokens": 115,
+      "generated_at": "2025-08-19T21:56:50.659144"
+    },
+    "MINIMAL": {
+      "content": {
+        "marker": "[assistant:tools]"
+      },
+      "tokens": 5,
+      "generated_at": "2025-08-19T21:56:50.659175"
+    },
+    "HIGH": {
+      "content": {
+        "role": "assistant",
+        "content": "现在让我查看测试文件，了解四层记忆系统的实际实现。\n\n",
+        "tool_calls_summary": [
+          {
+            "name": "read_file",
+            "args_preview": "{\"file_path\": \"/home/guci/aiProjects/mda/pim-compi"
+          }
+        ]
+      },
+      "tokens": 77,
+      "generated_at": "2025-08-19T21:56:50.663230"
+    },
+    "MEDIUM": {
+      "content": {
+        "role": "assistant",
+        "content_preview": "现在让我查看测试文件，了解四层记忆系统的实际实现。\n\n",
+        "tools_used": [
+          "read_file"
+        ]
+      },
+      "tokens": 56,
+      "generated_at": "2025-08-19T21:56:50.667253"
+    },
+    "LOW": {
+      "content": {
+        "role": "assistant",
+        "summary": "调用了1个工具: read_file"
+      },
+      "tokens": 21,
+      "generated_at": "2025-08-19T21:56:50.667433"
+    }
+  }
+}

@@ -1,0 +1,70 @@
+{
+  "id": "3c9af8757478c213",
+  "timestamp": "2025-08-18T18:07:46.363040",
+  "metadata": {
+    "role": "assistant",
+    "round": 49,
+    "importance": null
+  },
+  "views": {
+    "FULL": {
+      "content": {
+        "role": "assistant",
+        "content": "",
+        "refusal": null,
+        "reasoning": null,
+        "tool_calls": [
+          {
+            "index": 0,
+            "id": "call_1b76cf2581df4b809a506061",
+            "type": "function",
+            "function": {
+              "name": "execute_command",
+              "arguments": "{\"command\": \"find . -name \\\"app.py\\\" -o -name \\\"requirements.txt\\\" -o -name \\\"README.md\\\" -o -name \\\"index.html\\\" | head -20\"}"
+            }
+          }
+        ]
+      },
+      "tokens": 91,
+      "generated_at": "2025-08-18T18:07:46.363079"
+    },
+    "MINIMAL": {
+      "content": {
+        "marker": "[assistant:tools]"
+      },
+      "tokens": 5,
+      "generated_at": "2025-08-18T18:07:46.363092"
+    },
+    "HIGH": {
+      "content": {
+        "role": "assistant",
+        "tool_calls_summary": [
+          {
+            "name": "execute_command",
+            "args_preview": "{\"command\": \"find . -name \\\"app.py\\\" -o -name \\\"re"
+          }
+        ]
+      },
+      "tokens": 38,
+      "generated_at": "2025-08-18T18:07:46.365590"
+    },
+    "MEDIUM": {
+      "content": {
+        "role": "assistant",
+        "tools_used": [
+          "execute_command"
+        ]
+      },
+      "tokens": 14,
+      "generated_at": "2025-08-18T18:07:46.365614"
+    },
+    "LOW": {
+      "content": {
+        "role": "assistant",
+        "summary": "调用了1个工具: execute_command"
+      },
+      "tokens": 22,
+      "generated_at": "2025-08-18T18:07:46.365852"
+    }
+  }
+}

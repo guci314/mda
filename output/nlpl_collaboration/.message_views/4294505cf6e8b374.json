@@ -1,0 +1,72 @@
+{
+  "id": "4294505cf6e8b374",
+  "timestamp": "2025-08-17T12:39:15.800471",
+  "metadata": {
+    "role": "assistant",
+    "round": 13,
+    "importance": null
+  },
+  "views": {
+    "FULL": {
+      "content": {
+        "role": "assistant",
+        "content": "现在让我检查pipeline.md文件：\n\n",
+        "refusal": null,
+        "reasoning": null,
+        "tool_calls": [
+          {
+            "id": "call_ceccae83f9a24da99e66ac87",
+            "index": 0,
+            "type": "function",
+            "function": {
+              "name": "read_file",
+              "arguments": "{\"file_path\": \"pipeline.md\"}"
+            }
+          }
+        ]
+      },
+      "tokens": 78,
+      "generated_at": "2025-08-17T12:39:15.800503"
+    },
+    "MINIMAL": {
+      "content": {
+        "marker": "[assistant:tools]"
+      },
+      "tokens": 5,
+      "generated_at": "2025-08-17T12:39:15.800512"
+    },
+    "HIGH": {
+      "content": {
+        "role": "assistant",
+        "content": "现在让我检查pipeline.md文件：\n\n",
+        "tool_calls_summary": [
+          {
+            "name": "read_file",
+            "args_preview": "{\"file_path\": \"pipeline.md\"}"
+          }
+        ]
+      },
+      "tokens": 51,
+      "generated_at": "2025-08-17T12:39:15.803451"
+    },
+    "MEDIUM": {
+      "content": {
+        "role": "assistant",
+        "content_preview": "现在让我检查pipeline.md文件：\n\n",
+        "tools_used": [
+          "read_file"
+        ]
+      },
+      "tokens": 35,
+      "generated_at": "2025-08-17T12:39:15.803478"
+    },
+    "LOW": {
+      "content": {
+        "role": "assistant",
+        "summary": "调用了1个工具: read_file"
+      },
+      "tokens": 21,
+      "generated_at": "2025-08-17T12:39:15.803499"
+    }
+  }
+}

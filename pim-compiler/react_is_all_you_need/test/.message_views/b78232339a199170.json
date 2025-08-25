@@ -1,0 +1,72 @@
+{
+  "id": "b78232339a199170",
+  "timestamp": "2025-08-19T18:00:05.099648",
+  "metadata": {
+    "role": "assistant",
+    "round": 10,
+    "importance": null
+  },
+  "views": {
+    "FULL": {
+      "content": {
+        "role": "assistant",
+        "content": "现在让我创建博客系统的各个模块文件。首先从domain层开始，创建模型和repository：\n\n",
+        "refusal": null,
+        "reasoning": null,
+        "tool_calls": [
+          {
+            "index": 0,
+            "id": "call_7b97267c2df8c692",
+            "function": {
+              "arguments": "{\"file_path\": \"blog_system/domain/models.py\", \"content\": \"from datetime import datetime\\nfrom typing import Optional\\nfrom pydantic import BaseModel\\n\\n\\nclass BlogPost(BaseModel):\\n    id: Optional[int] = None\\n    title: str\\n    content: str\\n    author: str\\n    created_at: Optional[datetime] = None\\n    updated_at: Optional[datetime] = None\\n\\n    class Config:\\n        orm_mode = True\\n\\n\\nclass BlogPostCreate(BaseModel):\\n    title: str\\n    content: str\\n    author: str\\n\\n\\nclass BlogPostUpdate(BaseModel):\\n    title: Optional[str] = None\\n    content: Optional[str] = None\"}",
+              "name": "write_file"
+            },
+            "type": "function"
+          }
+        ]
+      },
+      "tokens": 258,
+      "generated_at": "2025-08-19T18:00:05.099694"
+    },
+    "MINIMAL": {
+      "content": {
+        "marker": "[assistant:tools]"
+      },
+      "tokens": 5,
+      "generated_at": "2025-08-19T18:00:05.099706"
+    },
+    "HIGH": {
+      "content": {
+        "role": "assistant",
+        "content": "现在让我创建博客系统的各个模块文件。首先从domain层开始，创建模型和repository：\n\n",
+        "tool_calls_summary": [
+          {
+            "name": "write_file",
+            "args_preview": "{\"file_path\": \"blog_system/domain/models.py\", \"con"
+          }
+        ]
+      },
+      "tokens": 91,
+      "generated_at": "2025-08-19T18:00:05.104486"
+    },
+    "MEDIUM": {
+      "content": {
+        "role": "assistant",
+        "content_preview": "现在让我创建博客系统的各个模块文件。首先从domain层开始，创建模型和repository：\n\n",
+        "tools_used": [
+          "write_file"
+        ]
+      },
+      "tokens": 70,
+      "generated_at": "2025-08-19T18:00:05.104529"
+    },
+    "LOW": {
+      "content": {
+        "role": "assistant",
+        "summary": "调用了1个工具: write_file"
+      },
+      "tokens": 21,
+      "generated_at": "2025-08-19T18:00:05.104552"
+    }
+  }
+}

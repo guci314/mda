@@ -1,0 +1,72 @@
+{
+  "id": "3a212e42639732c7",
+  "timestamp": "2025-08-17T12:39:23.455520",
+  "metadata": {
+    "role": "assistant",
+    "round": 1,
+    "importance": null
+  },
+  "views": {
+    "FULL": {
+      "content": {
+        "role": "assistant",
+        "content": "我将执行pipeline.md中的数据处理流水线。首先，让我查看一下工作目录中的文件。\n\n",
+        "refusal": null,
+        "reasoning": null,
+        "tool_calls": [
+          {
+            "id": "call_c0898defc3824e7895075d1f",
+            "index": 0,
+            "type": "function",
+            "function": {
+              "name": "list_directory",
+              "arguments": "{\"directory_path\": \".\"}"
+            }
+          }
+        ]
+      },
+      "tokens": 113,
+      "generated_at": "2025-08-17T12:39:23.455555"
+    },
+    "MINIMAL": {
+      "content": {
+        "marker": "[assistant:tools]"
+      },
+      "tokens": 5,
+      "generated_at": "2025-08-17T12:39:23.455567"
+    },
+    "HIGH": {
+      "content": {
+        "role": "assistant",
+        "content": "我将执行pipeline.md中的数据处理流水线。首先，让我查看一下工作目录中的文件。\n\n",
+        "tool_calls_summary": [
+          {
+            "name": "list_directory",
+            "args_preview": "{\"directory_path\": \".\"}"
+          }
+        ]
+      },
+      "tokens": 85,
+      "generated_at": "2025-08-17T12:39:23.457005"
+    },
+    "MEDIUM": {
+      "content": {
+        "role": "assistant",
+        "content_preview": "我将执行pipeline.md中的数据处理流水线。首先，让我查看一下工作目录中的文件。\n\n",
+        "tools_used": [
+          "list_directory"
+        ]
+      },
+      "tokens": 71,
+      "generated_at": "2025-08-17T12:39:23.457044"
+    },
+    "LOW": {
+      "content": {
+        "role": "assistant",
+        "summary": "调用了1个工具: list_directory"
+      },
+      "tokens": 22,
+      "generated_at": "2025-08-17T12:39:23.457071"
+    }
+  }
+}

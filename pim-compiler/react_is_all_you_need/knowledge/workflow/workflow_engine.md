@@ -136,14 +136,88 @@
 {
   "type": "loop",
   "loop_config": {
-    "loop_type": "for|while|foreach",
+    "loop_type": "for|while|foreach|until",
     "condition": "${index} < ${items.length}",
     "max_iterations": 100,
     "loop_steps": ["step_in_loop"],
-    "break_condition": "${error_count} > 3"
+    "break_condition": "${error_count} > 3",
+    "loop_variable": "current_item",
+    "items": "${variables.data_batches}"
   }
 }
 ```
+
+#### 循环类型详解
+
+**ForEach循环** - 遍历集合：
+```json
+{
+  "loop_type": "foreach",
+  "items": "${variables.batches}",
+  "loop_variable": "current_batch",
+  "loop_body": {
+    "steps": ["process_batch", "validate_batch"]
+  }
+}
+```
+
+**While循环** - 条件循环：
+```json
+{
+  "loop_type": "while", 
+  "condition": "${retry_count} < ${max_retries} && ${status} != 'success'",
+  "loop_body": {
+    "steps": ["attempt_operation", "check_result"]
+  },
+  "max_iterations": 10
+}
+```
+
+**Until循环** - 直到满足条件：
+```json
+{
+  "loop_type": "until",
+  "condition": "${all_processed} == true || ${timeout_reached} == true",
+  "loop_body": {
+    "steps": ["process_next", "update_status"]
+  },
+  "min_iterations": 1
+}
+```
+
+**For循环** - 计数循环：
+```json
+{
+  "loop_type": "for",
+  "start": 0,
+  "end": "${batch_count}",
+  "step": 1,
+  "loop_variable": "batch_index",
+  "loop_body": {
+    "steps": ["load_batch", "process_batch", "save_results"]
+  }
+}
+```
+
+#### 循环控制
+
+**循环状态管理**：
+```json
+{
+  "loop_state": {
+    "current_iteration": 5,
+    "total_iterations": 10,
+    "loop_variable_value": "batch_5",
+    "accumulated_results": [],
+    "break_requested": false,
+    "continue_requested": false
+  }
+}
+```
+
+**Break和Continue**：
+- Break: 设置 `loop_state.break_requested = true` 跳出循环
+- Continue: 设置 `loop_state.continue_requested = true` 跳过当前迭代
 
 ### 6. Subprocess（子流程）
 调用另一个工作流：
@@ -493,6 +567,127 @@ class CustomStep:
 }
 ```
 
+## 工作流模板系统
+
+### 模板加载与实例化
+
+工作流引擎支持从模板文件加载预定义的工作流：
+
+#### 1. 模板存储位置
+```
+knowledge/workflow/templates/
+├── deployment.md       # 部署流程模板
+├── data_pipeline.md    # ETL管道模板
+└── incident_response.md # 事件响应模板
+```
+
+#### 2. 模板引用方式
+
+在任务描述中引用模板（使用绝对路径）：
+```
+执行 /home/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/knowledge/workflow/templates/deployment.md 模板
+参数:
+- environment: production
+- servers: [srv1, srv2]
+- version: v1.2.3
+```
+
+或使用相对路径（相对于工作目录）：
+```
+执行 knowledge/workflow/templates/deployment.md 模板
+参数:
+- environment: production
+- servers: [srv1, srv2]
+- version: v1.2.3
+```
+
+#### 3. JSON状态中的模板引用
+
+workflow_state.json 应包含模板引用（推荐使用绝对路径）：
+```json
+{
+  "template_ref": "/home/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/knowledge/workflow/templates/deployment.md",
+  "template_id": "deployment_workflow_v1",
+  "parameters": {
+    "environment": "production",
+    "servers": ["srv1", "srv2"],
+    "version": "v1.2.3"
+  },
+  "instance_id": "deploy_20240115_001",
+  ...
+}
+```
+
+#### 4. 模板加载执行流程
+
+当任务提到"执行xxx模板"时：
+1. 使用 `read_file` 读取模板文件
+2. 解析模板中的元信息和参数定义
+3. 用提供的参数值替换模板参数
+4. 在 workflow_state.json 中记录 `template_ref` 和 `template_id`
+5. 根据模板定义的步骤创建实例化的工作流
+6. 按照模板逻辑执行工作流
+
+#### 5. 模板覆盖机制
+
+支持在执行时覆盖模板的部分内容：
+```
+基于 deployment.md 模板
+但修改:
+- 跳过步骤1（代码检查）
+- 步骤8增加额外验证
+```
+
+处理覆盖时：
+1. 先加载基础模板
+2. 应用覆盖规则
+3. 记录覆盖内容到 `variables.overrides`
+
+#### 6. 参数验证
+
+执行前验证参数：
+- 检查必需参数是否提供
+- 验证参数类型是否匹配
+- 检查枚举值是否有效
+- 应用默认值
+
+### 模板与实例的关系
+
+#### 类型层（模板）- 显式表达
+- **格式**: Markdown + YAML
+- **位置**: knowledge/workflow/templates/
+- **内容**: 步骤定义、条件逻辑、成功条件
+- **特点**: 人类可读、版本控制、可重用
+
+#### 实例层（状态）- 显式表达  
+- **格式**: JSON
+- **位置**: workflow_state.json
+- **内容**: 执行状态、变量值、日志
+- **特点**: 机器可处理、实时更新、可追踪
+
+#### 关联机制
+- 通过 `template_ref` 字段关联模板文件
+- 通过 `template_id` 标识模板版本
+- 通过 `parameters` 记录实例化参数
+- 通过 `instance_id` 唯一标识执行实例
+
+### 最佳实践
+
+1. **模板设计**
+   - 保持模板通用性，通过参数实现定制
+   - 明确定义参数的类型和约束
+   - 提供清晰的步骤描述和成功条件
+
+2. **版本管理**
+   - 模板文件纳入版本控制
+   - 更新模板时递增版本号
+   - 保持向后兼容性
+
+3. **执行追踪**
+   - 始终记录使用的模板和版本
+   - 保存完整的参数值
+   - 记录任何运行时覆盖
+
 ## 总结
 
 工作流引擎通过JSON笔记本实现了：
@@ -500,5 +695,7 @@ class CustomStep:
 - ✅ 灵活的执行控制
 - ✅ 完整的错误处理
 - ✅ 丰富的监控能力
+- ✅ 模板化的工作流定义
+- ✅ 类型与实例的清晰分离
 
 这是企业级自动化的基础设施。

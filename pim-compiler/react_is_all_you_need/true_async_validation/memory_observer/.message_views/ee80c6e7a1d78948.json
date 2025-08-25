@@ -1,0 +1,72 @@
+{
+  "id": "ee80c6e7a1d78948",
+  "timestamp": "2025-08-18T18:44:51.980352",
+  "metadata": {
+    "role": "assistant",
+    "round": 1,
+    "importance": null
+  },
+  "views": {
+    "FULL": {
+      "content": {
+        "role": "assistant",
+        "content": "我会按照您的要求开始异步观察共享记忆空间中的消息流。让我先检查共享空间的结构和内容。\n\n",
+        "refusal": null,
+        "reasoning": null,
+        "tool_calls": [
+          {
+            "index": 0,
+            "id": "call_23d62ddf4cd9a496",
+            "function": {
+              "arguments": "{\"code\": \"import os\\nimport json\\n\\n# \\u68c0\\u67e5\\u5171\\u4eab\\u8bb0\\u5fc6\\u7a7a\\u95f4\\u7684\\u76ee\\u5f55\\u7ed3\\u6784\\nshared_memory_path = '/home/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/shared_memory'\\ntry:\\n    if os.path.exists(shared_memory_path):\\n        files = os.listdir(shared_memory_path)\\n        print(f\\\"\\u5171\\u4eab\\u8bb0\\u5fc6\\u7a7a\\u95f4\\u4e2d\\u7684\\u6587\\u4ef6: {files}\\\")\\n        \\n        # \\u67e5\\u770b\\u6d88\\u606f\\u961f\\u5217\\u6587\\u4ef6\\uff08\\u5047\\u8bbe\\u5b58\\u5728\\uff09\\n        message_files = [f for f in files if 'message' in f.lower() or 'queue' in f.lower()]\\n        print(f\\\"\\u6d88\\u606f\\u76f8\\u5173\\u6587\\u4ef6: {message_files}\\\")\\n        \\n        # \\u5c1d\\u8bd5\\u8bfb\\u53d6\\u53ef\\u80fd\\u7684\\u6d88\\u606f\\u6587\\u4ef6\\n        for file in files:\\n            try:\\n                with open(os.path.join(shared_memory_path, file), 'r') as f:\\n                    content = f.read()\\n                    print(f\\\"\\u6587\\u4ef6 {file} \\u5185\\u5bb9\\u9884\\u89c8 (\\u524d200\\u5b57\\u7b26):\\\")\\n                    print(content[:200] if len(content) > 200 else content)\\n            except:\\n                print(f\\\"\\u65e0\\u6cd5\\u8bfb\\u53d6\\u6587\\u4ef6 {file}\\\")\\n    else:\\n        print(\\\"\\u5171\\u4eab\\u8bb0\\u5fc6\\u7a7a\\u95f4\\u76ee\\u5f55\\u4e0d\\u5b58\\u5728\\\")\\nexcept Exception as e:\\n    print(f\\\"\\u68c0\\u67e5\\u5171\\u4eab\\u8bb0\\u5fc6\\u7a7a\\u95f4\\u65f6\\u51fa\\u9519: {e}\\\")\"}",
+              "name": "execute_python"
+            },
+            "type": "function"
+          }
+        ]
+      },
+      "tokens": 507,
+      "generated_at": "2025-08-18T18:44:51.980392"
+    },
+    "MINIMAL": {
+      "content": {
+        "marker": "[assistant:tools]"
+      },
+      "tokens": 5,
+      "generated_at": "2025-08-18T18:44:51.980400"
+    },
+    "HIGH": {
+      "content": {
+        "role": "assistant",
+        "content": "我会按照您的要求开始异步观察共享记忆空间中的消息流。让我先检查共享空间的结构和内容。\n\n",
+        "tool_calls_summary": [
+          {
+            "name": "execute_python",
+            "args_preview": "{\"code\": \"import os\\nimport json\\n\\n# \\u68c0\\u67e5"
+          }
+        ]
+      },
+      "tokens": 105,
+      "generated_at": "2025-08-18T18:44:51.980846"
+    },
+    "MEDIUM": {
+      "content": {
+        "role": "assistant",
+        "content_preview": "我会按照您的要求开始异步观察共享记忆空间中的消息流。让我先检查共享空间的结构和内容。\n\n",
+        "tools_used": [
+          "execute_python"
+        ]
+      },
+      "tokens": 83,
+      "generated_at": "2025-08-18T18:44:51.980873"
+    },
+    "LOW": {
+      "content": {
+        "role": "assistant",
+        "summary": "调用了1个工具: execute_python"
+      },
+      "tokens": 22,
+      "generated_at": "2025-08-18T18:44:51.980892"
+    }
+  }
+}

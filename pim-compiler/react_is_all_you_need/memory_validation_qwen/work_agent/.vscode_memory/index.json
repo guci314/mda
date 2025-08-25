@@ -1,0 +1,180 @@
+{
+  "files": {
+    "app.py": {
+      "path": "/home/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/memory_validation_qwen/work_agent/.vscode_memory/workspace/app.py",
+      "hash": "e56ecad2",
+      "size": 1104,
+      "tokens": 306,
+      "last_access": "2025-08-18T18:06:21.804485"
+    },
+    "requirements.txt": {
+      "path": "/home/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/memory_validation_qwen/work_agent/.vscode_memory/workspace/requirements.txt",
+      "hash": "e49bdf4c",
+      "size": 12,
+      "tokens": 3,
+      "last_access": "2025-08-18T17:54:39.815140"
+    },
+    "README.md": {
+      "path": "/home/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/memory_validation_qwen/work_agent/.vscode_memory/workspace/README.md",
+      "hash": "f997efcf",
+      "size": 509,
+      "tokens": 159,
+      "last_access": "2025-08-18T18:05:28.044291"
+    },
+    "templates/index.html": {
+      "path": "/home/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/memory_validation_qwen/work_agent/.vscode_memory/workspace/index.html",
+      "hash": "d18d2328",
+      "size": 1721,
+      "tokens": 458,
+      "last_access": "2025-08-18T18:05:52.871281"
+    }
+  },
+  "episodes": [
+    {
+      "id": "task_start_20250818_175429",
+      "timestamp": "2025-08-18T17:54:29.760180",
+      "event": "task_start",
+      "summary": ""
+    },
+    {
+      "id": "tool_write_file_20250818_175438",
+      "timestamp": "2025-08-18T17:54:38.537227",
+      "event": "tool_write_file",
+      "summary": ""
+    },
+    {
+      "id": "tool_write_file_20250818_175439",
+      "timestamp": "2025-08-18T17:54:39.816099",
+      "event": "tool_write_file",
+      "summary": ""
+    },
+    {
+      "id": "tool_write_file_20250818_175455",
+      "timestamp": "2025-08-18T17:54:55.760162",
+      "event": "tool_write_file",
+      "summary": ""
+    },
+    {
+      "id": "task_complete_20250818_175459",
+      "timestamp": "2025-08-18T17:54:59.682003",
+      "event": "task_complete",
+      "summary": ""
+    },
+    {
+      "id": "task_start_20250818_180512",
+      "timestamp": "2025-08-18T18:05:12.470678",
+      "event": "task_start",
+      "summary": ""
+    },
+    {
+      "id": "tool_write_file_20250818_180517",
+      "timestamp": "2025-08-18T18:05:17.792723",
+      "event": "tool_write_file",
+      "summary": ""
+    },
+    {
+      "id": "tool_write_file_20250818_180521",
+      "timestamp": "2025-08-18T18:05:21.935698",
+      "event": "tool_write_file",
+      "summary": ""
+    },
+    {
+      "id": "tool_write_file_20250818_180528",
+      "timestamp": "2025-08-18T18:05:28.044577",
+      "event": "tool_write_file",
+      "summary": ""
+    },
+    {
+      "id": "tool_execute_command_20250818_180544",
+      "timestamp": "2025-08-18T18:05:44.210461",
+      "event": "tool_execute_command",
+      "summary": ""
+    },
+    {
+      "id": "tool_write_file_20250818_180552",
+      "timestamp": "2025-08-18T18:05:52.874556",
+      "event": "tool_write_file",
+      "summary": ""
+    },
+    {
+      "id": "tool_list_directory_20250818_180557",
+      "timestamp": "2025-08-18T18:05:57.910768",
+      "event": "tool_list_directory",
+      "summary": ""
+    },
+    {
+      "id": "tool_list_directory_20250818_180600",
+      "timestamp": "2025-08-18T18:06:00.742598",
+      "event": "tool_list_directory",
+      "summary": ""
+    },
+    {
+      "id": "tool_read_file_20250818_180610",
+      "timestamp": "2025-08-18T18:06:10.236329",
+      "event": "tool_read_file",
+      "summary": ""
+    },
+    {
+      "id": "tool_write_file_20250818_180621",
+      "timestamp": "2025-08-18T18:06:21.809577",
+      "event": "tool_write_file",
+      "summary": ""
+    },
+    {
+      "id": "task_complete_20250818_180623",
+      "timestamp": "2025-08-18T18:06:23.250513",
+      "event": "task_complete",
+      "summary": ""
+    }
+  ],
+  "states": [
+    {
+      "id": "task_completion_20250818_175459",
+      "name": "task_completion",
+      "timestamp": "2025-08-18T17:54:59.682840"
+    },
+    {
+      "id": "task_completion_20250818_180623",
+      "name": "task_completion",
+      "timestamp": "2025-08-18T18:06:23.251669"
+    }
+  ],
+  "access_log": [
+    {
+      "item": "app.py",
+      "timestamp": "2025-08-18T17:54:38.537151"
+    },
+    {
+      "item": "requirements.txt",
+      "timestamp": "2025-08-18T17:54:39.816036"
+    },
+    {
+      "item": "README.md",
+      "timestamp": "2025-08-18T17:54:55.760142"
+    },
+    {
+      "item": "app.py",
+      "timestamp": "2025-08-18T18:05:17.792656"
+    },
+    {
+      "item": "requirements.txt",
+      "timestamp": "2025-08-18T18:05:21.935669"
+    },
+    {
+      "item": "README.md",
+      "timestamp": "2025-08-18T18:05:28.044563"
+    },
+    {
+      "item": "templates/index.html",
+      "timestamp": "2025-08-18T18:05:52.874442"
+    },
+    {
+      "item": "app.py",
+      "timestamp": "2025-08-18T18:06:10.236302"
+    },
+    {
+      "item": "app.py",
+      "timestamp": "2025-08-18T18:06:21.809504"
+    }
+  ]
+}

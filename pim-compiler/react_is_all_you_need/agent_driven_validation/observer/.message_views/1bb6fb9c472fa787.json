@@ -1,0 +1,52 @@
+{
+  "id": "1bb6fb9c472fa787",
+  "timestamp": "2025-08-18T19:48:37.915217",
+  "metadata": {
+    "role": "tool",
+    "round": 16,
+    "importance": null
+  },
+  "views": {
+    "FULL": {
+      "content": {
+        "role": "tool",
+        "tool_call_id": "call_933dc5cc73744334b0461702",
+        "name": "write_file",
+        "content": "工具执行错误: write() argument must be str, not dict"
+      },
+      "tokens": 44,
+      "generated_at": "2025-08-18T19:48:37.915268"
+    },
+    "MINIMAL": {
+      "content": {
+        "marker": "[tool:result]"
+      },
+      "tokens": 5,
+      "generated_at": "2025-08-18T19:48:37.915286"
+    },
+    "HIGH": {
+      "content": {
+        "role": "tool",
+        "content": "工具执行错误: write() argument must be str, not dict"
+      },
+      "tokens": 26,
+      "generated_at": "2025-08-18T19:48:37.928581"
+    },
+    "MEDIUM": {
+      "content": {
+        "role": "tool",
+        "content_preview": "工具执行错误: write() argument must be str, not dict"
+      },
+      "tokens": 28,
+      "generated_at": "2025-08-18T19:48:37.928666"
+    },
+    "LOW": {
+      "content": {
+        "role": "tool",
+        "summary": "工具返回结果"
+      },
+      "tokens": 16,
+      "generated_at": "2025-08-18T19:48:37.928729"
+    }
+  }
+}

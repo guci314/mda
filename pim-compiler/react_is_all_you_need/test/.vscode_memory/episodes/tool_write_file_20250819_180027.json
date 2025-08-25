@@ -1,0 +1,13 @@
+{
+  "id": "tool_write_file_20250819_180027",
+  "timestamp": "2025-08-19T18:00:27.776344",
+  "event": "tool_write_file",
+  "data": {
+    "tool": "write_file",
+    "arguments": {
+      "content": "from fastapi import FastAPI, HTTPException\nfrom .domain.models import BlogPost, BlogPostCreate, BlogPostUpdate\nfrom .service.blog_service import BlogPostService\nfrom .service.in_memory_repository import InMemoryBlogPostRepository\n\napp = FastAPI(title=\"Blog System API\", version=\"1.0.0\")\n\n# 初始化repository和service\nrepository = InMemoryBlogPostRepository()\nblog_service = BlogPostService(repository)\n\n\n@app.get(\"/\")\ndef read_root():\n    return {\"message\": \"Welcome to Blog System API\"}\n\n\n@app.post(\"/posts\", response_model=BlogPost)\ndef create_post(post: BlogPostCreate):\n    return blog_service.create_post(post)\n\n\n@app.get(\"/posts/{post_id}\", response_model=BlogPost)\ndef get_post(post_id: int):\n    post = blog_service.get_post_by_id(post_id)\n    if post is None:\n        raise HTTPException(status_code=404, detail=\"Post not found\")\n    return post\n\n\n@app.get(\"/posts\", response_model=List[BlogPost])\ndef get_posts():\n    return blog_service.get_all_posts()\n\n\n@app.put(\"/posts/{post_id}\", response_model=BlogPost)\ndef update_post(post_id: int, post_update: BlogPostUpdate):\n    post = blog_service.update_post(post_id, post_update)\n    if post is None:\n        raise HTTPException(status_code=404, detail=\"Post not found\")\n    return post\n\n\n@app.delete(\"/posts/{post_id}\")\ndef delete_post(post_id: int):\n    success = blog_service.delete_post(post_id)\n    if not success:\n        raise HTTPException(status_code=404, detail=\"Post not found\")\n    return {\"message\": \"Post deleted successfully\"}",
+      "file_path": "blog_system/api/main.py"
+    },
+    "round": 8
+  }
+}

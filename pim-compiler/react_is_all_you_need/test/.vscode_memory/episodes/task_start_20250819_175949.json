@@ -1,0 +1,9 @@
+{
+  "id": "task_start_20250819_175949",
+  "timestamp": "2025-08-19T17:59:49.650048",
+  "event": "task_start",
+  "data": {
+    "task": "\n设计一个基于FastAPI的博客系统，要包括domain ，service，test\n",
+    "timestamp": "2025-08-19T17:59:49.650023"
+  }
+}

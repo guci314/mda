@@ -1,0 +1,50 @@
+{
+  "id": "58fdc150529fa17b",
+  "timestamp": "2025-08-18T19:48:08.602816",
+  "metadata": {
+    "role": "assistant",
+    "round": 4,
+    "importance": null
+  },
+  "views": {
+    "FULL": {
+      "content": {
+        "role": "assistant",
+        "content": "",
+        "refusal": null,
+        "reasoning": null
+      },
+      "tokens": 18,
+      "generated_at": "2025-08-18T19:48:08.602892"
+    },
+    "MINIMAL": {
+      "content": {
+        "marker": "[assistant]"
+      },
+      "tokens": 5,
+      "generated_at": "2025-08-18T19:48:08.602928"
+    },
+    "HIGH": {
+      "content": {
+        "role": "assistant"
+      },
+      "tokens": 5,
+      "generated_at": "2025-08-18T19:48:08.611589"
+    },
+    "MEDIUM": {
+      "content": {
+        "role": "assistant"
+      },
+      "tokens": 5,
+      "generated_at": "2025-08-18T19:48:08.611700"
+    },
+    "LOW": {
+      "content": {
+        "role": "assistant",
+        "summary": "assistant消息"
+      },
+      "tokens": 14,
+      "generated_at": "2025-08-18T19:48:08.611801"
+    }
+  }
+}

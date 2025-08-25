@@ -1,128 +1,73 @@
+```markdown
 # 知识库
 
 ## 元知识
-- **PSM到代码的完整映射流程**：从PSM文件分析→项目结构初始化（目录、`__init__.py`）→枚举定义（`models/enums.py`, `schemas/enums.py`）→模型类→Schema→CRUD层→服务层→路由→核心应用文件（`database.py`, `main.py`）→依赖（`requirements.txt`）→测试→文档的完整流水线。
-- **项目初始化策略**：
-    - 优先创建分层目录结构：`app/models`, `app/schemas`, `app/crud`, `app/services`, `app/routers`, `tests`。
-    - 在各子目录中创建`__init__.py`文件，使其成为可导入的包。
-    - 在项目根目录生成`requirements.txt`和`README.md`。
-- **代码修正的健壮模式**：当`search_replace`失败或可能产生副作用时，采用“读取-分析-编辑”(`read_file` -> `edit_lines`)的模式进行精确修改，以保证操作的准确性和可靠性。
-- **修改前验证原则**：在对一个文件（如Schema）进行修改前，先读取并验证相关联的文件（如Model），确保修改的逻辑一致性（例如，确认计算字段不在数据库模型中）。
-- **模型与Schema组织模式**：存在两种主要模式，需根据项目规模和团队偏好选择。
-    - **领域聚合模式（高内聚）**：将同一领域（如博客）下的紧密相关模型（Article, Category, Comment）聚合到单个文件中（如`models/blog.py`）。适用于领域模型关联紧密、方便统一查看关系的场景。
-    - **资源拆分模式（高解耦）**：为每个模型/资源（Article, Category）创建单独的文件（如`models/article.py`, `models/category.py`）。适用于模型间独立性强、便于按功能并行开发的场景。
-- **目录结构一致性**：CRUD、服务、路由、测试等按资源划分的目录，其文件名应保持一致（如`crud/crud_article.py`, `services/article_service.py`, `routers/articles.py`, `tests/test_articles.py`），便于查找和自动化生成。
-- **枚举提取模式**：将PSM中的枚举字段统一提取到`models/enums.py`（用于SQLAlchemy）和`schemas/enums.py`（用于Pydantic），使用`str, Enum`基类。
-- **Schema分层模式**：Create/Update/Response三层Schema，避免字段泄露。
-- **服务层引入时机**：为保证架构的可扩展性，即使初始业务逻辑简单，也倾向于默认创建`services`层来封装业务逻辑，而不是在路由层直接调用CRUD。
-- **字段映射验证方法**：PSM字段类型→SQLAlchemy类型→Pydantic类型的三重验证。
-- **PSM字段类型映射表**：
-  - Integer → sqlalchemy.Integer
-  - String(长度) → sqlalchemy.String(长度)
-  - Text → sqlalchemy.Text
-  - DateTime → sqlalchemy.DateTime(timezone=True)
-  - Enum → 自定义str, Enum类
-  - ForeignKey → sqlalchemy.ForeignKey('表名.字段')
-- **项目初始化验证方法**：在生成代码前检查目标目录是否为空，若为空则按标准结构初始化。
-- **增量生成策略**：检查目标目录内容，仅生成缺失文件，避免覆盖已有内容。
-- **测试文件修复方法**：在生成测试文件后，检查并修复可能缺少的依赖项导入（如SessionLocal）。
+- **PSM缺失时的应急策略**：当PSM文件不存在时，可基于领域常识构建标准模型（如博客系统的Article/Category/Comment），创建基础PSM文件后再执行标准生成流程
+- **空目录初始化验证**：在生成代码前通过`list_directory`验证目录状态，确保增量生成策略的正确
+- **领域常识映射方法**：将通用业务概念（博客系统）映射为标准PSM结构：实体→字段→关系→约束
+- **工具链可靠性验证**：`create_directory`和`write_file`在空目录环境下可稳定执行，无需预检查
+- **最小可行验证**：通过`list_directory`或`read_file`验证关键文件存在性，确保任务成功完成
+- **完整项目验证流程**：必须依次验证目录结构、核心文件、测试文件和文档文件的存在性
+- **分层验证策略**：优先验证核心层（main/models/schemas）再验证扩展层（services/routers/tests）
+- **PSM解析验证**：通过`read_file`读取PSM内容后，需验证关键部分（Domain Models/Enums）的存在性
 
 ## 原理与设计
-- **分层职责边界**：
-  - **路由层 (routers)**：仅处理HTTP协议相关逻辑（路径参数、请求体验证、响应序列化、HTTP状态码）。不包含业务逻辑，负责调用服务层。
-  - **服务层 (services)**：封装核心业务逻辑。编排对一个或多个CRUD操作的调用，处理复杂的业务规则、事务管理和跨模型操作。
-  - **CRUD层 (crud)**：提供与数据库单一模型对应的原子化、可复用的数据访问操作（Create, Read, Update, Delete）。
-- **时间字段设计模式**：
-  - 使用`DateTime(timezone=True)`确保时区安全。
-  - 数据库层默认值：`server_default=func.now()`。
-  - 应用层默认值：`default=datetime.utcnow`。
-  - 自动更新：`onupdate=datetime.utcnow`。
-- **外键关系配置**：
-  - 双向关联：`relationship(back_populates=...)`。
-  - 级联删除：`cascade="all, delete-orphan"`。
-  - 预加载策略：`lazy="selectin"`避免N+1查询。
-- **枚举类型最佳实践**：
-  - 业务状态使用`str, Enum`确保类型安全，并分别在模型层和Schema层定义。
-  - 枚举值使用小写字符串（draft/published）。
-  - 在Schema中使用`Literal`类型或Pydantic的Enum约束输入。
-- **Schema设计原则**：
-  - CreateSchema：必填字段验证，排除不可写字段（如id, created_at）。
-  - UpdateSchema：所有字段可选，支持部分更新。
-  - ResponseSchema：包含关联字段配置，控制序列化深度。
-  - **计算字段隔离**：将计算或衍生的字段（如`article_count`）严格限制在响应型Schema（ResponseSchema）中，避免其出现在数据库模型、创建（Create）或更新（Update）Schema中。
-- **默认值配置策略**：
-  - 数据库层：使用`server_default`确保数据一致性。
-  - 应用层：使用`default`提供业务默认值。
-  - 整型默认值：使用`server_default=text("0")`而非字符串"0"。
-- **项目结构设计原则**：保持与FastAPI推荐结构一致，引入`crud`层实现数据访问与业务逻辑的进一步分离。模型/Schema可按领域聚合或按资源拆分，但路由/服务/CRUD/测试层应始终按资源拆分。这种混合模式是有效且推荐的。
-- **数据库连接管理**：使用异步数据库引擎和会话管理，支持并发操作，配置文件为`app/database.py`。
+- **混合组织模式的实践验证**：领域聚合模式（models/schemas按领域聚合）与资源拆分模式（crud/services/routers/tests按资源拆分）的组合在实践中证明有效
+- **应急PSM构建原则**：基于80/20法则构建核心实体（20%的核心实体覆盖80%的业务需求）
+- **标准领域模型设计**：博客系统三核心实体（Article/Category/Comment）形成稳定的领域模型基础
+- **枚举统一管理模式**：业务状态枚举在models层（SQLAlchemy）和schemas层（Pydantic）分别定义，保持类型安全
+- **最小项目结构原则**：简单FastAPI应用只需3个核心文件（main.py, models.py, test_main.py）即可运行
+- **扩展项目结构规范**：完整项目应包含models/schemas/routers/services/crud分层和对应测试结构
+- **API路由组织原则**：按资源分离路由文件（articles.py/comments.py）优于集中式路由
+- **状态机设计模式**：ArticleStatus和CommentStatus枚举实现业务状态机的基础验证
 
 ## 接口与API
-- **文件操作工具**：
-  - `edit_lines(file, start, end, content)`: 用于精确的、基于行号的代码替换，可靠性高。通常与`read_file`配合使用。
-  - `search_replace(file, pattern, replacement)`: 用于简单的全局文本替换，当模式不唯一或上下文敏感时可能失败。
-  - `read_file(file)`: 读取文件内容，用于分析、验证或定位代码行。
-  - `write_file(file, content)`: 创建或覆盖整个文件。
-  - `create_directory(path)`: 创建目录。
-- **SQLAlchemy高级配置**：
-  - `Index("idx_article_status", "status")`：状态字段索引。
-  - `server_default=text("0")`：整型字段默认值。
-  - `UniqueConstraint("name")`：复合唯一约束。
-  - `DateTime(timezone=True)`：时区感知时间类型。
-- **Pydantic模式配置**：
-  - `orm_mode = True`：支持模型直接序列化。
-  - `from_attributes = True`：(更正：Pydantic V2+ 推荐用法) 支持模型直接序列化。
-  - `exclude={"comments"}`：控制关联字段深度。
-  - `Field(..., min_length=1)`：字段验证约束。
-- **FastAPI应用配置**：
-  - `app.include_router()`：挂载路由。
-  - `app = FastAPI(title="Blog API", description="A simple blog API")`：创建应用实例。
+- **目录创建工具**：`create_directory`支持递归创建多级目录结构
+- **文件写入工具**：`write_file`在文件不存在时创建，存在时覆盖
+- **空目录检测**：`list_directory`返回空列表表示目录为空
+- **文件搜索工具**：`search_files`支持通配符模式匹配
+- **文件验证工具**：`read_file`可用于验证文件内容是否正确写入
+- **目录内容验证**：`list_directory`返回结果格式为`[FILE] filename`的列表
+- **分层验证API**：`list_directory`可递归验证多级目录结构完整性
+- **PSM解析接口**：`read_file`返回的PSM内容需包含`## Domain Models`和`### Enums and Constants`章节
 
 ## 实现细节（需验证）
-- 注：以下结构为推荐实践，具体文件名可能变化，使用前需验证。
-- **标准项目文件结构（混合模式示例）**：
-  ```
-  .
-  ├── app/
-  │   ├── __init__.py
-  │   ├── crud/
-  │   │   ├── __init__.py
-  │   │   ├── crud_article.py   # 按资源拆分
-  │   │   ├── crud_category.py  # 按资源拆分
-  │   │   └── crud_comment.py   # 按资源拆分
-  │   ├── database.py
-  │   ├── main.py
-  │   ├── models/
-  │   │   ├── __init__.py
-  │   │   ├── enums.py
-  │   │   └── blog.py           # 按领域聚合 (e.g., Article, Category, Comment models)
-  │   ├── routers/
-  │   │   ├── __init__.py
-  │   │   ├── articles.py       # 按资源拆分
-  │   │   ├── categories.py     # 按资源拆分
-  │   │   └── comments.py       # 按资源拆分
-  │   ├── schemas/
-  │   │   ├── __init__.py
-  │   │   ├── enums.py
-  │   │   └── blog.py           # 按领域聚合 (e.g., Article, Category, Comment schemas)
-  │   └── services/
-  │       ├── __init__.py
-  │       ├── article_service.py # 按资源拆分
-  │       ├── category_service.py# 按资源拆分
-  │       └── comment_service.py # 按资源拆分
-  ├── tests/
-  │   ├── __init__.py
-  │   ├── test_main.py          # 可选，用于基本集成测试
-  │   ├── test_articles.py      # 按资源拆分
-  │   ├── test_categories.py    # 按资源拆分
-  │   └── test_comments.py      # 按资源拆分
-  ├── README.md
-  └── requirements.txt
-  ```
-- **数据库会话管理**：在`app/database.py`中定义引擎和会话，通过依赖注入在路由中使用。
-- **数据库默认配置**：`app/database.py`中通常默认使用SQLite (`sqlite+aiosqlite`)，便于快速启动和测试。
-- **应用入口**：在`app/main.py`中创建FastAPI应用实例，并使用`app.include_router()`挂载所有路由。
-- **测试文件修复**：在生成测试文件后，检查并修复可能缺少的依赖项导入（如SessionLocal）。
+- **标准项目初始化顺序**：
+  1. 创建目录结构（app/, tests/）
+  2. 创建主应用文件（app/main.py）
+  3. 创建数据模型文件（app/models.py）
+  4. 创建测试文件（tests/test_main.py）
+  5. 验证文件存在性
+
+- **完整项目初始化顺序**（扩展版）：
+  1. 创建基础目录结构（app/, tests/）
+  2. 创建核心文件（main.py, models.py, schemas.py）
+  3. 创建服务层文件（services.py）
+  4. 创建API路由目录（app/api/）
+  5. 按资源分离路由文件（articles.py, comments.py）
+  6. 创建数据库配置（db.py）
+  7. 创建依赖配置（dependencies.py）
+  8. 创建资源测试文件（test_articles.py, test_comments.py）
+  9. 创建文档文件（README.md）
+  10. 执行分层验证
+
+- **文件命名约定**：
+  - 路由层：`{resource}s.py`（复数形式）
+  - 测试层：`test_{resource}s.py`
+  - 服务层：`services.py`（聚合模式）或`{resource}_service.py`（拆分模式）
+
+- **PSM解析实现**：
+  - 必须包含`## Domain Models`章节
+  - 枚举定义需在`### Enums and Constants`章节
+  - 模型定义使用SQLAlchemy语法模板
 
 ## 用户偏好与项目特点
-- **默认组织模式**：当处理一个包含多个紧密关联实体（如Blog系统中的Article, Category, Comment）的PSM时，倾向于采用“领域聚合模式”来组织`models`和`schemas`层（例如，使用`models/blog.py`），同时对`crud`, `services`, `routers`, `tests`层采用“资源拆分模式”（例如，`crud/crud_article.py`, `crud/crud_category.py`）。
+- **应急模式偏好**：在PSM缺失时，倾向于构建博客系统作为演示标准
+- **核心实体选择**：博客系统默认包含Article（文章）、Category（分类）、Comment（评论）三个核心实体
+- **枚举命名风格**：状态枚举值使用小写字符串（draft/published/deleted）
+- **时间字段配置**：所有时间字段使用`DateTime(timezone=True)`确保时区安全
+- **最小验证标准**：优先确保main.py, models.py, test_main.py三个核心文件存在
+- **文档要求**：README.md必须包含基本安装说明和测试命令
+- **路由组织偏好**：倾向于将API路由按资源分离到独立文件
+- **PSM验证标准**：优先检查Domain Models和Enums章节完整性
+```

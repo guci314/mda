@@ -1,0 +1,72 @@
+{
+  "id": "1048c1d900cd1413",
+  "timestamp": "2025-08-18T18:06:26.633252",
+  "metadata": {
+    "role": "assistant",
+    "round": 1,
+    "importance": null
+  },
+  "views": {
+    "FULL": {
+      "content": {
+        "role": "assistant",
+        "content": "我会观察工作记录并构建记忆。首先让我读取工作记录文件。\n\n",
+        "refusal": null,
+        "reasoning": null,
+        "tool_calls": [
+          {
+            "id": "call_0ee6b5d658494f9dbdc9cb36",
+            "index": 0,
+            "type": "function",
+            "function": {
+              "name": "read_file",
+              "arguments": "{\"file_path\": \"/home/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/memory_validation_qwen/work_agent_log.json\"}"
+            }
+          }
+        ]
+      },
+      "tokens": 125,
+      "generated_at": "2025-08-18T18:06:26.633370"
+    },
+    "MINIMAL": {
+      "content": {
+        "marker": "[assistant:tools]"
+      },
+      "tokens": 5,
+      "generated_at": "2025-08-18T18:06:26.633400"
+    },
+    "HIGH": {
+      "content": {
+        "role": "assistant",
+        "content": "我会观察工作记录并构建记忆。首先让我读取工作记录文件。\n\n",
+        "tool_calls_summary": [
+          {
+            "name": "read_file",
+            "args_preview": "{\"file_path\": \"/home/guci/aiProjects/mda/pim-compi"
+          }
+        ]
+      },
+      "tokens": 80,
+      "generated_at": "2025-08-18T18:06:26.637011"
+    },
+    "MEDIUM": {
+      "content": {
+        "role": "assistant",
+        "content_preview": "我会观察工作记录并构建记忆。首先让我读取工作记录文件。\n\n",
+        "tools_used": [
+          "read_file"
+        ]
+      },
+      "tokens": 59,
+      "generated_at": "2025-08-18T18:06:26.637116"
+    },
+    "LOW": {
+      "content": {
+        "role": "assistant",
+        "summary": "调用了1个工具: read_file"
+      },
+      "tokens": 21,
+      "generated_at": "2025-08-18T18:06:26.637228"
+    }
+  }
+}

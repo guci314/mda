@@ -1,0 +1,52 @@
+{
+  "id": "8bf5b1f5fd15143e",
+  "timestamp": "2025-08-18T20:33:37.900082",
+  "metadata": {
+    "role": "tool",
+    "round": 5,
+    "importance": null
+  },
+  "views": {
+    "FULL": {
+      "content": {
+        "role": "tool",
+        "tool_call_id": "call_ed7c5b031b374d1eadb061be",
+        "name": "execute_python",
+        "content": "{\n  \"assistant\": 5,\n  \"tool\": 5\n}\n"
+      },
+      "tokens": 37,
+      "generated_at": "2025-08-18T20:33:37.900099"
+    },
+    "MINIMAL": {
+      "content": {
+        "marker": "[tool:result]"
+      },
+      "tokens": 5,
+      "generated_at": "2025-08-18T20:33:37.900105"
+    },
+    "HIGH": {
+      "content": {
+        "role": "tool",
+        "content": "{\n  \"assistant\": 5,\n  \"tool\": 5\n}\n"
+      },
+      "tokens": 18,
+      "generated_at": "2025-08-18T20:33:37.902058"
+    },
+    "MEDIUM": {
+      "content": {
+        "role": "tool",
+        "content_preview": "{\n  \"assistant\": 5,\n  \"tool\": 5\n}\n"
+      },
+      "tokens": 20,
+      "generated_at": "2025-08-18T20:33:37.902081"
+    },
+    "LOW": {
+      "content": {
+        "role": "tool",
+        "summary": "工具返回结果"
+      },
+      "tokens": 16,
+      "generated_at": "2025-08-18T20:33:37.902100"
+    }
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "id": "bf675f045e49d1c5",
+  "timestamp": "2025-08-18T18:07:16.528026",
+  "metadata": {
+    "role": "tool",
+    "round": 41,
+    "importance": null
+  },
+  "views": {
+    "FULL": {
+      "content": {
+        "role": "tool",
+        "tool_call_id": "call_00fb3238f5014f15a53bd9c2",
+        "name": "read_file",
+        "content": "# 简单的Python Web应用\n\n这是一个使用Flask框架构建的简单Web应用示例。\n\n## 功能特性\n\n- 主页显示欢迎信息\n- 提供RESTful API接口\n- 支持JSON数据交换\n\n## 安装依赖\n\n```bash\npip install -r requirements.txt\n```\n\n## 运行应用\n\n```bash\npython app.py\n```\n\n应用将在 `http://localhost:5000` 上运行。\n\n## API接口\n\n### 获取欢迎信息\n\n```\nGET /api/hello\n```\n\n返回:\n```json\n{\n  \"message\": \"Hello, World!\",\n  \"status\": \"success\"\n}\n```\n\n### 回显数据\n\n```\nPOST /api/echo\n```\n\n请求体:\n```json\n{\n  \"your_data\": \"value\"\n}\n```\n\n返回:\n```json\n{\n  \"received\": {\n    \"your_data\": \"value\"\n  },\n  \"status\": \"success\"\n}\n```"
+      },
+      "tokens": 273,
+      "generated_at": "2025-08-18T18:07:16.528130"
+    },
+    "MINIMAL": {
+      "content": {
+        "marker": "[tool:result]"
+      },
+      "tokens": 5,
+      "generated_at": "2025-08-18T18:07:16.528162"
+    },
+    "HIGH": {
+      "content": {
+        "role": "tool",
+        "content": "# 简单的Python Web应用\n\n这是一个使用Flask框架构建的简单Web应用示例。\n\n## 功能特性\n\n- 主页显示欢迎信息\n- 提供RESTful API接口\n- 支持JSON数据交换\n\n## 安装依赖\n\n```bash\npip install -r requirements.txt\n```\n\n## 运行应用\n\n```bash\npython app.py\n```\n\n应用将在 `http://localhost:5000` 上运行。\n\n## API接口\n\n### 获取欢迎信息\n\n```\nGET /api/hello\n```\n\n返回:\n```json\n{\n  \"message\": \"Hello, World!\",\n  \"status\": \"success\"\n}\n```\n\n### 回显数据\n\n```\nPOST /api/echo\n```\n\n请求体:\n```json\n{\n  \"your_data\": \"value\"\n}\n```\n\n返回:\n```json\n{\n  \"received\": {\n    \"your_data\": \"value\"\n  },\n  \"status\": \"success\"\n}\n```"
+      },
+      "tokens": 255,
+      "generated_at": "2025-08-18T18:07:16.538220"
+    },
+    "MEDIUM": {
+      "content": {
+        "role": "tool",
+        "content_preview": "# 简单的Python Web应用\n\n这是一个使用Flask框架构建的简单Web应用示例。\n\n## 功能特性\n\n- 主页显示欢迎信息\n- 提供RESTful API接口\n- 支持JSON数据交换\n\n## 安装依赖\n\n```bash\npip install -r requirements.txt\n```\n\n## 运行应用\n\n```bash\npython app.py\n```\n\n应用将在 `http://localhost:5000` 上运行。\n\n## API接口\n\n### 获取欢迎信息\n\n```\nGET /api/hello\n```\n\n返回:\n```json\n{\n  \"message\": \"He..."
+      },
+      "tokens": 183,
+      "generated_at": "2025-08-18T18:07:16.538350"
+    },
+    "LOW": {
+      "content": {
+        "role": "tool",
+        "summary": "工具执行成功"
+      },
+      "tokens": 16,
+      "generated_at": "2025-08-18T18:07:16.538501"
+    }
+  }
+}

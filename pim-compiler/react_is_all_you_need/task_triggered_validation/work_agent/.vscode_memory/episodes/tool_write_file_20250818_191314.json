@@ -1,0 +1,13 @@
+{
+  "id": "tool_write_file_20250818_191314",
+  "timestamp": "2025-08-18T19:13:14.177934",
+  "event": "tool_write_file",
+  "data": {
+    "tool": "write_file",
+    "arguments": {
+      "content": "\"\"\"\nWebScraper使用示例\n展示如何使用WebScraper类获取网页信息\n\"\"\"\n\nfrom web_scraper import WebScraper\n\n\ndef main():\n    # 创建爬虫实例\n    scraper = WebScraper(delay=1)  # 设置1秒延时\n    \n    # 示例1: 获取网页标题\n    print(\"=== 获取网页标题 ===\")\n    url = \"https://httpbin.org/html\"\n    title = scraper.get_title(url)\n    if title:\n        print(f\"网页标题: {title}\")\n    else:\n        print(\"获取标题失败\")\n    \n    print(\"\\n\" + \"=\"*50 + \"\\n\")\n    \n    # 示例2: 获取网页链接\n    print(\"=== 获取网页链接 ===\")\n    links = scraper.get_links(url)\n    print(f\"找到 {len(links)} 个链接:\")\n    for i, link in enumerate(links[:5]):  # 只显示前5个链接\n        print(f\"{i+1}. {link['text'][:50]}... -> {link['url'][:40]}...\")\n    \n    print(\"\\n\" + \"=\"*50 + \"\\n\")\n    \n    # 示例3: 获取内部链接和外部链接\n    print(\"=== 获取内部和外部链接 ===\")\n    # 使用一个更复杂的网站作为示例\n    test_url = \"https://httpbin.org/\"\n    internal_links = scraper.get_internal_links(test_url)\n    external_links = scraper.get_external_links(test_url)\n    \n    print(f\"内部链接数量: {len(internal_links)}\")\n    for i, link in enumerate(internal_links[:3]):  # 只显示前3个\n        print(f\"  {i+1}. {link['text'][:30]}... -> {link['url'][:40]}...\")\n    \n    print(f\"外部链接数量: {len(external_links)}\")\n    for i, link in enumerate(external_links[:3]):  # 只显示前3个\n        print(f\"  {i+1}. {link['text'][:30]}... -> {link['url'][:40]}...\")\n\n\nif __name__ == \"__main__\":\n    main()",
+      "file_path": "example.py"
+    },
+    "round": 3
+  }
+}

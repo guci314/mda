@@ -1,0 +1,9 @@
+{
+  "id": "task_start_20250817_123802",
+  "timestamp": "2025-08-17T12:38:02.473213",
+  "event": "task_start",
+  "data": {
+    "task": "计算1到100的和，保存到 sum_result.txt",
+    "timestamp": "2025-08-17T12:38:02.473197"
+  }
+}

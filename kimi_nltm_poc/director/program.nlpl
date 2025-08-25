@@ -1,0 +1,32 @@
+%YAML 1.2
+a---
+version: "1.0"
+description: "分析数组的统计信息"
+
+states:
+  initial:
+    type: "initial"
+    data: 
+      array: [12, 45, 23, 67, 34, 89, 21, 56, 43, 78]
+    transitions:
+      - to: calculate_statistics
+
+  calculate_statistics:
+    type: "action"
+    actions:
+      - calculate_mean
+      - calculate_median
+      - calculate_mode
+      - calculate_min_max
+    transitions:
+      - to: final
+
+  final:
+    type: "final"
+    data: 
+      results:
+        mean: null
+        median: null
+        mode: null
+        min: null
+        max: null

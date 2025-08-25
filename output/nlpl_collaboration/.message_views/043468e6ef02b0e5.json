@@ -1,0 +1,52 @@
+{
+  "id": "043468e6ef02b0e5",
+  "timestamp": "2025-08-17T12:40:27.934207",
+  "metadata": {
+    "role": "tool",
+    "round": 20,
+    "importance": null
+  },
+  "views": {
+    "FULL": {
+      "content": {
+        "role": "tool",
+        "tool_call_id": "0",
+        "name": "write_file",
+        "content": "成功写入文件: output/nlpl_collaboration/pipeline_optimized.md"
+      },
+      "tokens": 39,
+      "generated_at": "2025-08-17T12:40:27.934260"
+    },
+    "MINIMAL": {
+      "content": {
+        "marker": "[tool:result]"
+      },
+      "tokens": 5,
+      "generated_at": "2025-08-17T12:40:27.934278"
+    },
+    "HIGH": {
+      "content": {
+        "role": "tool",
+        "content": "成功写入文件: output/nlpl_collaboration/pipeline_optimized.md"
+      },
+      "tokens": 29,
+      "generated_at": "2025-08-17T12:40:27.940430"
+    },
+    "MEDIUM": {
+      "content": {
+        "role": "tool",
+        "content_preview": "成功写入文件: output/nlpl_collaboration/pipeline_optimized.md"
+      },
+      "tokens": 31,
+      "generated_at": "2025-08-17T12:40:27.940528"
+    },
+    "LOW": {
+      "content": {
+        "role": "tool",
+        "summary": "工具执行成功"
+      },
+      "tokens": 16,
+      "generated_at": "2025-08-17T12:40:27.940593"
+    }
+  }
+}

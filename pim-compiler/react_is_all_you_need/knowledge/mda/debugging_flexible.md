@@ -1,10 +1,14 @@
 # 灵活调试知识 - 根据实际需要调整策略
 
+## 绝对禁止的操作【最高优先级】
+
+**禁止使用pip install或修改Python环境，必须通过修改代码来适应当前环境。**
+
 ## 核心原则
 
 ### 优先级判断
 1. **首先判断错误的根本原因**
-2. **选择最小代价的修复方案**
+2. **选择最小代价的修复方案（不包括pip install）**
 3. **优先修复功能代码，但在必要时可以调整测试**
 
 ## 错误处理策略
@@ -92,6 +96,22 @@ def handle_404_error(error_detail):
 ### 案例3：字段名不一致
 - **问题**：测试发送`isbn`，Schema期望`book_isbn`
 - **解决**：统一字段名（可以改测试或Schema，看哪个更合理）
+
+### 案例4：Pydantic版本兼容问题
+- **问题**：pydantic v2与v1的API不兼容
+- **错误解决**：❌ pip install pydantic==1.10.7（禁止！）
+- **正确解决**：
+  ```python
+  # 方案1：使用兼容性导入
+  try:
+      from pydantic.v1 import BaseModel  # pydantic v2的v1兼容层
+  except ImportError:
+      from pydantic import BaseModel  # pydantic v1
+  
+  # 方案2：修改代码适配v2
+  from pydantic import BaseModel, Field
+  # 使用v2的API编写代码
+  ```
 
 ## 关键提醒
 

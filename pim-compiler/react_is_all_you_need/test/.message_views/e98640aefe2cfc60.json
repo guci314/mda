@@ -1,0 +1,70 @@
+{
+  "id": "e98640aefe2cfc60",
+  "timestamp": "2025-08-19T21:56:39.961727",
+  "metadata": {
+    "role": "assistant",
+    "round": 52,
+    "importance": null
+  },
+  "views": {
+    "FULL": {
+      "content": {
+        "role": "assistant",
+        "content": "",
+        "refusal": null,
+        "reasoning": null,
+        "tool_calls": [
+          {
+            "index": 0,
+            "id": "call_242ba00be4478646",
+            "function": {
+              "arguments": "{\"file_path\": \"/home/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/knowledge/memory/agents/hippocampus.md\"}",
+              "name": "read_file"
+            },
+            "type": "function"
+          }
+        ]
+      },
+      "tokens": 81,
+      "generated_at": "2025-08-19T21:56:39.961809"
+    },
+    "MINIMAL": {
+      "content": {
+        "marker": "[assistant:tools]"
+      },
+      "tokens": 5,
+      "generated_at": "2025-08-19T21:56:39.961825"
+    },
+    "HIGH": {
+      "content": {
+        "role": "assistant",
+        "tool_calls_summary": [
+          {
+            "name": "read_file",
+            "args_preview": "{\"file_path\": \"/home/guci/aiProjects/mda/pim-compi"
+          }
+        ]
+      },
+      "tokens": 35,
+      "generated_at": "2025-08-19T21:56:39.963331"
+    },
+    "MEDIUM": {
+      "content": {
+        "role": "assistant",
+        "tools_used": [
+          "read_file"
+        ]
+      },
+      "tokens": 12,
+      "generated_at": "2025-08-19T21:56:39.963398"
+    },
+    "LOW": {
+      "content": {
+        "role": "assistant",
+        "summary": "调用了1个工具: read_file"
+      },
+      "tokens": 21,
+      "generated_at": "2025-08-19T21:56:39.963442"
+    }
+  }
+}

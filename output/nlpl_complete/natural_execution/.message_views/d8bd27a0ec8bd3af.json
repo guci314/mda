@@ -1,0 +1,72 @@
+{
+  "id": "d8bd27a0ec8bd3af",
+  "timestamp": "2025-08-17T12:38:09.186376",
+  "metadata": {
+    "role": "assistant",
+    "round": 4,
+    "importance": null
+  },
+  "views": {
+    "FULL": {
+      "content": {
+        "role": "assistant",
+        "content": "抱歉，看来在执行过程中出现了错误。让我重新尝试将结果写入文件。\n\n",
+        "refusal": null,
+        "reasoning": null,
+        "tool_calls": [
+          {
+            "index": 0,
+            "id": "call_044e17c01f85f2a6",
+            "function": {
+              "arguments": "{\"file_path\": \"sum_result.txt\", \"content\": \"5050\"}",
+              "name": "write_file"
+            },
+            "type": "function"
+          }
+        ]
+      },
+      "tokens": 113,
+      "generated_at": "2025-08-17T12:38:09.186452"
+    },
+    "MINIMAL": {
+      "content": {
+        "marker": "[assistant:tools]"
+      },
+      "tokens": 5,
+      "generated_at": "2025-08-17T12:38:09.186520"
+    },
+    "HIGH": {
+      "content": {
+        "role": "assistant",
+        "content": "抱歉，看来在执行过程中出现了错误。让我重新尝试将结果写入文件。\n\n",
+        "tool_calls_summary": [
+          {
+            "name": "write_file",
+            "args_preview": "{\"file_path\": \"sum_result.txt\", \"content\": \"5050\"}"
+          }
+        ]
+      },
+      "tokens": 88,
+      "generated_at": "2025-08-17T12:38:09.187636"
+    },
+    "MEDIUM": {
+      "content": {
+        "role": "assistant",
+        "content_preview": "抱歉，看来在执行过程中出现了错误。让我重新尝试将结果写入文件。\n\n",
+        "tools_used": [
+          "write_file"
+        ]
+      },
+      "tokens": 66,
+      "generated_at": "2025-08-17T12:38:09.187718"
+    },
+    "LOW": {
+      "content": {
+        "role": "assistant",
+        "summary": "调用了1个工具: write_file"
+      },
+      "tokens": 21,
+      "generated_at": "2025-08-17T12:38:09.187775"
+    }
+  }
+}

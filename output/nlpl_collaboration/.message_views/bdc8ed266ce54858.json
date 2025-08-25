@@ -1,0 +1,72 @@
+{
+  "id": "bdc8ed266ce54858",
+  "timestamp": "2025-08-17T12:39:24.730123",
+  "metadata": {
+    "role": "assistant",
+    "round": 4,
+    "importance": null
+  },
+  "views": {
+    "FULL": {
+      "content": {
+        "role": "assistant",
+        "content": "让我先查看pipeline.md文件的内容，了解数据处理流水线的步骤。\n\n",
+        "refusal": null,
+        "reasoning": null,
+        "tool_calls": [
+          {
+            "index": 0,
+            "id": "call_9a361fab45bcec3a",
+            "function": {
+              "arguments": "{\"file_path\": \"pipeline.md\"}",
+              "name": "read_file"
+            },
+            "type": "function"
+          }
+        ]
+      },
+      "tokens": 99,
+      "generated_at": "2025-08-17T12:39:24.730152"
+    },
+    "MINIMAL": {
+      "content": {
+        "marker": "[assistant:tools]"
+      },
+      "tokens": 5,
+      "generated_at": "2025-08-17T12:39:24.730160"
+    },
+    "HIGH": {
+      "content": {
+        "role": "assistant",
+        "content": "让我先查看pipeline.md文件的内容，了解数据处理流水线的步骤。\n\n",
+        "tool_calls_summary": [
+          {
+            "name": "read_file",
+            "args_preview": "{\"file_path\": \"pipeline.md\"}"
+          }
+        ]
+      },
+      "tokens": 73,
+      "generated_at": "2025-08-17T12:39:24.730886"
+    },
+    "MEDIUM": {
+      "content": {
+        "role": "assistant",
+        "content_preview": "让我先查看pipeline.md文件的内容，了解数据处理流水线的步骤。\n\n",
+        "tools_used": [
+          "read_file"
+        ]
+      },
+      "tokens": 58,
+      "generated_at": "2025-08-17T12:39:24.730912"
+    },
+    "LOW": {
+      "content": {
+        "role": "assistant",
+        "summary": "调用了1个工具: read_file"
+      },
+      "tokens": 21,
+      "generated_at": "2025-08-17T12:39:24.731528"
+    }
+  }
+}

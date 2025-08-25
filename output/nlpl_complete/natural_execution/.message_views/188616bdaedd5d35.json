@@ -1,0 +1,52 @@
+{
+  "id": "188616bdaedd5d35",
+  "timestamp": "2025-08-17T12:38:18.575159",
+  "metadata": {
+    "role": "tool",
+    "round": 8,
+    "importance": null
+  },
+  "views": {
+    "FULL": {
+      "content": {
+        "role": "tool",
+        "tool_call_id": "call_d674fa185592495fbcfbd3a1",
+        "name": "execute_python",
+        "content": "斐波那契数列前20项已保存到 fibonacci.txt\n数列内容:\n第1项: 0\n第2项: 1\n第3项: 1\n第4项: 2\n第5项: 3\n第6项: 5\n第7项: 8\n第8项: 13\n第9项: 21\n第10项: 34\n第11项: 55\n第12项: 89\n第13项: 144\n第14项: 233\n第15项: 377\n第16项: 610\n第17项: 987\n第18项: 1597\n第19项: 2584\n第20项: 4181\n"
+      },
+      "tokens": 154,
+      "generated_at": "2025-08-17T12:38:18.575186"
+    },
+    "MINIMAL": {
+      "content": {
+        "marker": "[tool:result]"
+      },
+      "tokens": 5,
+      "generated_at": "2025-08-17T12:38:18.575194"
+    },
+    "HIGH": {
+      "content": {
+        "role": "tool",
+        "content": "斐波那契数列前20项已保存到 fibonacci.txt\n数列内容:\n第1项: 0\n第2项: 1\n第3项: 1\n第4项: 2\n第5项: 3\n第6项: 5\n第7项: 8\n第8项: 13\n第9项: 21\n第10项: 34\n第11项: 55\n第12项: 89\n第13项: 144\n第14项: 233\n第15项: 377\n第16项: 610\n第17项: 987\n第18项: 1597\n第19项: 2584\n第20项: 4181\n"
+      },
+      "tokens": 135,
+      "generated_at": "2025-08-17T12:38:18.576450"
+    },
+    "MEDIUM": {
+      "content": {
+        "role": "tool",
+        "content_preview": "斐波那契数列前20项已保存到 fibonacci.txt\n数列内容:\n第1项: 0\n第2项: 1\n第3项: 1\n第4项: 2\n第5项: 3\n第6项: 5\n第7项: 8\n第8项: 13\n第9项: 21\n第10项: 34\n第11项: 55\n第12项: 89\n第13项: 144\n第14项: 233\n第15项: 377\n第16项: 610\n第17项: 987\n第18项: 1597\n第19项: 2584\n第20项: 4181\n"
+      },
+      "tokens": 137,
+      "generated_at": "2025-08-17T12:38:18.576482"
+    },
+    "LOW": {
+      "content": {
+        "role": "tool",
+        "summary": "工具返回结果"
+      },
+      "tokens": 16,
+      "generated_at": "2025-08-17T12:38:18.576509"
+    }
+  }
+}

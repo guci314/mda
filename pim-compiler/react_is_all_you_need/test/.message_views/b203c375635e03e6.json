@@ -1,0 +1,52 @@
+{
+  "id": "b203c375635e03e6",
+  "timestamp": "2025-08-19T21:52:17.420738",
+  "metadata": {
+    "role": "tool",
+    "round": 23,
+    "importance": null
+  },
+  "views": {
+    "FULL": {
+      "content": {
+        "role": "tool",
+        "tool_call_id": "call_1023fa27a79048b1a9aa0a33",
+        "name": "read_file",
+        "content": "文件不存在: test_4layer_final.py"
+      },
+      "tokens": 38,
+      "generated_at": "2025-08-19T21:52:17.420764"
+    },
+    "MINIMAL": {
+      "content": {
+        "marker": "[tool:result]"
+      },
+      "tokens": 5,
+      "generated_at": "2025-08-19T21:52:17.420772"
+    },
+    "HIGH": {
+      "content": {
+        "role": "tool",
+        "content": "文件不存在: test_4layer_final.py"
+      },
+      "tokens": 20,
+      "generated_at": "2025-08-19T21:52:17.425820"
+    },
+    "MEDIUM": {
+      "content": {
+        "role": "tool",
+        "content_preview": "文件不存在: test_4layer_final.py"
+      },
+      "tokens": 22,
+      "generated_at": "2025-08-19T21:52:17.425856"
+    },
+    "LOW": {
+      "content": {
+        "role": "tool",
+        "summary": "工具返回结果"
+      },
+      "tokens": 16,
+      "generated_at": "2025-08-19T21:52:17.425882"
+    }
+  }
+}

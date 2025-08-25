@@ -1,0 +1,9 @@
+{
+  "id": "task_start_20250819_174831",
+  "timestamp": "2025-08-19T17:48:31.698569",
+  "event": "task_start",
+  "data": {
+    "task": "\nsay hello\n",
+    "timestamp": "2025-08-19T17:48:31.698550"
+  }
+}

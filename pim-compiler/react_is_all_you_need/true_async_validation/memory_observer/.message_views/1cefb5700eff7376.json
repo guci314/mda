@@ -1,0 +1,72 @@
+{
+  "id": "1cefb5700eff7376",
+  "timestamp": "2025-08-18T18:44:54.972823",
+  "metadata": {
+    "role": "assistant",
+    "round": 4,
+    "importance": null
+  },
+  "views": {
+    "FULL": {
+      "content": {
+        "role": "assistant",
+        "content": "我需要先了解共享记忆空间的结构。让我检查一下当前工作目录和可能的共享空间位置。\n\n",
+        "refusal": null,
+        "reasoning": null,
+        "tool_calls": [
+          {
+            "index": 0,
+            "id": "0",
+            "type": "function",
+            "function": {
+              "name": "list_directory",
+              "arguments": "{\"directory_path\": \"/home/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/true_async_validation\"}"
+            }
+          }
+        ]
+      },
+      "tokens": 134,
+      "generated_at": "2025-08-18T18:44:54.972965"
+    },
+    "MINIMAL": {
+      "content": {
+        "marker": "[assistant:tools]"
+      },
+      "tokens": 5,
+      "generated_at": "2025-08-18T18:44:54.972999"
+    },
+    "HIGH": {
+      "content": {
+        "role": "assistant",
+        "content": "我需要先了解共享记忆空间的结构。让我检查一下当前工作目录和可能的共享空间位置。\n\n",
+        "tool_calls_summary": [
+          {
+            "name": "list_directory",
+            "args_preview": "{\"directory_path\": \"/home/guci/aiProjects/mda/pim-"
+          }
+        ]
+      },
+      "tokens": 99,
+      "generated_at": "2025-08-18T18:44:54.974557"
+    },
+    "MEDIUM": {
+      "content": {
+        "role": "assistant",
+        "content_preview": "我需要先了解共享记忆空间的结构。让我检查一下当前工作目录和可能的共享空间位置。\n\n",
+        "tools_used": [
+          "list_directory"
+        ]
+      },
+      "tokens": 79,
+      "generated_at": "2025-08-18T18:44:54.974627"
+    },
+    "LOW": {
+      "content": {
+        "role": "assistant",
+        "summary": "调用了1个工具: list_directory"
+      },
+      "tokens": 22,
+      "generated_at": "2025-08-18T18:44:54.974684"
+    }
+  }
+}

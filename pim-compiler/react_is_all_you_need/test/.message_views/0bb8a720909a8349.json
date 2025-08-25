@@ -1,0 +1,72 @@
+{
+  "id": "0bb8a720909a8349",
+  "timestamp": "2025-08-19T21:56:30.059117",
+  "metadata": {
+    "role": "assistant",
+    "round": 43,
+    "importance": null
+  },
+  "views": {
+    "FULL": {
+      "content": {
+        "role": "assistant",
+        "content": "让我查看memory目录下的内容，这可能包含四层记忆系统的详细信息。\n\n",
+        "refusal": null,
+        "reasoning": null,
+        "tool_calls": [
+          {
+            "index": 0,
+            "id": "call_4d0798924e63b728",
+            "function": {
+              "arguments": "{\"directory_path\": \"/home/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/knowledge/memory\"}",
+              "name": "list_directory"
+            },
+            "type": "function"
+          }
+        ]
+      },
+      "tokens": 122,
+      "generated_at": "2025-08-19T21:56:30.059177"
+    },
+    "MINIMAL": {
+      "content": {
+        "marker": "[assistant:tools]"
+      },
+      "tokens": 5,
+      "generated_at": "2025-08-19T21:56:30.059195"
+    },
+    "HIGH": {
+      "content": {
+        "role": "assistant",
+        "content": "让我查看memory目录下的内容，这可能包含四层记忆系统的详细信息。\n\n",
+        "tool_calls_summary": [
+          {
+            "name": "list_directory",
+            "args_preview": "{\"directory_path\": \"/home/guci/aiProjects/mda/pim-"
+          }
+        ]
+      },
+      "tokens": 84,
+      "generated_at": "2025-08-19T21:56:30.063828"
+    },
+    "MEDIUM": {
+      "content": {
+        "role": "assistant",
+        "content_preview": "让我查看memory目录下的内容，这可能包含四层记忆系统的详细信息。\n\n",
+        "tools_used": [
+          "list_directory"
+        ]
+      },
+      "tokens": 64,
+      "generated_at": "2025-08-19T21:56:30.063879"
+    },
+    "LOW": {
+      "content": {
+        "role": "assistant",
+        "summary": "调用了1个工具: list_directory"
+      },
+      "tokens": 22,
+      "generated_at": "2025-08-19T21:56:30.063924"
+    }
+  }
+}

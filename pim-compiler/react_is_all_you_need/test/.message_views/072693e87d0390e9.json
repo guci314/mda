@@ -1,0 +1,72 @@
+{
+  "id": "072693e87d0390e9",
+  "timestamp": "2025-08-19T21:59:57.205712",
+  "metadata": {
+    "role": "assistant",
+    "round": 13,
+    "importance": null
+  },
+  "views": {
+    "FULL": {
+      "content": {
+        "role": "assistant",
+        "content": "让我查看与四层记忆系统相关的其他重要文件，特别是与过程记忆和异步处理相关的文件。\n\n",
+        "refusal": null,
+        "reasoning": null,
+        "tool_calls": [
+          {
+            "index": 0,
+            "id": "call_17ade5f1e1338f94",
+            "function": {
+              "arguments": "{\"file_path\": \"/home/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/core/process_memory.py\"}",
+              "name": "read_file"
+            },
+            "type": "function"
+          }
+        ]
+      },
+      "tokens": 138,
+      "generated_at": "2025-08-19T21:59:57.205744"
+    },
+    "MINIMAL": {
+      "content": {
+        "marker": "[assistant:tools]"
+      },
+      "tokens": 5,
+      "generated_at": "2025-08-19T21:59:57.205755"
+    },
+    "HIGH": {
+      "content": {
+        "role": "assistant",
+        "content": "让我查看与四层记忆系统相关的其他重要文件，特别是与过程记忆和异步处理相关的文件。\n\n",
+        "tool_calls_summary": [
+          {
+            "name": "read_file",
+            "args_preview": "{\"file_path\": \"/home/guci/aiProjects/mda/pim-compi"
+          }
+        ]
+      },
+      "tokens": 100,
+      "generated_at": "2025-08-19T21:59:57.207562"
+    },
+    "MEDIUM": {
+      "content": {
+        "role": "assistant",
+        "content_preview": "让我查看与四层记忆系统相关的其他重要文件，特别是与过程记忆和异步处理相关的文件。\n\n",
+        "tools_used": [
+          "read_file"
+        ]
+      },
+      "tokens": 79,
+      "generated_at": "2025-08-19T21:59:57.207618"
+    },
+    "LOW": {
+      "content": {
+        "role": "assistant",
+        "summary": "调用了1个工具: read_file"
+      },
+      "tokens": 21,
+      "generated_at": "2025-08-19T21:59:57.207653"
+    }
+  }
+}

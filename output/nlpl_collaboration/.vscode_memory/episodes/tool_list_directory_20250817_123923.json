@@ -1,0 +1,12 @@
+{
+  "id": "tool_list_directory_20250817_123923",
+  "timestamp": "2025-08-17T12:39:23.449092",
+  "event": "tool_list_directory",
+  "data": {
+    "tool": "list_directory",
+    "arguments": {
+      "directory_path": "."
+    },
+    "round": 1
+  }
+}

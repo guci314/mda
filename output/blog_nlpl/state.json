@@ -1,0 +1,16 @@
+{
+  "输入": {
+    "pim_file": "/home/guci/aiProjects/mda/pim-compiler/examples/blog.md",
+    "psm_file": "blog_psm.md"
+  },
+  "进度": {
+    "当前章节": 0,
+    "已完成章节": [],
+    "章节内容缓存": ""
+  },
+  "输出": {
+    "psm_内容": "",
+    "验证结果": null
+  },
+  "完成": false
+}

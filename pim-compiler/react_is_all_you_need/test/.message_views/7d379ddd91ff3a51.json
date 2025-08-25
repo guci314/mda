@@ -1,0 +1,52 @@
+{
+  "id": "7d379ddd91ff3a51",
+  "timestamp": "2025-08-19T21:56:30.059288",
+  "metadata": {
+    "role": "tool",
+    "round": 44,
+    "importance": null
+  },
+  "views": {
+    "FULL": {
+      "content": {
+        "role": "tool",
+        "tool_call_id": "call_4d0798924e63b728",
+        "name": "list_directory",
+        "content": "patterns\nphilosophy\nagents"
+      },
+      "tokens": 31,
+      "generated_at": "2025-08-19T21:56:30.059328"
+    },
+    "MINIMAL": {
+      "content": {
+        "marker": "[tool:result]"
+      },
+      "tokens": 5,
+      "generated_at": "2025-08-19T21:56:30.059343"
+    },
+    "HIGH": {
+      "content": {
+        "role": "tool",
+        "content": "patterns\nphilosophy\nagents"
+      },
+      "tokens": 14,
+      "generated_at": "2025-08-19T21:56:30.064136"
+    },
+    "MEDIUM": {
+      "content": {
+        "role": "tool",
+        "content_preview": "patterns\nphilosophy\nagents"
+      },
+      "tokens": 16,
+      "generated_at": "2025-08-19T21:56:30.064189"
+    },
+    "LOW": {
+      "content": {
+        "role": "tool",
+        "summary": "工具返回结果"
+      },
+      "tokens": 16,
+      "generated_at": "2025-08-19T21:56:30.064221"
+    }
+  }
+}

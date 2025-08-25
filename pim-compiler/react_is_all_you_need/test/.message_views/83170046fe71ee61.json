@@ -1,0 +1,72 @@
+{
+  "id": "83170046fe71ee61",
+  "timestamp": "2025-08-19T17:59:52.878675",
+  "metadata": {
+    "role": "assistant",
+    "round": 1,
+    "importance": null
+  },
+  "views": {
+    "FULL": {
+      "content": {
+        "role": "assistant",
+        "content": "我将为您设计一个基于FastAPI的博客系统，包含领域层(domain)、服务层(service)和测试层(test)。让我逐步创建这个项目结构。\n\n首先，让我创建项目的整体目录结构：\n\n",
+        "refusal": null,
+        "reasoning": null,
+        "tool_calls": [
+          {
+            "function": {
+              "name": "execute_command",
+              "arguments": "{\"command\": \"mkdir -p blog_system/{domain,service,test,api}\"}"
+            },
+            "index": 0,
+            "id": "call_2542e5a1a6754c1e9bfdf9f4",
+            "type": "function"
+          }
+        ]
+      },
+      "tokens": 170,
+      "generated_at": "2025-08-19T17:59:52.878717"
+    },
+    "MINIMAL": {
+      "content": {
+        "marker": "[assistant:tools]"
+      },
+      "tokens": 5,
+      "generated_at": "2025-08-19T17:59:52.878728"
+    },
+    "HIGH": {
+      "content": {
+        "role": "assistant",
+        "content": "我将为您设计一个基于FastAPI的博客系统，包含领域层(domain)、服务层(service)和测试层(test)。让我逐步创建这个项目结构。\n\n首先，让我创建项目的整体目录结构：\n\n",
+        "tool_calls_summary": [
+          {
+            "name": "execute_command",
+            "args_preview": "{\"command\": \"mkdir -p blog_system/{domain,service,"
+          }
+        ]
+      },
+      "tokens": 140,
+      "generated_at": "2025-08-19T17:59:52.880842"
+    },
+    "MEDIUM": {
+      "content": {
+        "role": "assistant",
+        "content_preview": "我将为您设计一个基于FastAPI的博客系统，包含领域层(domain)、服务层(service)和测试层(test)。让我逐步创建这个项目结构。\n\n首先，让我创建项目的整体目录结构：\n\n",
+        "tools_used": [
+          "execute_command"
+        ]
+      },
+      "tokens": 119,
+      "generated_at": "2025-08-19T17:59:52.880883"
+    },
+    "LOW": {
+      "content": {
+        "role": "assistant",
+        "summary": "调用了1个工具: execute_command"
+      },
+      "tokens": 22,
+      "generated_at": "2025-08-19T17:59:52.880919"
+    }
+  }
+}

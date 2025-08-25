@@ -1,0 +1,70 @@
+{
+  "id": "09017e0e51c8acea",
+  "timestamp": "2025-08-17T12:36:50.977580",
+  "metadata": {
+    "role": "assistant",
+    "round": 13,
+    "importance": null
+  },
+  "views": {
+    "FULL": {
+      "content": {
+        "role": "assistant",
+        "content": "",
+        "refusal": null,
+        "reasoning": null,
+        "tool_calls": [
+          {
+            "index": 0,
+            "id": "call_540209f6a4dc2dd8",
+            "function": {
+              "arguments": "{\"file_path\": \"user_request.txt\"}",
+              "name": "read_file"
+            },
+            "type": "function"
+          }
+        ]
+      },
+      "tokens": 60,
+      "generated_at": "2025-08-17T12:36:50.977657"
+    },
+    "MINIMAL": {
+      "content": {
+        "marker": "[assistant:tools]"
+      },
+      "tokens": 5,
+      "generated_at": "2025-08-17T12:36:50.977683"
+    },
+    "HIGH": {
+      "content": {
+        "role": "assistant",
+        "tool_calls_summary": [
+          {
+            "name": "read_file",
+            "args_preview": "{\"file_path\": \"user_request.txt\"}"
+          }
+        ]
+      },
+      "tokens": 31,
+      "generated_at": "2025-08-17T12:36:50.980094"
+    },
+    "MEDIUM": {
+      "content": {
+        "role": "assistant",
+        "tools_used": [
+          "read_file"
+        ]
+      },
+      "tokens": 12,
+      "generated_at": "2025-08-17T12:36:50.980165"
+    },
+    "LOW": {
+      "content": {
+        "role": "assistant",
+        "summary": "调用了1个工具: read_file"
+      },
+      "tokens": 21,
+      "generated_at": "2025-08-17T12:36:50.980226"
+    }
+  }
+}

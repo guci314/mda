@@ -1,0 +1,72 @@
+{
+  "id": "05a3f5e8e091c426",
+  "timestamp": "2025-08-18T18:06:31.254435",
+  "metadata": {
+    "role": "assistant",
+    "round": 7,
+    "importance": null
+  },
+  "views": {
+    "FULL": {
+      "content": {
+        "role": "assistant",
+        "content": "让我查看一下work_agent目录，看看是否有更多关于工作记录的文件。\n\n",
+        "refusal": null,
+        "reasoning": null,
+        "tool_calls": [
+          {
+            "function": {
+              "name": "list_directory",
+              "arguments": "{\"directory_path\": \"/home/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/memory_validation_qwen/work_agent\"}"
+            },
+            "index": 0,
+            "id": "call_dd36f05a7361411c9720d1b0",
+            "type": "function"
+          }
+        ]
+      },
+      "tokens": 127,
+      "generated_at": "2025-08-18T18:06:31.254473"
+    },
+    "MINIMAL": {
+      "content": {
+        "marker": "[assistant:tools]"
+      },
+      "tokens": 5,
+      "generated_at": "2025-08-18T18:06:31.254485"
+    },
+    "HIGH": {
+      "content": {
+        "role": "assistant",
+        "content": "让我查看一下work_agent目录，看看是否有更多关于工作记录的文件。\n\n",
+        "tool_calls_summary": [
+          {
+            "name": "list_directory",
+            "args_preview": "{\"directory_path\": \"/home/guci/aiProjects/mda/pim-"
+          }
+        ]
+      },
+      "tokens": 82,
+      "generated_at": "2025-08-18T18:06:31.254929"
+    },
+    "MEDIUM": {
+      "content": {
+        "role": "assistant",
+        "content_preview": "让我查看一下work_agent目录，看看是否有更多关于工作记录的文件。\n\n",
+        "tools_used": [
+          "list_directory"
+        ]
+      },
+      "tokens": 62,
+      "generated_at": "2025-08-18T18:06:31.254964"
+    },
+    "LOW": {
+      "content": {
+        "role": "assistant",
+        "summary": "调用了1个工具: list_directory"
+      },
+      "tokens": 22,
+      "generated_at": "2025-08-18T18:06:31.254988"
+    }
+  }
+}

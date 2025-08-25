@@ -1,0 +1,72 @@
+{
+  "id": "a41fd175ca20cb55",
+  "timestamp": "2025-08-19T21:59:46.507164",
+  "metadata": {
+    "role": "assistant",
+    "round": 7,
+    "importance": null
+  },
+  "views": {
+    "FULL": {
+      "content": {
+        "role": "assistant",
+        "content": "让我继续查看与四层记忆系统相关的其他文件，特别是核心实现部分。\n\n",
+        "refusal": null,
+        "reasoning": null,
+        "tool_calls": [
+          {
+            "id": "call_4dec598eda8d4d03acc70d9e",
+            "index": 0,
+            "type": "function",
+            "function": {
+              "name": "read_file",
+              "arguments": "{\"file_path\": \"/home/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/core/memory_manager.py\"}"
+            }
+          }
+        ]
+      },
+      "tokens": 126,
+      "generated_at": "2025-08-19T21:59:46.507207"
+    },
+    "MINIMAL": {
+      "content": {
+        "marker": "[assistant:tools]"
+      },
+      "tokens": 5,
+      "generated_at": "2025-08-19T21:59:46.507219"
+    },
+    "HIGH": {
+      "content": {
+        "role": "assistant",
+        "content": "让我继续查看与四层记忆系统相关的其他文件，特别是核心实现部分。\n\n",
+        "tool_calls_summary": [
+          {
+            "name": "read_file",
+            "args_preview": "{\"file_path\": \"/home/guci/aiProjects/mda/pim-compi"
+          }
+        ]
+      },
+      "tokens": 86,
+      "generated_at": "2025-08-19T21:59:46.508714"
+    },
+    "MEDIUM": {
+      "content": {
+        "role": "assistant",
+        "content_preview": "让我继续查看与四层记忆系统相关的其他文件，特别是核心实现部分。\n\n",
+        "tools_used": [
+          "read_file"
+        ]
+      },
+      "tokens": 65,
+      "generated_at": "2025-08-19T21:59:46.508754"
+    },
+    "LOW": {
+      "content": {
+        "role": "assistant",
+        "summary": "调用了1个工具: read_file"
+      },
+      "tokens": 21,
+      "generated_at": "2025-08-19T21:59:46.508781"
+    }
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "id": "a7cc38477a211968",
+  "timestamp": "2025-08-18T18:07:21.824567",
+  "metadata": {
+    "role": "tool",
+    "round": 44,
+    "importance": null
+  },
+  "views": {
+    "FULL": {
+      "content": {
+        "role": "tool",
+        "tool_call_id": "call_2b5eb330156949c08ce9b8de",
+        "name": "read_file",
+        "content": "<!DOCTYPE html>\n<html lang=\"zh-CN\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>简单Web应用</title>\n    <style>\n        body {\n            font-family: Arial, sans-serif;\n            max-width: 800px;\n            margin: 0 auto;\n            padding: 20px;\n            background-color: #f5f5f5;\n        }\n        .container {\n            background-color: white;\n            padding: 30px;\n            border-radius: 10px;\n            box-shadow: 0 2px 10px rgba(0,0,0,0.1);\n            text-align: center;\n        }\n        h1 {\n            color: #333;\n        }\n        .api-section {\n            margin-top: 30px;\n            text-align: left;\n        }\n        code {\n            background-color: #f0f0f0;\n            padding: 2px 5px;\n            border-radius: 3px;\n        }\n        pre {\n            background-color: #f0f0f0;\n            padding: 10px;\n            border-radius: 5px;\n            overflow-x: auto;\n        }\n    </style>\n</head>\n<body>\n    <div class=\"container\">\n        <h1>欢迎来到简单Web应用</h1>\n        <p>这是一个使用Flask构建的简单Web应用程序示例。</p>\n        \n        <div class=\"api-section\">\n            <h2>API接口</h2>\n            <p>您可以使用以下API接口：</p>\n            \n            <h3>1. 获取欢迎信息</h3>\n            <p>请求方式：<code>GET</code></p>\n            <p>URL：<code>/api/hello</code></p>\n            <p>示例响应：</p>\n            <pre>{\n  \"message\": \"Hello, World!\",\n  \"status\": \"success\"\n}</pre>\n            \n            <h3>2. 回显数据</h3>\n            <p>请求方式：<code>POST</code></p>\n            <p>URL：<code>/api/echo</code></p>\n            <p>请求体示例：</p>\n            <pre>{\n  \"your_data\": \"value\"\n}</pre>\n        </div>\n    </div>\n</body>\n</html>"
+      },
+      "tokens": 572,
+      "generated_at": "2025-08-18T18:07:21.824762"
+    },
+    "MINIMAL": {
+      "content": {
+        "marker": "[tool:result]"
+      },
+      "tokens": 5,
+      "generated_at": "2025-08-18T18:07:21.824795"
+    },
+    "HIGH": {
+      "content": {
+        "role": "tool",
+        "content": "<!DOCTYPE html>\n<html lang=\"zh-CN\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>简单Web应用</title>\n    <style>\n        body {\n            font-family: Arial, sans-serif;\n            max-width: 800px;\n            margin: 0 auto;\n            padding: 20px;\n            background-color: #f5f5f5;\n        }\n        .container {\n            background-color: white;\n            padding: 30px;\n            border-radius: 10px;\n            box-shadow: 0 2px 10px rgba(0,0,0,0.1);\n            text-align: center;\n        }\n        h1 \n...[部分内容省略]...\n       <p>请求方式：<code>POST</code></p>\n            <p>URL：<code>/api/echo</code></p>\n            <p>请求体示例：</p>\n            <pre>{\n  \"your_data\": \"value\"\n}</pre>\n        </div>\n    </div>\n</body>\n</html>"
+      },
+      "tokens": 250,
+      "generated_at": "2025-08-18T18:07:21.825755"
+    },
+    "MEDIUM": {
+      "content": {
+        "role": "tool",
+        "content_preview": "<!DOCTYPE html>\n<html lang=\"zh-CN\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>简单Web应用</title>\n    <style>\n        body {\n            font-family: Arial, sans-serif;\n            max-width: 800px;\n            margin: 0 auto;..."
+      },
+      "tokens": 95,
+      "generated_at": "2025-08-18T18:07:21.825851"
+    },
+    "LOW": {
+      "content": {
+        "role": "tool",
+        "summary": "工具执行成功"
+      },
+      "tokens": 16,
+      "generated_at": "2025-08-18T18:07:21.826059"
+    }
+  }
+}

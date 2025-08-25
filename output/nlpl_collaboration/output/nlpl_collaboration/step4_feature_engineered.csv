@@ -1,0 +1,5 @@
+name,status,age,score,age_group,performance_level,age_score_interaction
+Alice,active,0.0,0.5,,Medium,0.0
+Bob,active,0.3333333333333332,1.0,Middle,High,0.3333333333333332
+David,active,0.6666666666666667,0.0,Senior,,0.0
+Frank,active,0.9999999999999998,0.7142857142857144,Senior,High,0.7142857142857143

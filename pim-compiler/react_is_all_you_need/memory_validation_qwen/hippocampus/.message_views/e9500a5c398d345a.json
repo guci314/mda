@@ -1,0 +1,52 @@
+{
+  "id": "e9500a5c398d345a",
+  "timestamp": "2025-08-18T18:06:51.548740",
+  "metadata": {
+    "role": "tool",
+    "round": 17,
+    "importance": null
+  },
+  "views": {
+    "FULL": {
+      "content": {
+        "role": "tool",
+        "tool_call_id": "call_a5947811db9d4969b1af4d11",
+        "name": "list_directory",
+        "content": "test_nlpl_models.py\nmda_demo.py\n.env.example\nWORKDIR_SAFETY.md\ndebug_visualizer.py\ntest_knowledge\nreact_agent_debugger.py\ntest_memory_forgetting.py\ntest_real_nltm_execution.py\nstart_jupyter_simple.sh\nnltm_executor_agent.py\nnltm_demo.py\ndebug_demo.py\nstart_jupyter_vscode.sh\nlangchain_vs_langgraph_prompts.md\nnltm_智能计算器\nREADME_NLTM.md\ntest_debugger.py\ntest_memory_shutdown.py\ndemo_workflow_with_knowledge.py\n问题解决指南.md\nvalidate_memory_with_qwen.py\ntest_deepseek_postcondition.ipynb\nrun_psm_nlpl.py\nmigrate_agents_structure.py\nnltm_kimi_test\nREADME_AGENTS.md\ndebug_conditional_breakpoints.py\nstart_jupyter.sh\ntest_improved_write.py\nrequirements.txt\nmemory_system_report.md\nclear_cache.py\nverify_env.py\nworld_overview_checker.py\ncheck_nlpl_progress.sh\ntest_new_directory_structure.py\ntest_write_improved\nREADME_Jupyter_配置.md\ntest_psm_with_improved_kimi.py\nknowledge\nnotebooks\nfix_kernel_issue.py\ncompiler\nnltm_文本分析器\ndemo_sequential_thinking.py\ntest_nltm_generic_agent.py\ntest_workdir_safety.py\nnltm_gemini\nanalyze_cleanup_logic.py\noutput\n.langchain.db\ntool_specification_example.py\ntest_model_capabilities.py\nworkflow_engine_via_react.py\n.vscode\nexample_adaptive_decomposition.py\ndemo_world_overview.py\ndemo_nlpl_complete.py\ndemo_efficient_coordination.py\ntest_long_term_memory_gemini.py\nworkflow_engine_with_templates.py\nproject_explorer.py\nperspective_manager.py\nschemas\ndemo_debugger_enhanced.py\ndemo_output.log\nmda_dual_agent_demo.py\ntest_todo_in_data_area.py\ntest_memory_location.py\n.agents\ndeepseek_token_counter.py\ndebug_agent_notes.py\npyproject.toml\ndemo_nlpl_simple.py\ntest_nltm_system.py\nnltm_猜数字游戏\nkimi_nltm_poc\n快速启动指南.md\ntest_workdir_absolute_safety.py\nmda_workflow_with_adaptive_decomposition.ipynb\ntest_output\nnltm_director_agent.py\ntest_qwen_agent.py\ndemo_knowledge_conflict.py\nproject_explorer_segmented.py\nmda_research.ipynb\nnlpl_demo.log\ndebug_agent_demo.py\ndemo_agent_coordination_v2.py\nkimi_nltm_poc_improved.py\ndemo_agent_coordination_langchain.py\nexamples\n__init__.py\nnltm_deepseek_test\ndemo_nltm_comparison.py\nmemory_validation_workspace\ntest_archive.py\ntest_nltm_with_kimi.py\nMCP_SETUP.md\ndemo_view_switches.py\nworld_overview.md\nmemory\n__pycache__\nnltm_test_report.md\ndemo_perspective.py\nvalidate_memory_system.py\ntest_hot_reload.py\nstart_jupyter_fixed.sh\ndebug_cookbook.py\nnltm_gemini_test\n.gitignore\nnltm_deepseek\nREADME.md\nnltm_workspace\ndebug_state_demo.py\nnltm_simple_test.py\n.env\ntests\ntest_kimi_react_coordinator.py\ntest_agents_nltm.py\ntest_data_cleanup.py\ntest_planning_obsession.py\ntest_vscode_memory.py\ndebug_notes_manager.py\ntest_improved\nknowledge_optimization_example.py\nnltm_demo\ndemo_nlpl_array_analysis.py\nknowledge_structure_plan.md\ntest_workflow_simple.py\nperspective_agent.py\nsummarize_nlpl_demo.sh\ncore\nblog.db\ntest_long_term_memory.py\ntest_agent_file_sharing.py\ntest_bpmn_obsession.py\nnlpl_demo_fixed.log\n.benchmarks\nnltm_final_report.md\nmonitor_nlpl_demo.sh\nkimi_nltm_poc.py\ntest_nlpl_with_memory.py\nREADME_DEBUGGER.md\nreact_agent_debugger_notebook.py\nreact_agent_debugger_enhanced.py\nagent_research.ipynb\ntest_hot_reload_simple.py\nsequential_thinking_via_react.py\ntest_kimi_json_fix.py\ntool_search_vs_vector_rag.md\nnltm_test\ntest_deepseek_nltm.py\ntest_async_memory_mvp.py\ndemo_mvp_memory.py\ndocs\nmemory_validation_qwen\nnltm_poc_array_analysis.py"
+      },
+      "tokens": 924,
+      "generated_at": "2025-08-18T18:06:51.548792"
+    },
+    "MINIMAL": {
+      "content": {
+        "marker": "[tool:result]"
+      },
+      "tokens": 5,
+      "generated_at": "2025-08-18T18:06:51.548799"
+    },
+    "HIGH": {
+      "content": {
+        "role": "tool",
+        "content": "test_nlpl_models.py\nmda_demo.py\n.env.example\nWORKDIR_SAFETY.md\ndebug_visualizer.py\ntest_knowledge\nreact_agent_debugger.py\ntest_memory_forgetting.py\ntest_real_nltm_execution.py\nstart_jupyter_simple.sh\nnltm_executor_agent.py\nnltm_demo.py\ndebug_demo.py\nstart_jupyter_vscode.sh\nlangchain_vs_langgraph_prompts.md\nnltm_智能计算器\nREADME_NLTM.md\ntest_debugger.py\ntest_memory_shutdown.py\ndemo_workflow_with_knowledge.py\n问题解决指南.md\nvalidate_memory_with_qwen.py\ntest_deepseek_postcondition.ipynb\nrun_psm_nlpl.py\nmigrate_agents_structure.py\nnltm_kimi_test\nREADME_AGENTS.md\ndebug_conditional_breakpoints.py\nstart_jupyt\n...[部分内容省略]...\nnking_via_react.py\ntest_kimi_json_fix.py\ntool_search_vs_vector_rag.md\nnltm_test\ntest_deepseek_nltm.py\ntest_async_memory_mvp.py\ndemo_mvp_memory.py\ndocs\nmemory_validation_qwen\nnltm_poc_array_analysis.py"
+      },
+      "tokens": 242,
+      "generated_at": "2025-08-18T18:06:51.551323"
+    },
+    "MEDIUM": {
+      "content": {
+        "role": "tool",
+        "content_preview": "test_nlpl_models.py\nmda_demo.py\n.env.example\nWORKDIR_SAFETY.md\ndebug_visualizer.py\ntest_knowledge\nreact_agent_debugger.py\ntest_memory_forgetting.py\ntest_real_nltm_execution.py\nstart_jupyter_simple.sh\nnltm_executor_agent.py\nnltm_demo.py\ndebug_demo.py\nstart_jupyter_vscode.sh\nlangchain_vs_langgraph_pro..."
+      },
+      "tokens": 89,
+      "generated_at": "2025-08-18T18:06:51.551354"
+    },
+    "LOW": {
+      "content": {
+        "role": "tool",
+        "summary": "工具返回结果"
+      },
+      "tokens": 16,
+      "generated_at": "2025-08-18T18:06:51.551421"
+    }
+  }
+}

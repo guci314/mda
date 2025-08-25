@@ -23,25 +23,18 @@ sys.path.insert(0, str(Path(__file__).parent))
 from core.react_agent import GenericReactAgent, ReactAgentConfig, MemoryLevel
 
 
-class WorkflowType(Enum):
-    """工作流类型"""
-    DEPLOYMENT = "deployment"  # 部署流程
-    APPROVAL = "approval"      # 审批流程
-    DATA_PIPELINE = "data_pipeline"  # 数据处理管道
-    INCIDENT_RESPONSE = "incident_response"  # 事件响应流程
+# class WorkflowType(Enum):
+#     """工作流类型"""
+#     DEPLOYMENT = "deployment"  # 部署流程
+#     APPROVAL = "approval"      # 审批流程
+#     DATA_PIPELINE = "data_pipeline"  # 数据处理管道
+#     INCIDENT_RESPONSE = "incident_response"  # 事件响应流程
 
 
 def create_workflow_agent(work_dir: str) -> GenericReactAgent:
     """创建使用JSON笔记本实现工作流引擎的Agent"""
     
-    # 在中国使用Gemini需要配置代理
-    import httpx
-    http_client = httpx.Client(
-        proxy='socks5://127.0.0.1:7890',
-        timeout=30,
-        verify=False
-    )
-    
+    # 使用OpenRouter访问Gemini-2.5-pro
     config = ReactAgentConfig(
         work_dir=work_dir,
         memory_level=MemoryLevel.SMART,
@@ -51,11 +44,10 @@ def create_workflow_agent(work_dir: str) -> GenericReactAgent:
             "knowledge/workflow/execution_strategies.md"  # 执行策略
         ],
         enable_project_exploration=False,
-        llm_model="gemini-2.5-pro",  # 使用Gemini 2.5 Pro
-        llm_base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
-        llm_api_key_env="GEMINI_API_KEY",
-        llm_temperature=0,
-        http_client=http_client
+        llm_model="google/gemini-2.5-pro",  # 使用Gemini 2.5 Pro via OpenRouter
+        llm_base_url="https://openrouter.ai/api/v1",
+        llm_api_key_env="OPENROUTER_API_KEY",
+        llm_temperature=0
     )
     
     agent = GenericReactAgent(config, name="workflow_engine_agent")

@@ -1,0 +1,52 @@
+{
+  "id": "ec9e77218ea8ecc4",
+  "timestamp": "2025-08-17T12:39:28.501229",
+  "metadata": {
+    "role": "tool",
+    "round": 8,
+    "importance": null
+  },
+  "views": {
+    "FULL": {
+      "content": {
+        "role": "tool",
+        "tool_call_id": "call_35d82a606efb4836ac417421",
+        "name": "read_file",
+        "content": "name,age,score,status\nAlice,25,85,active\nBob,30,92,active\nCharlie,28,,inactive\nDavid,35,78,active\nEve,22,95,\nFrank,40,88,active"
+      },
+      "tokens": 58,
+      "generated_at": "2025-08-17T12:39:28.501287"
+    },
+    "MINIMAL": {
+      "content": {
+        "marker": "[tool:result]"
+      },
+      "tokens": 5,
+      "generated_at": "2025-08-17T12:39:28.501309"
+    },
+    "HIGH": {
+      "content": {
+        "role": "tool",
+        "content": "name,age,score,status\nAlice,25,85,active\nBob,30,92,active\nCharlie,28,,inactive\nDavid,35,78,active\nEve,22,95,\nFrank,40,88,active"
+      },
+      "tokens": 41,
+      "generated_at": "2025-08-17T12:39:28.503694"
+    },
+    "MEDIUM": {
+      "content": {
+        "role": "tool",
+        "content_preview": "name,age,score,status\nAlice,25,85,active\nBob,30,92,active\nCharlie,28,,inactive\nDavid,35,78,active\nEve,22,95,\nFrank,40,88,active"
+      },
+      "tokens": 43,
+      "generated_at": "2025-08-17T12:39:28.503741"
+    },
+    "LOW": {
+      "content": {
+        "role": "tool",
+        "summary": "工具返回结果"
+      },
+      "tokens": 16,
+      "generated_at": "2025-08-17T12:39:28.503777"
+    }
+  }
+}

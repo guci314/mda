@@ -1,0 +1,70 @@
+{
+  "id": "045f7dad5fee8f9b",
+  "timestamp": "2025-08-19T22:01:39.959743",
+  "metadata": {
+    "role": "assistant",
+    "round": 52,
+    "importance": null
+  },
+  "views": {
+    "FULL": {
+      "content": {
+        "role": "assistant",
+        "content": "",
+        "refusal": null,
+        "reasoning": null,
+        "tool_calls": [
+          {
+            "index": 0,
+            "id": "call_711b50a17ca343bbbf987ae3",
+            "type": "function",
+            "function": {
+              "name": "read_file",
+              "arguments": "{\"file_path\": \"/home/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/test_4layer_final/hippocampus/consolidation.json\"}"
+            }
+          }
+        ]
+      },
+      "tokens": 85,
+      "generated_at": "2025-08-19T22:01:39.959809"
+    },
+    "MINIMAL": {
+      "content": {
+        "marker": "[assistant:tools]"
+      },
+      "tokens": 5,
+      "generated_at": "2025-08-19T22:01:39.959838"
+    },
+    "HIGH": {
+      "content": {
+        "role": "assistant",
+        "tool_calls_summary": [
+          {
+            "name": "read_file",
+            "args_preview": "{\"file_path\": \"/home/guci/aiProjects/mda/pim-compi"
+          }
+        ]
+      },
+      "tokens": 35,
+      "generated_at": "2025-08-19T22:01:39.970132"
+    },
+    "MEDIUM": {
+      "content": {
+        "role": "assistant",
+        "tools_used": [
+          "read_file"
+        ]
+      },
+      "tokens": 12,
+      "generated_at": "2025-08-19T22:01:39.970207"
+    },
+    "LOW": {
+      "content": {
+        "role": "assistant",
+        "summary": "调用了1个工具: read_file"
+      },
+      "tokens": 21,
+      "generated_at": "2025-08-19T22:01:39.970275"
+    }
+  }
+}

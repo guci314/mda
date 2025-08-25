@@ -1,0 +1,70 @@
+{
+  "id": "98c0b9e3e80dd89e",
+  "timestamp": "2025-08-19T22:01:43.759517",
+  "metadata": {
+    "role": "assistant",
+    "round": 55,
+    "importance": null
+  },
+  "views": {
+    "FULL": {
+      "content": {
+        "role": "assistant",
+        "content": "",
+        "refusal": null,
+        "reasoning": null,
+        "tool_calls": [
+          {
+            "index": 0,
+            "id": "call_92282673cd699a9b",
+            "function": {
+              "arguments": "{\"file_path\": \"/home/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/test_4layer_final/metacognition/reflection.json\"}",
+              "name": "read_file"
+            },
+            "type": "function"
+          }
+        ]
+      },
+      "tokens": 83,
+      "generated_at": "2025-08-19T22:01:43.759561"
+    },
+    "MINIMAL": {
+      "content": {
+        "marker": "[assistant:tools]"
+      },
+      "tokens": 5,
+      "generated_at": "2025-08-19T22:01:43.759575"
+    },
+    "HIGH": {
+      "content": {
+        "role": "assistant",
+        "tool_calls_summary": [
+          {
+            "name": "read_file",
+            "args_preview": "{\"file_path\": \"/home/guci/aiProjects/mda/pim-compi"
+          }
+        ]
+      },
+      "tokens": 35,
+      "generated_at": "2025-08-19T22:01:43.765681"
+    },
+    "MEDIUM": {
+      "content": {
+        "role": "assistant",
+        "tools_used": [
+          "read_file"
+        ]
+      },
+      "tokens": 12,
+      "generated_at": "2025-08-19T22:01:43.765724"
+    },
+    "LOW": {
+      "content": {
+        "role": "assistant",
+        "summary": "调用了1个工具: read_file"
+      },
+      "tokens": 21,
+      "generated_at": "2025-08-19T22:01:43.765750"
+    }
+  }
+}

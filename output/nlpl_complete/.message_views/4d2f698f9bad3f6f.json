@@ -1,0 +1,72 @@
+{
+  "id": "4d2f698f9bad3f6f",
+  "timestamp": "2025-08-17T12:36:16.688181",
+  "metadata": {
+    "role": "assistant",
+    "round": 1,
+    "importance": null
+  },
+  "views": {
+    "FULL": {
+      "content": {
+        "role": "assistant",
+        "content": "我将按照您的要求，将user_request.txt中的任务增强为级别0的NLPL程序。首先，让我读取原始任务文件。\n\n",
+        "refusal": null,
+        "reasoning": null,
+        "tool_calls": [
+          {
+            "id": "call_d0e5b65fd7184222be7fb51a",
+            "type": "function",
+            "index": 0,
+            "function": {
+              "name": "read_file",
+              "arguments": "{\"file_path\": \"user_request.txt\"}"
+            }
+          }
+        ]
+      },
+      "tokens": 124,
+      "generated_at": "2025-08-17T12:36:16.688209"
+    },
+    "MINIMAL": {
+      "content": {
+        "marker": "[assistant:tools]"
+      },
+      "tokens": 5,
+      "generated_at": "2025-08-17T12:36:16.688218"
+    },
+    "HIGH": {
+      "content": {
+        "role": "assistant",
+        "content": "我将按照您的要求，将user_request.txt中的任务增强为级别0的NLPL程序。首先，让我读取原始任务文件。\n\n",
+        "tool_calls_summary": [
+          {
+            "name": "read_file",
+            "args_preview": "{\"file_path\": \"user_request.txt\"}"
+          }
+        ]
+      },
+      "tokens": 96,
+      "generated_at": "2025-08-17T12:36:16.688851"
+    },
+    "MEDIUM": {
+      "content": {
+        "role": "assistant",
+        "content_preview": "我将按照您的要求，将user_request.txt中的任务增强为级别0的NLPL程序。首先，让我读取原始任务文件。\n\n",
+        "tools_used": [
+          "read_file"
+        ]
+      },
+      "tokens": 80,
+      "generated_at": "2025-08-17T12:36:16.688885"
+    },
+    "LOW": {
+      "content": {
+        "role": "assistant",
+        "summary": "调用了1个工具: read_file"
+      },
+      "tokens": 21,
+      "generated_at": "2025-08-17T12:36:16.688913"
+    }
+  }
+}

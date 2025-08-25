@@ -1,0 +1,72 @@
+{
+  "id": "390f39d3174b88e0",
+  "timestamp": "2025-08-17T12:38:18.575013",
+  "metadata": {
+    "role": "assistant",
+    "round": 7,
+    "importance": null
+  },
+  "views": {
+    "FULL": {
+      "content": {
+        "role": "assistant",
+        "content": "我将生成斐波那契数列的前20项并保存到fibonacci.txt文件中。\n\n首先，让我编写生成斐波那契数列的代码：\n\n",
+        "refusal": null,
+        "reasoning": null,
+        "tool_calls": [
+          {
+            "id": "call_d674fa185592495fbcfbd3a1",
+            "index": 0,
+            "type": "function",
+            "function": {
+              "name": "execute_python",
+              "arguments": "{\"code\": \"def generate_fibonacci(n):\\n    fib_sequence = []\\n    a, b = 0, 1\\n    for _ in range(n):\\n        fib_sequence.append(a)\\n        a, b = b, a + b\\n    return fib_sequence\\n\\n# 生成前20项斐波那契数列\\nfibonacci_20 = generate_fibonacci(20)\\n\\n# 将结果保存到文件\\nwith open('fibonacci.txt', 'w') as f:\\n    for i, num in enumerate(fibonacci_20):\\n        f.write(f'{num}\\\\n')\\n\\nprint('斐波那契数列前20项已保存到 fibonacci.txt')\\nprint('数列内容:')\\nfor i, num in enumerate(fibonacci_20):\\n    print(f'第{i+1}项: {num}')\"}"
+            }
+          }
+        ]
+      },
+      "tokens": 295,
+      "generated_at": "2025-08-17T12:38:18.575063"
+    },
+    "MINIMAL": {
+      "content": {
+        "marker": "[assistant:tools]"
+      },
+      "tokens": 5,
+      "generated_at": "2025-08-17T12:38:18.575078"
+    },
+    "HIGH": {
+      "content": {
+        "role": "assistant",
+        "content": "我将生成斐波那契数列的前20项并保存到fibonacci.txt文件中。\n\n首先，让我编写生成斐波那契数列的代码：\n\n",
+        "tool_calls_summary": [
+          {
+            "name": "execute_python",
+            "args_preview": "{\"code\": \"def generate_fibonacci(n):\\n    fib_sequ"
+          }
+        ]
+      },
+      "tokens": 106,
+      "generated_at": "2025-08-17T12:38:18.575729"
+    },
+    "MEDIUM": {
+      "content": {
+        "role": "assistant",
+        "content_preview": "我将生成斐波那契数列的前20项并保存到fibonacci.txt文件中。\n\n首先，让我编写生成斐波那契数列的代码：\n\n",
+        "tools_used": [
+          "execute_python"
+        ]
+      },
+      "tokens": 85,
+      "generated_at": "2025-08-17T12:38:18.575766"
+    },
+    "LOW": {
+      "content": {
+        "role": "assistant",
+        "summary": "调用了1个工具: execute_python"
+      },
+      "tokens": 22,
+      "generated_at": "2025-08-17T12:38:18.575792"
+    }
+  }
+}

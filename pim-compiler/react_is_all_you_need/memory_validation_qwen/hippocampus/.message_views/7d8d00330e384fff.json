@@ -1,0 +1,52 @@
+{
+  "id": "7d8d00330e384fff",
+  "timestamp": "2025-08-18T17:55:26.481655",
+  "metadata": {
+    "role": "tool",
+    "round": 11,
+    "importance": null
+  },
+  "views": {
+    "FULL": {
+      "content": {
+        "role": "tool",
+        "tool_call_id": "call_924b3ac1ad434a8b94c08144",
+        "name": "read_file",
+        "content": "文件不存在: /home/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/memory_validation_qwen/work_agent/src/index.js"
+      },
+      "tokens": 60,
+      "generated_at": "2025-08-18T17:55:26.481744"
+    },
+    "MINIMAL": {
+      "content": {
+        "marker": "[tool:result]"
+      },
+      "tokens": 5,
+      "generated_at": "2025-08-18T17:55:26.481771"
+    },
+    "HIGH": {
+      "content": {
+        "role": "tool",
+        "content": "文件不存在: /home/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/memory_validation_qwen/work_agent/src/index.js"
+      },
+      "tokens": 42,
+      "generated_at": "2025-08-18T17:55:26.493892"
+    },
+    "MEDIUM": {
+      "content": {
+        "role": "tool",
+        "content_preview": "文件不存在: /home/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/memory_validation_qwen/work_agent/src/index.js"
+      },
+      "tokens": 44,
+      "generated_at": "2025-08-18T17:55:26.493963"
+    },
+    "LOW": {
+      "content": {
+        "role": "tool",
+        "summary": "工具返回结果"
+      },
+      "tokens": 16,
+      "generated_at": "2025-08-18T17:55:26.494023"
+    }
+  }
+}

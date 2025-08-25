@@ -1,0 +1,17 @@
+{
+  "program": "文本分析器",
+  "session": "session_20250816_044523",
+  "status": "completed",
+  "steps_completed": [
+    "基础统计",
+    "深度分析",
+    "生成报告"
+  ],
+  "current_step": "生成报告",
+  "result": {
+    "字符数": 17,
+    "词汇数": 5,
+    "语言": "中文",
+    "情感": "积极"
+  }
+}

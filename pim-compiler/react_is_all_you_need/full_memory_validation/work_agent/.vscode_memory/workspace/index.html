@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebApp - A Complete Web Application</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>WebApp</h1>
+            <nav>
+                <ul id="nav-menu">
+                    <li><a href="#" id="home-link" class="active">Home</a></li>
+                    <li><a href="#" id="posts-link">Posts</a></li>
+                    <li><a href="#" id="login-link">Login</a></li>
+                    <li><a href="#" id="register-link">Register</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <!-- 登录表单 -->
+        <section id="login-section" class="hidden">
+            <h2>Login</h2>
+            <form id="login-form">
+                <div class="form-group">
+                    <label for="login-username">Username</label>
+                    <input type="text" id="login-username" required>
+                </div>
+                <div class="form-group">
+                    <label for="login-password">Password</label>
+                    <input type="password" id="login-password" required>
+                </div>
+                <button type="submit">Login</button>
+            </form>
+        </section>
+
+        <!-- 注册表单 -->
+        <section id="register-section" class="hidden">
+            <h2>Register</h2>
+            <form id="register-form">
+                <div class="form-group">
+                    <label for="register-username">Username</label>
+                    <input type="text" id="register-username" required>
+                </div>
+                <div class="form-group">
+                    <label for="register-email">Email</label>
+                    <input type="email" id="register-email" required>
+                </div>
+                <div class="form-group">
+                    <label for="register-password">Password</label>
+                    <input type="password" id="register-password" required>
+                </div>
+                <button type="submit">Register</button>
+            </form>
+        </section>
+
+        <!-- 创建文章表单 -->
+        <section id="create-post-section" class="hidden">
+            <h2>Create New Post</h2>
+            <form id="create-post-form">
+                <div class="form-group">
+                    <label for="post-title">Title</label>
+                    <input type="text" id="post-title" required>
+                </div>
+                <div class="form-group">
+                    <label for="post-content">Content</label>
+                    <textarea id="post-content" rows="5" required></textarea>
+                </div>
+                <button type="submit">Create Post</button>
+            </form>
+        </section>
+
+        <!-- 文章列表 -->
+        <section id="posts-section">
+            <div class="section-header">
+                <h2>Latest Posts</h2>
+                <button id="create-post-btn" class="btn-primary hidden">Create Post</button>
+            </div>
+            <div id="posts-container">
+                <!-- 文章将通过JavaScript动态加载 -->
+                <p>Loading posts...</p>
+            </div>
+        </section>
+
+        <!-- 单篇文章详情 -->
+        <section id="post-detail-section" class="hidden">
+            <div id="post-detail-container">
+                <!-- 文章详情将通过JavaScript动态加载 -->
+            </div>
+            <div id="comments-section">
+                <h3>Comments</h3>
+                <div id="comments-container">
+                    <!-- 评论将通过JavaScript动态加载 -->
+                </div>
+                <form id="comment-form" class="hidden">
+                    <h4>Add a Comment</h4>
+                    <div class="form-group">
+                        <textarea id="comment-content" rows="3" placeholder="Write your comment..." required></textarea>
+                    </div>
+                    <button type="submit">Post Comment</button>
+                </form>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>© 2023 WebApp. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+</html>

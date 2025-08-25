@@ -1,0 +1,72 @@
+{
+  "id": "b2218b6797899084",
+  "timestamp": "2025-08-18T18:44:58.792890",
+  "metadata": {
+    "role": "assistant",
+    "round": 7,
+    "importance": null
+  },
+  "views": {
+    "FULL": {
+      "content": {
+        "role": "assistant",
+        "content": "让我检查一下这些目录，看看哪个可能是共享记忆空间。\n\n",
+        "refusal": null,
+        "reasoning": null,
+        "tool_calls": [
+          {
+            "id": "call_e262a2a42da34cefb92c9d67",
+            "index": 0,
+            "type": "function",
+            "function": {
+              "name": "list_directory",
+              "arguments": "{\"directory_path\": \"/home/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/true_async_validation/work_agent\"}"
+            }
+          }
+        ]
+      },
+      "tokens": 122,
+      "generated_at": "2025-08-18T18:44:58.792920"
+    },
+    "MINIMAL": {
+      "content": {
+        "marker": "[assistant:tools]"
+      },
+      "tokens": 5,
+      "generated_at": "2025-08-18T18:44:58.792931"
+    },
+    "HIGH": {
+      "content": {
+        "role": "assistant",
+        "content": "让我检查一下这些目录，看看哪个可能是共享记忆空间。\n\n",
+        "tool_calls_summary": [
+          {
+            "name": "list_directory",
+            "args_preview": "{\"directory_path\": \"/home/guci/aiProjects/mda/pim-"
+          }
+        ]
+      },
+      "tokens": 78,
+      "generated_at": "2025-08-18T18:44:58.795057"
+    },
+    "MEDIUM": {
+      "content": {
+        "role": "assistant",
+        "content_preview": "让我检查一下这些目录，看看哪个可能是共享记忆空间。\n\n",
+        "tools_used": [
+          "list_directory"
+        ]
+      },
+      "tokens": 58,
+      "generated_at": "2025-08-18T18:44:58.795081"
+    },
+    "LOW": {
+      "content": {
+        "role": "assistant",
+        "summary": "调用了1个工具: list_directory"
+      },
+      "tokens": 22,
+      "generated_at": "2025-08-18T18:44:58.795101"
+    }
+  }
+}

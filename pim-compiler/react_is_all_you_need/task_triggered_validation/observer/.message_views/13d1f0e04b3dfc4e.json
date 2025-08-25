@@ -1,0 +1,70 @@
+{
+  "id": "13d1f0e04b3dfc4e",
+  "timestamp": "2025-08-18T19:14:31.988957",
+  "metadata": {
+    "role": "assistant",
+    "round": 4,
+    "importance": null
+  },
+  "views": {
+    "FULL": {
+      "content": {
+        "role": "assistant",
+        "content": "",
+        "refusal": null,
+        "reasoning": null,
+        "tool_calls": [
+          {
+            "id": "call_f6fadf12d69946fd82ed1dd7",
+            "type": "function",
+            "index": 0,
+            "function": {
+              "name": "execute_command",
+              "arguments": "{\"command\": \"python -m pytest test_scraper.py -v\"}"
+            }
+          }
+        ]
+      },
+      "tokens": 68,
+      "generated_at": "2025-08-18T19:14:31.988980"
+    },
+    "MINIMAL": {
+      "content": {
+        "marker": "[assistant:tools]"
+      },
+      "tokens": 5,
+      "generated_at": "2025-08-18T19:14:31.988988"
+    },
+    "HIGH": {
+      "content": {
+        "role": "assistant",
+        "tool_calls_summary": [
+          {
+            "name": "execute_command",
+            "args_preview": "{\"command\": \"python -m pytest test_scraper.py -v\"}"
+          }
+        ]
+      },
+      "tokens": 37,
+      "generated_at": "2025-08-18T19:14:31.991184"
+    },
+    "MEDIUM": {
+      "content": {
+        "role": "assistant",
+        "tools_used": [
+          "execute_command"
+        ]
+      },
+      "tokens": 14,
+      "generated_at": "2025-08-18T19:14:31.991212"
+    },
+    "LOW": {
+      "content": {
+        "role": "assistant",
+        "summary": "调用了1个工具: execute_command"
+      },
+      "tokens": 22,
+      "generated_at": "2025-08-18T19:14:31.991235"
+    }
+  }
+}

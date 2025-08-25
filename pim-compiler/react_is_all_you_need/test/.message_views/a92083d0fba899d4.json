@@ -1,0 +1,72 @@
+{
+  "id": "a92083d0fba899d4",
+  "timestamp": "2025-08-19T22:00:46.322359",
+  "metadata": {
+    "role": "assistant",
+    "round": 37,
+    "importance": null
+  },
+  "views": {
+    "FULL": {
+      "content": {
+        "role": "assistant",
+        "content": "现在让我查看一些与四层记忆系统相关的文档，以更全面地理解其架构。\n\n",
+        "refusal": null,
+        "reasoning": null,
+        "tool_calls": [
+          {
+            "id": "call_ba37f4ed0ca140a387af3aed",
+            "index": 0,
+            "type": "function",
+            "function": {
+              "name": "read_file",
+              "arguments": "{\"file_path\": \"/home/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/docs/MEMORY_SYSTEM.md\"}"
+            }
+          }
+        ]
+      },
+      "tokens": 128,
+      "generated_at": "2025-08-19T22:00:46.322390"
+    },
+    "MINIMAL": {
+      "content": {
+        "marker": "[assistant:tools]"
+      },
+      "tokens": 5,
+      "generated_at": "2025-08-19T22:00:46.322400"
+    },
+    "HIGH": {
+      "content": {
+        "role": "assistant",
+        "content": "现在让我查看一些与四层记忆系统相关的文档，以更全面地理解其架构。\n\n",
+        "tool_calls_summary": [
+          {
+            "name": "read_file",
+            "args_preview": "{\"file_path\": \"/home/guci/aiProjects/mda/pim-compi"
+          }
+        ]
+      },
+      "tokens": 88,
+      "generated_at": "2025-08-19T22:00:46.328890"
+    },
+    "MEDIUM": {
+      "content": {
+        "role": "assistant",
+        "content_preview": "现在让我查看一些与四层记忆系统相关的文档，以更全面地理解其架构。\n\n",
+        "tools_used": [
+          "read_file"
+        ]
+      },
+      "tokens": 67,
+      "generated_at": "2025-08-19T22:00:46.328970"
+    },
+    "LOW": {
+      "content": {
+        "role": "assistant",
+        "summary": "调用了1个工具: read_file"
+      },
+      "tokens": 21,
+      "generated_at": "2025-08-19T22:00:46.329030"
+    }
+  }
+}

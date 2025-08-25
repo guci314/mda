@@ -1,0 +1,98 @@
+# NLPL程序定义
+name: Calculate Statistics
+description: Calculate statistical data for a given list of numbers.
+
+# 状态定义
+states:
+  initial:
+    description: "Initial state with input data."
+    data:
+      - name: numbers
+        type: list
+        initial_value: [5, 10, 15, 20, 25]
+      - name: sum
+        type: integer
+        initial_value: 0
+      - name: count
+        type: integer
+        initial_value: 0
+      - name: min
+        type: integer
+        initial_value: null
+      - name: max
+        type: integer
+        initial_value: null
+      - name: mean
+        type: float
+        initial_value: 0.0
+      - name: median
+        type: float
+        initial_value: 0.0
+      - name: mode
+        type: list
+        initial_value: []
+      - name: variance
+        type: float
+        initial_value: 0.0
+      - name: standard_deviation
+        type: float
+        initial_value: 0.0
+
+  final:
+    description: "Final state with calculated statistics."
+    conditions:
+      - all_of: [sum, count, min, max, mean, median, mode, variance, standard_deviation]
+
+# 执行步骤
+actions:
+  - name: calculate_sum
+    description: "Calculate the sum of all numbers."
+    transition_to: calculate_count
+    on_success: update_state sum=sum+number for number in numbers
+
+  - name: calculate_count
+    description: "Calculate the count of numbers."
+    transition_to: calculate_min_max
+    on_success: update_state count=len(numbers)
+
+  - name: calculate_min_max
+    description: "Calculate the minimum and maximum values."
+    transition_to: calculate_mean
+    on_success: update_state min=min(numbers), max=max(numbers)
+
+  - name: calculate_mean
+    description: "Calculate the mean of the numbers."
+    transition_to: calculate_median
+    on_success: update_state mean=sum/len(numbers)
+
+  - name: calculate_median
+    description: "Calculate the median of the numbers."
+    transition_to: calculate_mode
+    on_success: |
+      if count % 2 == 0:
+        update_state median=(sum/len(numbers) + (sum/len(numbers) + 1)) / 2
+      else:
+        update_state median=sum/len(numbers)
+
+  - name: calculate_mode
+    description: "Calculate the mode of the numbers."
+    transition_to: calculate_variance
+    on_success: |
+      from collections import Counter
+      counter = Counter(numbers)
+      mode_value = counter.most_common(1)[0][0]
+      update_state mode=[number for number in numbers if number == mode_value]
+
+  - name: calculate_variance
+    description: "Calculate the variance of the numbers."
+    transition_to: calculate_standard_deviation
+    on_success: |
+      variance = sum((x - mean) ** 2 for x in numbers) / len(numbers)
+      update_state variance=variance
+
+  - name: calculate_standard_deviation
+    description: "Calculate the standard deviation of the numbers."
+    transition_to: final
+    on_success: |
+      standard_deviation = (variance ** 0.5)
+      update_state standard_deviation=standard_deviation

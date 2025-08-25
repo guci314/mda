@@ -1,0 +1,25 @@
+{
+  "files": {},
+  "episodes": [
+    {
+      "id": "task_start_20250819_181027",
+      "timestamp": "2025-08-19T18:10:27.368462",
+      "event": "task_start",
+      "summary": ""
+    },
+    {
+      "id": "task_complete_20250819_181029",
+      "timestamp": "2025-08-19T18:10:29.339520",
+      "event": "task_complete",
+      "summary": ""
+    }
+  ],
+  "states": [
+    {
+      "id": "task_completion_20250819_181029",
+      "name": "task_completion",
+      "timestamp": "2025-08-19T18:10:29.340477"
+    }
+  ],
+  "access_log": []
+}

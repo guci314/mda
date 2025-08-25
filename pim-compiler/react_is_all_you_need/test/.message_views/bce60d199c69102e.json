@@ -1,0 +1,72 @@
+{
+  "id": "bce60d199c69102e",
+  "timestamp": "2025-08-19T21:51:44.526892",
+  "metadata": {
+    "role": "assistant",
+    "round": 7,
+    "importance": null
+  },
+  "views": {
+    "FULL": {
+      "content": {
+        "role": "assistant",
+        "content": "让我检查当前目录结构，然后分析4层Agent系统的输入输出关系：\n\n",
+        "refusal": null,
+        "reasoning": null,
+        "tool_calls": [
+          {
+            "id": "call_5eea9e5c14fb43b8bceaaaea",
+            "index": 0,
+            "type": "function",
+            "function": {
+              "name": "list_directory",
+              "arguments": "{\"directory_path\": \".\"}"
+            }
+          }
+        ]
+      },
+      "tokens": 102,
+      "generated_at": "2025-08-19T21:51:44.526919"
+    },
+    "MINIMAL": {
+      "content": {
+        "marker": "[assistant:tools]"
+      },
+      "tokens": 5,
+      "generated_at": "2025-08-19T21:51:44.526927"
+    },
+    "HIGH": {
+      "content": {
+        "role": "assistant",
+        "content": "让我检查当前目录结构，然后分析4层Agent系统的输入输出关系：\n\n",
+        "tool_calls_summary": [
+          {
+            "name": "list_directory",
+            "args_preview": "{\"directory_path\": \".\"}"
+          }
+        ]
+      },
+      "tokens": 75,
+      "generated_at": "2025-08-19T21:51:44.529155"
+    },
+    "MEDIUM": {
+      "content": {
+        "role": "assistant",
+        "content_preview": "让我检查当前目录结构，然后分析4层Agent系统的输入输出关系：\n\n",
+        "tools_used": [
+          "list_directory"
+        ]
+      },
+      "tokens": 61,
+      "generated_at": "2025-08-19T21:51:44.529174"
+    },
+    "LOW": {
+      "content": {
+        "role": "assistant",
+        "summary": "调用了1个工具: list_directory"
+      },
+      "tokens": 22,
+      "generated_at": "2025-08-19T21:51:44.529196"
+    }
+  }
+}

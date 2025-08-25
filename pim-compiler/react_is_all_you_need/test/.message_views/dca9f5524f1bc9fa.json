@@ -1,0 +1,72 @@
+{
+  "id": "dca9f5524f1bc9fa",
+  "timestamp": "2025-08-19T21:59:33.225597",
+  "metadata": {
+    "role": "assistant",
+    "round": 1,
+    "importance": null
+  },
+  "views": {
+    "FULL": {
+      "content": {
+        "role": "assistant",
+        "content": "我需要先研究指定目录的结构和内容，然后分析四层记忆的每个层次的输入输出。让我开始探索这个目录。\n\n",
+        "refusal": null,
+        "reasoning": null,
+        "tool_calls": [
+          {
+            "id": "call_b494f74d434e4d6c851431fb",
+            "index": 0,
+            "type": "function",
+            "function": {
+              "name": "list_directory",
+              "arguments": "{\"directory_path\": \"/home/guci/aiProjects/mda/pim-compiler/react_is_all_you_need\"}"
+            }
+          }
+        ]
+      },
+      "tokens": 147,
+      "generated_at": "2025-08-19T21:59:33.225742"
+    },
+    "MINIMAL": {
+      "content": {
+        "marker": "[assistant:tools]"
+      },
+      "tokens": 5,
+      "generated_at": "2025-08-19T21:59:33.225765"
+    },
+    "HIGH": {
+      "content": {
+        "role": "assistant",
+        "content": "我需要先研究指定目录的结构和内容，然后分析四层记忆的每个层次的输入输出。让我开始探索这个目录。\n\n",
+        "tool_calls_summary": [
+          {
+            "name": "list_directory",
+            "args_preview": "{\"directory_path\": \"/home/guci/aiProjects/mda/pim-"
+          }
+        ]
+      },
+      "tokens": 111,
+      "generated_at": "2025-08-19T21:59:33.234845"
+    },
+    "MEDIUM": {
+      "content": {
+        "role": "assistant",
+        "content_preview": "我需要先研究指定目录的结构和内容，然后分析四层记忆的每个层次的输入输出。让我开始探索这个目录。\n\n",
+        "tools_used": [
+          "list_directory"
+        ]
+      },
+      "tokens": 91,
+      "generated_at": "2025-08-19T21:59:33.234895"
+    },
+    "LOW": {
+      "content": {
+        "role": "assistant",
+        "summary": "调用了1个工具: list_directory"
+      },
+      "tokens": 22,
+      "generated_at": "2025-08-19T21:59:33.234928"
+    }
+  }
+}

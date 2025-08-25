@@ -1,0 +1,72 @@
+{
+  "id": "a843831921ac0922",
+  "timestamp": "2025-08-19T21:51:58.512272",
+  "metadata": {
+    "role": "assistant",
+    "round": 10,
+    "importance": null
+  },
+  "views": {
+    "FULL": {
+      "content": {
+        "role": "assistant",
+        "content": "让我检查一下更上层的目录结构，看看测试文件在哪里：\n\n",
+        "refusal": null,
+        "reasoning": null,
+        "tool_calls": [
+          {
+            "id": "call_6db593da64124329a5993c21",
+            "index": 0,
+            "type": "function",
+            "function": {
+              "name": "list_directory",
+              "arguments": "{\"directory_path\": \"..\"}"
+            }
+          }
+        ]
+      },
+      "tokens": 100,
+      "generated_at": "2025-08-19T21:51:58.512436"
+    },
+    "MINIMAL": {
+      "content": {
+        "marker": "[assistant:tools]"
+      },
+      "tokens": 5,
+      "generated_at": "2025-08-19T21:51:58.512473"
+    },
+    "HIGH": {
+      "content": {
+        "role": "assistant",
+        "content": "让我检查一下更上层的目录结构，看看测试文件在哪里：\n\n",
+        "tool_calls_summary": [
+          {
+            "name": "list_directory",
+            "args_preview": "{\"directory_path\": \"..\"}"
+          }
+        ]
+      },
+      "tokens": 72,
+      "generated_at": "2025-08-19T21:51:58.514972"
+    },
+    "MEDIUM": {
+      "content": {
+        "role": "assistant",
+        "content_preview": "让我检查一下更上层的目录结构，看看测试文件在哪里：\n\n",
+        "tools_used": [
+          "list_directory"
+        ]
+      },
+      "tokens": 58,
+      "generated_at": "2025-08-19T21:51:58.515043"
+    },
+    "LOW": {
+      "content": {
+        "role": "assistant",
+        "summary": "调用了1个工具: list_directory"
+      },
+      "tokens": 22,
+      "generated_at": "2025-08-19T21:51:58.515107"
+    }
+  }
+}

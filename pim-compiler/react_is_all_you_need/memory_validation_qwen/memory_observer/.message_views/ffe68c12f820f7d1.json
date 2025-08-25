@@ -1,0 +1,72 @@
+{
+  "id": "ffe68c12f820f7d1",
+  "timestamp": "2025-08-18T17:55:10.979761",
+  "metadata": {
+    "role": "assistant",
+    "round": 10,
+    "importance": null
+  },
+  "views": {
+    "FULL": {
+      "content": {
+        "role": "assistant",
+        "content": "让我继续查看其他目录，以全面了解项目结构。\n\n",
+        "refusal": null,
+        "reasoning": null,
+        "tool_calls": [
+          {
+            "index": 0,
+            "id": "call_5b6370b96094ab44",
+            "function": {
+              "arguments": "{\"directory_path\": \"/home/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/memory_validation_qwen/metacognition\"}",
+              "name": "list_directory"
+            },
+            "type": "function"
+          }
+        ]
+      },
+      "tokens": 115,
+      "generated_at": "2025-08-18T17:55:10.979784"
+    },
+    "MINIMAL": {
+      "content": {
+        "marker": "[assistant:tools]"
+      },
+      "tokens": 5,
+      "generated_at": "2025-08-18T17:55:10.979790"
+    },
+    "HIGH": {
+      "content": {
+        "role": "assistant",
+        "content": "让我继续查看其他目录，以全面了解项目结构。\n\n",
+        "tool_calls_summary": [
+          {
+            "name": "list_directory",
+            "args_preview": "{\"directory_path\": \"/home/guci/aiProjects/mda/pim-"
+          }
+        ]
+      },
+      "tokens": 72,
+      "generated_at": "2025-08-18T17:55:10.982099"
+    },
+    "MEDIUM": {
+      "content": {
+        "role": "assistant",
+        "content_preview": "让我继续查看其他目录，以全面了解项目结构。\n\n",
+        "tools_used": [
+          "list_directory"
+        ]
+      },
+      "tokens": 52,
+      "generated_at": "2025-08-18T17:55:10.982127"
+    },
+    "LOW": {
+      "content": {
+        "role": "assistant",
+        "summary": "调用了1个工具: list_directory"
+      },
+      "tokens": 22,
+      "generated_at": "2025-08-18T17:55:10.982149"
+    }
+  }
+}

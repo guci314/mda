@@ -1,0 +1,52 @@
+{
+  "id": "f325b1ea4cb74881",
+  "timestamp": "2025-08-18T19:14:31.989036",
+  "metadata": {
+    "role": "tool",
+    "round": 5,
+    "importance": null
+  },
+  "views": {
+    "FULL": {
+      "content": {
+        "role": "tool",
+        "tool_call_id": "call_f6fadf12d69946fd82ed1dd7",
+        "name": "execute_command",
+        "content": "============================= test session starts ==============================\nplatform linux -- Python 3.10.12, pytest-7.4.3, pluggy-1.6.0 -- /usr/bin/python\ncachedir: .pytest_cache\nPyQt5 5.15.9 -- Qt runtime 5.15.2 -- Qt compiled 5.15.2\nbenchmark: 5.1.0 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/guci/aiProjects/mda/pim-compiler\nconfigfile: pytest.ini\nplugins: qt-4.4.0, asyncio-0.21.1, benchmark-5.1.0, env-1.1.5, anyio-3.7.1, devtools-0.12.2, langsmith-0.4.8, cov-6.2.1, timeout-2.3.1\nasyncio: mode=strict\ncollecting ... collected 0 items\n\n============================ no tests ran in 0.01s =============================\n\n错误输出:\nERROR: file or directory not found: test_scraper.py\n\n"
+      },
+      "tokens": 240,
+      "generated_at": "2025-08-18T19:14:31.989058"
+    },
+    "MINIMAL": {
+      "content": {
+        "marker": "[tool:result]"
+      },
+      "tokens": 5,
+      "generated_at": "2025-08-18T19:14:31.989064"
+    },
+    "HIGH": {
+      "content": {
+        "role": "tool",
+        "content": "============================= test session starts ==============================\nplatform linux -- Python 3.10.12, pytest-7.4.3, pluggy-1.6.0 -- /usr/bin/python\ncachedir: .pytest_cache\nPyQt5 5.15.9 -- Qt runtime 5.15.2 -- Qt compiled 5.15.2\nbenchmark: 5.1.0 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/guci/aiProjects/mda/pim-compiler\nconfigfile: pytest.ini\nplugins: qt-4.4.0, asyncio-0.21.1, benchmark-5.1.0, env-1.1.5, anyio-3.7.1, devtools-0.12.2, langsmith-0.4.8, cov-6.2.1, timeout-2.3.1\nasyncio: mode=strict\ncollecting ... collected 0 items\n\n============================ no tests ran in 0.01s =============================\n\n错误输出:\nERROR: file or directory not found: test_scraper.py\n\n"
+      },
+      "tokens": 221,
+      "generated_at": "2025-08-18T19:14:31.991705"
+    },
+    "MEDIUM": {
+      "content": {
+        "role": "tool",
+        "content_preview": "============================= test session starts ==============================\nplatform linux -- Python 3.10.12, pytest-7.4.3, pluggy-1.6.0 -- /usr/bin/python\ncachedir: .pytest_cache\nPyQt5 5.15.9 -- Qt runtime 5.15.2 -- Qt compiled 5.15.2\nbenchmark: 5.1.0 (defaults: timer=time.perf_counter disable..."
+      },
+      "tokens": 86,
+      "generated_at": "2025-08-18T19:14:31.991729"
+    },
+    "LOW": {
+      "content": {
+        "role": "tool",
+        "summary": "工具执行出错"
+      },
+      "tokens": 16,
+      "generated_at": "2025-08-18T19:14:31.991755"
+    }
+  }
+}

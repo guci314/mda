@@ -1,0 +1,13 @@
+{
+  "id": "tool_write_file_20250818_203217",
+  "timestamp": "2025-08-18T20:32:17.372616",
+  "event": "tool_write_file",
+  "data": {
+    "tool": "write_file",
+    "arguments": {
+      "file_path": "webapp/backend/config.py",
+      "content": "import os\nfrom datetime import timedelta\n\nclass Config:\n    # 数据库配置\n    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///app.db'\n    SQLALCHEMY_TRACK_MODIFICATIONS = False\n    \n    # JWT配置\n    JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY') or 'dev-secret-key'\n    JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=1)\n    \n    # 应用配置\n    SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev-secret-key'"
+    },
+    "round": 2
+  }
+}

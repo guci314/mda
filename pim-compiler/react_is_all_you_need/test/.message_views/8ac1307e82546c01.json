@@ -1,0 +1,52 @@
+{
+  "id": "8ac1307e82546c01",
+  "timestamp": "2025-08-19T17:59:54.266333",
+  "metadata": {
+    "role": "tool",
+    "round": 5,
+    "importance": null
+  },
+  "views": {
+    "FULL": {
+      "content": {
+        "role": "tool",
+        "tool_call_id": "0",
+        "name": "list_directory",
+        "content": ".message_views\nblog_system\n.vscode_memory"
+      },
+      "tokens": 30,
+      "generated_at": "2025-08-19T17:59:54.266377"
+    },
+    "MINIMAL": {
+      "content": {
+        "marker": "[tool:result]"
+      },
+      "tokens": 5,
+      "generated_at": "2025-08-19T17:59:54.266387"
+    },
+    "HIGH": {
+      "content": {
+        "role": "tool",
+        "content": ".message_views\nblog_system\n.vscode_memory"
+      },
+      "tokens": 18,
+      "generated_at": "2025-08-19T17:59:54.270464"
+    },
+    "MEDIUM": {
+      "content": {
+        "role": "tool",
+        "content_preview": ".message_views\nblog_system\n.vscode_memory"
+      },
+      "tokens": 20,
+      "generated_at": "2025-08-19T17:59:54.270515"
+    },
+    "LOW": {
+      "content": {
+        "role": "tool",
+        "summary": "工具返回结果"
+      },
+      "tokens": 16,
+      "generated_at": "2025-08-19T17:59:54.270549"
+    }
+  }
+}

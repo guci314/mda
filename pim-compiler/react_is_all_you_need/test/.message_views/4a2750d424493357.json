@@ -1,0 +1,52 @@
+{
+  "id": "4a2750d424493357",
+  "timestamp": "2025-08-19T21:56:24.238966",
+  "metadata": {
+    "role": "tool",
+    "round": 38,
+    "importance": null
+  },
+  "views": {
+    "FULL": {
+      "content": {
+        "role": "tool",
+        "tool_call_id": "call_e6cdedd66e3548b0a754a3b3",
+        "name": "list_directory",
+        "content": "react_agent.py\nlangchain_agent_tool.py\nneural_memory_processor.py\nmemory_manager.py\ndebug_tools.py\ntools.py\nprocess_memory.py\n.langchain.db\n.agents\nbase_agent.py\nqwen_react_agent_old.py\nvscode_memory.py\nvscode_memory_async.py\n__init__.py\nkimi_react_agent.py\nAGENT_PARAMETERS_DOC.md\nllm_memory_compressor.py\n__pycache__\nREADME.md\nasync_memory_processor.py\nkimi_react_agent.pyi\nCORE_MODULES_DOC.md\ntest_validator.py\nkimi_react_agent_psm.py"
+      },
+      "tokens": 141,
+      "generated_at": "2025-08-19T21:56:24.239015"
+    },
+    "MINIMAL": {
+      "content": {
+        "marker": "[tool:result]"
+      },
+      "tokens": 5,
+      "generated_at": "2025-08-19T21:56:24.239032"
+    },
+    "HIGH": {
+      "content": {
+        "role": "tool",
+        "content": "react_agent.py\nlangchain_agent_tool.py\nneural_memory_processor.py\nmemory_manager.py\ndebug_tools.py\ntools.py\nprocess_memory.py\n.langchain.db\n.agents\nbase_agent.py\nqwen_react_agent_old.py\nvscode_memory.py\nvscode_memory_async.py\n__init__.py\nkimi_react_agent.py\nAGENT_PARAMETERS_DOC.md\nllm_memory_compressor.py\n__pycache__\nREADME.md\nasync_memory_processor.py\nkimi_react_agent.pyi\nCORE_MODULES_DOC.md\ntest_validator.py\nkimi_react_agent_psm.py"
+      },
+      "tokens": 122,
+      "generated_at": "2025-08-19T21:56:24.246043"
+    },
+    "MEDIUM": {
+      "content": {
+        "role": "tool",
+        "content_preview": "react_agent.py\nlangchain_agent_tool.py\nneural_memory_processor.py\nmemory_manager.py\ndebug_tools.py\ntools.py\nprocess_memory.py\n.langchain.db\n.agents\nbase_agent.py\nqwen_react_agent_old.py\nvscode_memory.py\nvscode_memory_async.py\n__init__.py\nkimi_react_agent.py\nAGENT_PARAMETERS_DOC.md\nllm_memory_compres..."
+      },
+      "tokens": 89,
+      "generated_at": "2025-08-19T21:56:24.246100"
+    },
+    "LOW": {
+      "content": {
+        "role": "tool",
+        "summary": "工具返回结果"
+      },
+      "tokens": 16,
+      "generated_at": "2025-08-19T21:56:24.246142"
+    }
+  }
+}

@@ -1,0 +1,72 @@
+{
+  "id": "e1eb6341206632df",
+  "timestamp": "2025-08-19T21:56:35.967866",
+  "metadata": {
+    "role": "assistant",
+    "round": 46,
+    "importance": null
+  },
+  "views": {
+    "FULL": {
+      "content": {
+        "role": "assistant",
+        "content": "让我查看agents目录，这里可能包含四层记忆系统中各层Agent的详细说明。\n\n",
+        "refusal": null,
+        "reasoning": null,
+        "tool_calls": [
+          {
+            "id": "call_11af4831af1a43a7b571ace3",
+            "index": 0,
+            "type": "function",
+            "function": {
+              "name": "list_directory",
+              "arguments": "{\"directory_path\": \"/home/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/knowledge/memory/agents\"}"
+            }
+          }
+        ]
+      },
+      "tokens": 127,
+      "generated_at": "2025-08-19T21:56:35.967916"
+    },
+    "MINIMAL": {
+      "content": {
+        "marker": "[assistant:tools]"
+      },
+      "tokens": 5,
+      "generated_at": "2025-08-19T21:56:35.967931"
+    },
+    "HIGH": {
+      "content": {
+        "role": "assistant",
+        "content": "让我查看agents目录，这里可能包含四层记忆系统中各层Agent的详细说明。\n\n",
+        "tool_calls_summary": [
+          {
+            "name": "list_directory",
+            "args_preview": "{\"directory_path\": \"/home/guci/aiProjects/mda/pim-"
+          }
+        ]
+      },
+      "tokens": 86,
+      "generated_at": "2025-08-19T21:56:35.969301"
+    },
+    "MEDIUM": {
+      "content": {
+        "role": "assistant",
+        "content_preview": "让我查看agents目录，这里可能包含四层记忆系统中各层Agent的详细说明。\n\n",
+        "tools_used": [
+          "list_directory"
+        ]
+      },
+      "tokens": 65,
+      "generated_at": "2025-08-19T21:56:35.969338"
+    },
+    "LOW": {
+      "content": {
+        "role": "assistant",
+        "summary": "调用了1个工具: list_directory"
+      },
+      "tokens": 22,
+      "generated_at": "2025-08-19T21:56:35.969370"
+    }
+  }
+}

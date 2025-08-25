@@ -1,0 +1,72 @@
+{
+  "id": "6b56bc1b90feedc1",
+  "timestamp": "2025-08-17T12:38:30.017624",
+  "metadata": {
+    "role": "assistant",
+    "round": 10,
+    "importance": null
+  },
+  "views": {
+    "FULL": {
+      "content": {
+        "role": "assistant",
+        "content": "我将创建一个九九乘法表并保存到 multiplication_table.txt 文件中。\n\n首先，让我生成九九乘法表的内容：\n\n",
+        "refusal": null,
+        "reasoning": null,
+        "tool_calls": [
+          {
+            "id": "call_9fb9886e6fb447cc80268d61",
+            "index": 0,
+            "type": "function",
+            "function": {
+              "name": "execute_python",
+              "arguments": "{\"code\": \"multiplication_table = \\\"\\\"\\n\\nfor i in range(1, 10):\\n    for j in range(1, i+1):\\n        multiplication_table += f\\\"{j}×{i}={i*j}  \\\"\\n    multiplication_table += \\\"\\\\n\\\"\\n\\nprint(multiplication_table)\"}"
+            }
+          }
+        ]
+      },
+      "tokens": 177,
+      "generated_at": "2025-08-17T12:38:30.017670"
+    },
+    "MINIMAL": {
+      "content": {
+        "marker": "[assistant:tools]"
+      },
+      "tokens": 5,
+      "generated_at": "2025-08-17T12:38:30.017692"
+    },
+    "HIGH": {
+      "content": {
+        "role": "assistant",
+        "content": "我将创建一个九九乘法表并保存到 multiplication_table.txt 文件中。\n\n首先，让我生成九九乘法表的内容：\n\n",
+        "tool_calls_summary": [
+          {
+            "name": "execute_python",
+            "args_preview": "{\"code\": \"multiplication_table = \\\"\\\"\\n\\nfor i in "
+          }
+        ]
+      },
+      "tokens": 102,
+      "generated_at": "2025-08-17T12:38:30.022394"
+    },
+    "MEDIUM": {
+      "content": {
+        "role": "assistant",
+        "content_preview": "我将创建一个九九乘法表并保存到 multiplication_table.txt 文件中。\n\n首先，让我生成九九乘法表的内容：\n\n",
+        "tools_used": [
+          "execute_python"
+        ]
+      },
+      "tokens": 80,
+      "generated_at": "2025-08-17T12:38:30.022444"
+    },
+    "LOW": {
+      "content": {
+        "role": "assistant",
+        "summary": "调用了1个工具: execute_python"
+      },
+      "tokens": 22,
+      "generated_at": "2025-08-17T12:38:30.023371"
+    }
+  }
+}

@@ -1,0 +1,7 @@
+name,age,score,status
+Alice,25,85.0,active
+Bob,30,92.0,active
+Charlie,28,,inactive
+David,35,78.0,active
+Eve,22,95.0,
+Frank,40,88.0,active

@@ -1,0 +1,52 @@
+{
+  "id": "18e737423b470300",
+  "timestamp": "2025-08-17T12:38:36.576042",
+  "metadata": {
+    "role": "tool",
+    "round": 14,
+    "importance": null
+  },
+  "views": {
+    "FULL": {
+      "content": {
+        "role": "tool",
+        "tool_call_id": "call_abed80d0f8934341a5bedd3e",
+        "name": "write_file",
+        "content": "成功写入文件: multiplication_table.txt"
+      },
+      "tokens": 41,
+      "generated_at": "2025-08-17T12:38:36.576065"
+    },
+    "MINIMAL": {
+      "content": {
+        "marker": "[tool:result]"
+      },
+      "tokens": 5,
+      "generated_at": "2025-08-17T12:38:36.576073"
+    },
+    "HIGH": {
+      "content": {
+        "role": "tool",
+        "content": "成功写入文件: multiplication_table.txt"
+      },
+      "tokens": 23,
+      "generated_at": "2025-08-17T12:38:36.579019"
+    },
+    "MEDIUM": {
+      "content": {
+        "role": "tool",
+        "content_preview": "成功写入文件: multiplication_table.txt"
+      },
+      "tokens": 25,
+      "generated_at": "2025-08-17T12:38:36.579051"
+    },
+    "LOW": {
+      "content": {
+        "role": "tool",
+        "summary": "工具执行成功"
+      },
+      "tokens": 16,
+      "generated_at": "2025-08-17T12:38:36.579074"
+    }
+  }
+}

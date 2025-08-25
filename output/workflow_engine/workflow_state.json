@@ -1,250 +1,125 @@
 {
-  "workflow_id": "deploy-20231027-12345",
+  "workflow_id": "deploy-prod-123",
+  "template_ref": "deployment.md",
+  "template_id": "software_deployment_workflow",
   "type": "software_deployment",
-  "created_at": "2023-10-27T10:00:00Z",
   "status": "completed",
-  "current_step": "step_7_notify",
+  "current_step": null,
   "variables": {
     "environment": "production",
-    "docker_image": "myapp:9ddvzatv438s",
-    "servers": [
-      "server-1",
-      "server-2",
-      "server-3"
-    ]
+    "servers": ["app-server-1", "app-server-2", "app-server-3"],
+    "version": "v2.0.0",
+    "skip_tests": false,
+    "require_approval": true,
+    "docker_image": "my-app:v2.0.0-production"
   },
   "steps": [
     {
-      "id": "step_1_code_check",
-      "name": "代码检查",
+      "id": "code_check",
+      "name": "Code Check",
       "type": "action",
       "status": "completed",
-      "started_at": "2023-10-27T10:01:00Z",
-      "completed_at": "2023-10-27T10:01:02Z",
+      "started_at": "2024-07-29T10:00:00Z",
+      "completed_at": "2024-07-29T10:00:04Z",
+      "details": "Unit tests and code quality checks passed.",
       "result": {
-        "unit_tests": "All tests passed.",
-        "static_analysis": "No issues found."
-      },
-      "error": null,
-      "next_steps": [
-        "step_2_build"
-      ],
-      "retry_count": 0
+        "tests_passed": true,
+        "quality_check_passed": true
+      }
     },
     {
-      "id": "step_2_build",
-      "name": "构建",
+      "id": "build",
+      "name": "Build",
       "type": "action",
       "status": "completed",
-      "started_at": "2023-10-27T10:02:00Z",
-      "completed_at": "2023-10-27T10:02:02Z",
+      "started_at": "2024-07-29T10:00:05Z",
+      "completed_at": "2024-07-29T10:00:10Z",
+      "details": "Code compiled and Docker image built successfully.",
       "result": {
-        "image_id": "myapp:9ddvzatv438s"
-      },
-      "error": null,
-      "next_steps": [
-        "step_3_deploy_decision"
-      ],
-      "retry_count": 0
+        "image_name": "my-app:v2.0.0-production"
+      }
     },
     {
-      "id": "step_3_deploy_decision",
-      "name": "部署决策",
+      "id": "deployment_decision",
+      "name": "Deployment Decision",
       "type": "condition",
       "status": "completed",
-      "started_at": "2023-10-27T10:03:00Z",
-      "completed_at": "2023-10-27T10:03:00Z",
+      "started_at": "2024-07-29T10:00:11Z",
+      "completed_at": "2024-07-29T10:00:11Z",
+      "details": "Environment is production, requires approval.",
       "result": {
-        "condition": "variables.environment == 'production'",
-        "outcome": true
-      },
-      "error": null,
-      "next_steps": [
-        "step_4_approval"
-      ],
-      "retry_count": 0
+        "next_step": "approval_process"
+      }
     },
     {
-      "id": "step_4_approval",
-      "name": "审批流程",
+      "id": "approval_process",
+      "name": "Approval Process",
       "type": "approval",
       "status": "completed",
-      "started_at": "2023-10-27T10:03:00Z",
-      "completed_at": "2023-10-27T10:05:00Z",
+      "started_at": "2024-07-29T10:00:12Z",
+      "completed_at": "2024-07-29T10:01:00Z",
+      "details": "Approved by manager 'John Doe'.",
       "result": {
-        "approver": "admin@example.com",
-        "status": "approved",
-        "comment": "LGTM"
-      },
-      "error": null,
-      "next_steps": [
-        "step_5_parallel_deploy"
-      ],
-      "retry_count": 0
+        "approved": true,
+        "approver": "John Doe"
+      }
     },
     {
-      "id": "step_5_parallel_deploy",
-      "name": "并行部署",
+      "id": "parallel_deployment",
+      "name": "Parallel Deployment",
       "type": "parallel",
       "status": "completed",
-      "started_at": "2023-10-27T10:05:00Z",
-      "completed_at": "2023-10-27T10:06:00Z",
+      "started_at": "2024-07-29T10:01:01Z",
+      "completed_at": "2024-07-29T10:01:05Z",
+      "details": "Deployment to all servers and load balancer update completed successfully.",
       "result": null,
-      "error": null,
-      "next_steps": [
-        "step_6_health_check"
-      ],
-      "retry_count": 0
+      "sub_tasks": [
+        {
+          "id": "deploy_server_1",
+          "name": "Deploy to app-server-1",
+          "status": "completed"
+        },
+        {
+          "id": "deploy_server_2",
+          "name": "Deploy to app-server-2",
+          "status": "completed"
+        },
+        {
+          "id": "deploy_server_3",
+          "name": "Deploy to app-server-3",
+          "status": "completed"
+        },
+        {
+          "id": "update_load_balancer",
+          "name": "Update Load Balancer",
+          "status": "completed"
+        }
+      ]
     },
     {
-      "id": "step_5_1_deploy_server_1",
-      "name": "部署到 Server 1",
+      "id": "health_check",
+      "name": "Health Check",
       "type": "action",
       "status": "completed",
-      "started_at": "2023-10-27T10:05:01Z",
-      "completed_at": "2023-10-27T10:05:02Z",
+      "started_at": "2024-07-29T10:01:06Z",
+      "completed_at": "2024-07-29T10:01:09Z",
+      "details": "Service is up and response time is normal.",
       "result": {
-        "status": "Deployment to server-1 successful."
-      },
-      "error": null,
-      "next_steps": [],
-      "retry_count": 0
+        "service_status": "up",
+        "response_time_ms": 80
+      }
     },
     {
-      "id": "step_5_2_deploy_server_2",
-      "name": "部署到 Server 2",
+      "id": "notification",
+      "name": "Notification",
       "type": "action",
       "status": "completed",
-      "started_at": "2023-10-27T10:05:01Z",
-      "completed_at": "2023-10-27T10:05:02Z",
+      "started_at": "2024-07-29T10:01:10Z",
+      "completed_at": "2024-07-29T10:01:11Z",
+      "details": "Deployment success notification sent to team channel.",
       "result": {
-        "status": "Deployment to server-2 successful."
-      },
-      "error": null,
-      "next_steps": [],
-      "retry_count": 0
-    },
-    {
-      "id": "step_5_3_deploy_server_3",
-      "name": "部署到 Server 3",
-      "type": "action",
-      "status": "completed",
-      "started_at": "2023-10-27T10:05:01Z",
-      "completed_at": "2023-10-27T10:05:02Z",
-      "result": {
-        "status": "Deployment to server-3 successful."
-      },
-      "error": null,
-      "next_steps": [],
-      "retry_count": 0
-    },
-    {
-      "id": "step_5_4_update_lb",
-      "name": "更新负载均衡器",
-      "type": "action",
-      "status": "completed",
-      "started_at": "2023-10-27T10:05:03Z",
-      "completed_at": "2023-10-27T10:05:04Z",
-      "result": {
-        "status": "Load balancer updated."
-      },
-      "error": null,
-      "next_steps": [],
-      "retry_count": 0
-    },
-    {
-      "id": "step_6_health_check",
-      "name": "健康检查",
-      "type": "action",
-      "status": "completed",
-      "started_at": "2023-10-27T10:07:00Z",
-      "completed_at": "2023-10-27T10:07:02Z",
-      "result": {
-        "service_status": "All services are up and running.",
-        "response_time": "Response time is within acceptable limits."
-      },
-      "error": null,
-      "next_steps": [
-        "step_7_notify"
-      ],
-      "retry_count": 0
-    },
-    {
-      "id": "step_7_notify",
-      "name": "通知",
-      "type": "action",
-      "status": "completed",
-      "started_at": "2023-10-27T10:08:00Z",
-      "completed_at": "2023-10-27T10:08:01Z",
-      "result": {
-        "status": "Notification sent."
-      },
-      "error": null,
-      "next_steps": [],
-      "retry_count": 0
-    }
-  ],
-  "parallel_groups": {
-    "deploy_group": {
-      "steps": [
-        "step_5_1_deploy_server_1",
-        "step_5_2_deploy_server_2",
-        "step_5_3_deploy_server_3",
-        "step_5_4_update_lb"
-      ],
-      "wait_all": true
-    }
-  },
-  "conditions": {
-    "deploy_condition": {
-      "expression": "variables.environment == 'production'",
-      "true_branch": "step_4_approval",
-      "false_branch": "step_5_parallel_deploy"
-    }
-  },
-  "approvals": {
-    "prod_approval": {
-      "approver": "admin@example.com",
-      "status": "approved",
-      "comment": "LGTM",
-      "timestamp": "2023-10-27T10:04:59Z"
-    }
-  },
-  "logs": [
-    {
-      "timestamp": "2023-10-27T10:01:02Z",
-      "step_id": "step_1_code_check",
-      "message": "Code check completed successfully."
-    },
-    {
-      "timestamp": "2023-10-27T10:02:02Z",
-      "step_id": "step_2_build",
-      "message": "Build completed successfully. Image: myapp:9ddvzatv438s"
-    },
-    {
-      "timestamp": "2023-10-27T10:03:00Z",
-      "step_id": "step_3_deploy_decision",
-      "message": "Condition evaluated to true. Proceeding to approval."
-    },
-    {
-      "timestamp": "2023-10-27T10:05:00Z",
-      "step_id": "step_4_approval",
-      "message": "Deployment approved by admin@example.com."
-    },
-    {
-      "timestamp": "2023-10-27T10:06:00Z",
-      "step_id": "step_5_parallel_deploy",
-      "message": "All parallel deployment steps completed successfully."
-    },
-    {
-      "timestamp": "2023-10-27T10:07:02Z",
-      "step_id": "step_6_health_check",
-      "message": "Health check passed."
-    },
-    {
-      "timestamp": "2023-10-27T10:08:01Z",
-      "step_id": "step_7_notify",
-      "message": "Deployment notification sent."
+        "notification_sent": true
+      }
     }
   ]
 }

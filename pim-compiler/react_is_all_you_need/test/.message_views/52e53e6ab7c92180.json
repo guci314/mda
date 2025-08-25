@@ -1,0 +1,72 @@
+{
+  "id": "52e53e6ab7c92180",
+  "timestamp": "2025-08-19T21:59:43.078406",
+  "metadata": {
+    "role": "assistant",
+    "round": 4,
+    "importance": null
+  },
+  "views": {
+    "FULL": {
+      "content": {
+        "role": "assistant",
+        "content": "我需要进一步了解这个项目的结构，特别是与四层记忆系统相关的文件。让我查看一些关键文件的内容。\n\n",
+        "refusal": null,
+        "reasoning": null,
+        "tool_calls": [
+          {
+            "id": "call_8f199a9f30ca40ee9a2ec14c",
+            "type": "function",
+            "index": 0,
+            "function": {
+              "name": "read_file",
+              "arguments": "{\"file_path\": \"/home/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/memory_system_report.md\"}"
+            }
+          }
+        ]
+      },
+      "tokens": 149,
+      "generated_at": "2025-08-19T21:59:43.078681"
+    },
+    "MINIMAL": {
+      "content": {
+        "marker": "[assistant:tools]"
+      },
+      "tokens": 5,
+      "generated_at": "2025-08-19T21:59:43.078696"
+    },
+    "HIGH": {
+      "content": {
+        "role": "assistant",
+        "content": "我需要进一步了解这个项目的结构，特别是与四层记忆系统相关的文件。让我查看一些关键文件的内容。\n\n",
+        "tool_calls_summary": [
+          {
+            "name": "read_file",
+            "args_preview": "{\"file_path\": \"/home/guci/aiProjects/mda/pim-compi"
+          }
+        ]
+      },
+      "tokens": 109,
+      "generated_at": "2025-08-19T21:59:43.080608"
+    },
+    "MEDIUM": {
+      "content": {
+        "role": "assistant",
+        "content_preview": "我需要进一步了解这个项目的结构，特别是与四层记忆系统相关的文件。让我查看一些关键文件的内容。\n\n",
+        "tools_used": [
+          "read_file"
+        ]
+      },
+      "tokens": 88,
+      "generated_at": "2025-08-19T21:59:43.080678"
+    },
+    "LOW": {
+      "content": {
+        "role": "assistant",
+        "summary": "调用了1个工具: read_file"
+      },
+      "tokens": 21,
+      "generated_at": "2025-08-19T21:59:43.080757"
+    }
+  }
+}

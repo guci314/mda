@@ -1,0 +1,52 @@
+{
+  "id": "34a51c6c96d7299c",
+  "timestamp": "2025-08-19T21:56:28.245619",
+  "metadata": {
+    "role": "tool",
+    "round": 41,
+    "importance": null
+  },
+  "views": {
+    "FULL": {
+      "content": {
+        "role": "tool",
+        "tool_call_id": "call_d1c91c9bf27a47cbb49ee636",
+        "name": "list_directory",
+        "content": "project_exploration\nadaptive_task_decomposition.md\ncoordination\nmodel_selection_guide.md\nsequential_thinking_knowledge.md\nnltm\nkimi_agent_discipline.md\noutput\nworkflow\nprogramming\nbest_practices\nmda\nworkflow_knowledge.md\nchina_reasoning_models.md\nnltm_implementation_guide.md\nnatural_language_turing_machine.md\nmemory\n__init__.md\npostcondition_verification_enforcement.md\ncore\ntest_program.md\nnltm_examples.md\nexperimental"
+      },
+      "tokens": 137,
+      "generated_at": "2025-08-19T21:56:28.245643"
+    },
+    "MINIMAL": {
+      "content": {
+        "marker": "[tool:result]"
+      },
+      "tokens": 5,
+      "generated_at": "2025-08-19T21:56:28.245651"
+    },
+    "HIGH": {
+      "content": {
+        "role": "tool",
+        "content": "project_exploration\nadaptive_task_decomposition.md\ncoordination\nmodel_selection_guide.md\nsequential_thinking_knowledge.md\nnltm\nkimi_agent_discipline.md\noutput\nworkflow\nprogramming\nbest_practices\nmda\nworkflow_knowledge.md\nchina_reasoning_models.md\nnltm_implementation_guide.md\nnatural_language_turing_machine.md\nmemory\n__init__.md\npostcondition_verification_enforcement.md\ncore\ntest_program.md\nnltm_examples.md\nexperimental"
+      },
+      "tokens": 118,
+      "generated_at": "2025-08-19T21:56:28.248616"
+    },
+    "MEDIUM": {
+      "content": {
+        "role": "tool",
+        "content_preview": "project_exploration\nadaptive_task_decomposition.md\ncoordination\nmodel_selection_guide.md\nsequential_thinking_knowledge.md\nnltm\nkimi_agent_discipline.md\noutput\nworkflow\nprogramming\nbest_practices\nmda\nworkflow_knowledge.md\nchina_reasoning_models.md\nnltm_implementation_guide.md\nnatural_language_turing_..."
+      },
+      "tokens": 89,
+      "generated_at": "2025-08-19T21:56:28.248649"
+    },
+    "LOW": {
+      "content": {
+        "role": "tool",
+        "summary": "工具返回结果"
+      },
+      "tokens": 16,
+      "generated_at": "2025-08-19T21:56:28.248673"
+    }
+  }
+}

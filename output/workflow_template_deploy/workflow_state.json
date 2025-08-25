@@ -1,0 +1,111 @@
+{
+  "workflow_id": "deployment_workflow_1",
+  "template_ref": "/home/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/knowledge/workflow/templates/deployment.md",
+  "template_id": "deployment_workflow_v1",
+  "type": "deployment",
+  "status": "completed",
+  "current_step": null,
+  "variables": {
+    "environment": "production",
+    "servers": ["app-server-1", "app-server-2", "app-server-3"],
+    "version": "v2.0.0",
+    "skip_tests": false,
+    "docker_image": "my-app:v2.0.0-production",
+    "require_approval": true
+  },
+  "steps": [
+    {
+      "id": "1",
+      "name": "代码检查",
+      "type": "action",
+      "status": "completed",
+      "started_at": "2023-11-01T10:00:00Z",
+      "completed_at": "2023-11-01T10:05:00Z",
+      "details": "模拟执行代码检查步骤"
+    },
+    {
+      "id": "2",
+      "name": "单元测试",
+      "type": "action",
+      "status": "completed",
+      "started_at": "2023-11-01T10:05:00Z",
+      "completed_at": "2023-11-01T10:10:00Z",
+      "details": "模拟执行单元测试步骤"
+    },
+    {
+      "id": "3",
+      "name": "构建镜像",
+      "type": "action",
+      "status": "completed",
+      "started_at": "2023-11-01T10:10:00Z",
+      "completed_at": "2023-11-01T10:20:00Z",
+      "details": "模拟执行构建镜像步骤",
+      "result": {
+        "docker_image": "my-app:v2.0.0-production"
+      }
+    },
+    {
+      "id": "4",
+      "name": "环境判断",
+      "type": "condition",
+      "status": "completed",
+      "started_at": "2023-11-01T10:20:00Z",
+      "completed_at": "2023-11-01T10:21:00Z",
+      "details": "环境为 production，设置 require_approval 为 true"
+    },
+    {
+      "id": "5",
+      "name": "部署审批",
+      "type": "approval",
+      "status": "completed",
+      "started_at": "2023-11-01T10:21:00Z",
+      "completed_at": "2023-11-01T10:30:00Z",
+      "details": "模拟执行部署审批步骤"
+    },
+    {
+      "id": "6",
+      "name": "服务停止",
+      "type": "parallel",
+      "status": "completed",
+      "started_at": "2023-11-01T10:30:00Z",
+      "completed_at": "2023-11-01T10:35:00Z",
+      "details": "模拟执行服务停止步骤"
+    },
+    {
+      "id": "7",
+      "name": "部署新版本",
+      "type": "parallel",
+      "status": "completed",
+      "started_at": "2023-11-01T10:35:00Z",
+      "completed_at": "2023-11-01T10:45:00Z",
+      "details": "模拟执行部署新版本步骤"
+    },
+    {
+      "id": "8",
+      "name": "健康检查",
+      "type": "action",
+      "status": "completed",
+      "started_at": "2023-11-01T10:45:00Z",
+      "completed_at": "2023-11-01T10:50:00Z",
+      "details": "模拟执行健康检查步骤"
+    },
+    {
+      "id": "9",
+      "name": "负载均衡更新",
+      "type": "action",
+      "status": "completed",
+      "started_at": "2023-11-01T10:50:00Z",
+      "completed_at": "2023-11-01T10:55:00Z",
+      "details": "模拟执行负载均衡更新步骤"
+    },
+    {
+      "id": "10",
+      "name": "通知",
+      "type": "action",
+      "status": "completed",
+      "started_at": "2023-11-01T10:55:00Z",
+      "completed_at": "2023-11-01T11:00:00Z",
+      "details": "模拟执行通知步骤"
+    }
+  ]
+}
