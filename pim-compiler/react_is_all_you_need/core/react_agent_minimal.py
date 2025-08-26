@@ -30,7 +30,8 @@ class ReactAgentMinimal:
                  api_key: Optional[str] = None,
                  base_url: Optional[str] = None,
                  pressure_threshold: int = 50,
-                 max_rounds: int = 100):
+                 max_rounds: int = 100,
+                 knowledge_files: Optional[List[str]] = None):
         """
         初始化极简Agent
         
@@ -41,6 +42,7 @@ class ReactAgentMinimal:
             base_url: API基础URL
             pressure_threshold: 记忆压缩阈值（唯一的记忆参数！）
             max_rounds: 最大执行轮数
+            knowledge_files: 知识文件列表（自然语言程序）
         """
         self.work_dir = Path(work_dir)
         self.work_dir.mkdir(parents=True, exist_ok=True)
@@ -59,6 +61,10 @@ class ReactAgentMinimal:
             enable_persistence=True
         )
         
+        # 知识文件（自然语言程序）
+        self.knowledge_files = knowledge_files or []
+        self.knowledge_content = self._load_knowledge()
+        
         # 定义工具
         self.tools = self._define_minimal_tools()
         
@@ -67,6 +73,8 @@ class ReactAgentMinimal:
         print(f"  📍 API: {self._detect_service()}")
         print(f"  🤖 模型: {self.model}")
         print(f"  🧠 记忆压力阈值: {pressure_threshold}")
+        if self.knowledge_files:
+            print(f"  📚 知识文件: {len(self.knowledge_files)}个")
         print(f"  ✨ 极简即完美")
     
     def execute_task(self, task: str) -> str:
@@ -174,7 +182,7 @@ class ReactAgentMinimal:
     
     def _build_minimal_prompt(self) -> str:
         """构建极简系统提示"""
-        return f"""你是一个编程助手，使用自然记忆衰减系统。
+        prompt = f"""你是一个编程助手，使用自然记忆衰减系统。
 
 工作目录：{self.work_dir}
 
@@ -182,8 +190,48 @@ class ReactAgentMinimal:
 - 你的记忆会自动压缩和衰减
 - 压缩的历史会保留关键信息
 - 专注于当前任务，历史只作参考
-
-请高效完成任务。"""
+"""
+        
+        # 注入知识文件（自然语言程序）
+        if self.knowledge_content:
+            prompt += f"""
+知识库（可参考的自然语言程序）：
+{self.knowledge_content}
+"""
+        
+        prompt += "\n请高效完成任务。"
+        return prompt
+    
+    def _load_knowledge(self) -> str:
+        """加载知识文件（自然语言程序）"""
+        knowledge_content = []
+        
+        for file_path in self.knowledge_files:
+            try:
+                path = Path(file_path)
+                if not path.is_absolute():
+                    # 首先尝试相对于当前工作目录（脚本运行位置）
+                    if Path(file_path).exists():
+                        path = Path(file_path)
+                    # 然后尝试相对于agent工作目录
+                    elif (self.work_dir / path).exists():
+                        path = self.work_dir / path
+                    # 最后尝试相对于项目根目录
+                    else:
+                        project_root = Path(__file__).parent.parent
+                        if (project_root / path).exists():
+                            path = project_root / path
+                
+                if path.exists():
+                    content = path.read_text(encoding='utf-8')
+                    knowledge_content.append(f"=== {path.name} ===\n{content}")
+                    print(f"  ✅ 加载知识文件: {path.name}")
+                else:
+                    print(f"  ⚠️ 知识文件不存在: {file_path}")
+            except Exception as e:
+                print(f"  ❌ 加载知识文件失败 {file_path}: {e}")
+        
+        return "\n\n".join(knowledge_content) if knowledge_content else ""
     
     def _define_minimal_tools(self) -> List[Dict]:
         """定义最小工具集"""
@@ -192,13 +240,21 @@ class ReactAgentMinimal:
                 "type": "function",
                 "function": {
                     "name": "read_file",
-                    "description": "读取文件内容",
+                    "description": "读取文件内容，支持分段读取大文件",
                     "parameters": {
                         "type": "object",
                         "properties": {
                             "file_path": {
                                 "type": "string",
                                 "description": "要读取的文件路径"
+                            },
+                            "offset": {
+                                "type": "integer",
+                                "description": "起始字符位置，默认0"
+                            },
+                            "limit": {
+                                "type": "integer",
+                                "description": "读取字符数限制，默认2000"
                             }
                         },
                         "required": ["file_path"]
@@ -251,8 +307,29 @@ class ReactAgentMinimal:
             if tool_name == "read_file":
                 file_path = self.work_dir / arguments["file_path"]
                 if file_path.exists():
+                    offset = arguments.get("offset", 0)
+                    limit = arguments.get("limit", 2000)
+                    
                     with open(file_path, 'r', encoding='utf-8') as f:
-                        return f.read()[:1000]  # 限制长度
+                        file_size = file_path.stat().st_size
+                        
+                        # 处理负偏移（从文件末尾开始）
+                        if offset < 0:
+                            offset = max(0, file_size + offset)
+                        
+                        # 移动到指定位置
+                        if offset > 0:
+                            f.seek(offset)
+                        
+                        # 读取指定长度
+                        content = f.read(limit)
+                        
+                        # 添加位置信息（仅在分段读取时）
+                        if offset > 0 or (len(content) == limit and file_size > limit):
+                            end_pos = offset + len(content)
+                            return f"[读取范围: {offset}-{end_pos}/{file_size}字节]\n{content}"
+                        
+                        return content
                 return f"文件不存在: {arguments['file_path']}"
             
             elif tool_name == "write_file":

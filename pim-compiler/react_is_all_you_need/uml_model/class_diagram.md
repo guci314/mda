@@ -1,178 +1,13 @@
-# Core Module Class Diagram
+# React Agent 极简版 - 类图
 
-## Overview
-This UML class diagram represents the architecture of the React Agent core module, showing the relationships between agents, memory systems, tools, and configurations.
+## 概述
+此UML类图展示了React Agent系统的**极简**架构，展现了简约之美。
 
-**Note**: Classes marked with `<<deprecated>>` are legacy implementations. Only `ReactAgentMinimal` and its direct dependencies (`MemoryWithNaturalDecay`, `CompressedMemory`, and Tool Input Models) are actively maintained.
-
-## Class Diagram
+## 类图
 
 ```mermaid
 classDiagram
-    %% Base Classes and Configurations
-    class AgentConfig {
-        <<deprecated>>
-        +String work_dir
-        +String name
-        +String description
-        +int max_retries
-        +int timeout
-    }
-
-    class BaseAgent {
-        <<abstract>>
-        <<deprecated>>
-        #AgentConfig config
-        #String name
-        #String description
-        #Path work_dir
-        #List history
-        +__init__(config: AgentConfig)
-        +execute_task(task: Any)* Dict
-        +reset()
-        +get_history() List
-        +save_to_file(filename: String, content: String) Path
-        +read_from_file(filename: String) String
-    }
-
-    %% Memory Systems
-    class Message {
-        <<deprecated>>
-        +String role
-        +String content
-        +String timestamp
-        +Dict metadata
-        +__init__(role, content, metadata)
-        +to_dict() Dict
-        +from_dict(data) Message$
-    }
-
-    class CompressedMemory {
-        +String timestamp
-        +String summary
-        +int message_count
-        +List~String~ key_points
-        +List~String~ task_results
-        +to_dict() Dict
-        +from_dict(data) CompressedMemory$
-    }
-
-    class MemoryWithNaturalDecay {
-        -List~Dict~ messages
-        -List~CompressedMemory~ compressed_history
-        -int pressure_threshold
-        -Path work_dir
-        -bool enable_persistence
-        -Dict stats
-        +__init__(pressure_threshold, work_dir, enable_persistence)
-        +add_message(role, content, metadata)
-        +should_compact() bool
-        +compact() CompressedMemory
-        +get_context_window() List
-        +get_full_history() List
-        +clear_window()
-        +save()
-        +load()
-        -_extract_key_points(messages) List
-        -_extract_task_results(messages) List
-        -_generate_summary(messages) String
-    }
-
-    class SimpleMemoryManager {
-        <<deprecated>>
-        #Path work_dir
-        #List~Message~ short_term_memory
-        #List~Message~ long_term_memory
-        #List~Message~ episodic_memory
-        #int max_short_term
-        #int max_long_term
-        #int max_episodic
-        #int max_context_tokens
-        +__init__(work_dir, max_context_tokens)
-        +add_interaction(role, content, metadata)
-        +get_context_messages() List
-        +consolidate_memory()
-        +save_checkpoint()
-        +load_checkpoint()
-        #_transfer_to_long_term()
-        #_compress_memories(memories) List
-        #_extract_key_information(memories) List
-    }
-
-    class MemoryManagerAdapter {
-        <<deprecated>>
-        +__init__(work_dir, max_context_tokens)
-        +add_message(role, content) Message
-        +get_messages() List
-    }
-
-    class NLPLMemorySystem {
-        <<deprecated>>
-        -Path memory_dir
-        -List~MemoryEvent~ events
-        -Dict context
-        -int max_events
-        +__init__(memory_dir, max_events)
-        +add_event(event_type, content, metadata)
-        +get_relevant_memories(query, limit) List
-        +consolidate()
-        +save()
-        +load()
-        -_compute_relevance(event, query) float
-    }
-
-    class MemoryEvent {
-        <<deprecated>>
-        +String timestamp
-        +String event_type
-        +String content
-        +Dict metadata
-        +float importance
-        +to_dict() Dict
-        +from_dict(data) MemoryEvent$
-    }
-
-    class CognitiveMemoryIntegration {
-        <<deprecated>>
-        -SimpleMemoryManager memory_manager
-        -NLPLMemorySystem nlpl_memory
-        -Path work_dir
-        +__init__(work_dir)
-        +add_interaction(role, content, metadata)
-        +get_context() List
-        +save_all()
-        +load_all()
-    }
-
-    %% Agent Implementations
-    class ReactAgent {
-        <<deprecated>>
-        -Path work_dir
-        -String model
-        -String api_key
-        -String base_url
-        -List knowledge_files
-        -String interface
-        -int max_rounds
-        -MemoryManagerAdapter memory
-        -CognitiveMemoryIntegration cognitive_memory
-        -int window_size
-        -List tools
-        -Dict stats
-        -List message_hooks
-        +__init__(work_dir, model, api_key, base_url, ...)
-        +run(task) Dict
-        +add_message_hook(hook)
-        +remove_message_hook(hook)
-        -_detect_service() String
-        -_detect_context_size() int
-        -_load_knowledge() String
-        -_define_tools() List
-        -_process_hooks(message_type, data)
-        -_call_llm(messages, tools) Dict
-        -_execute_tool(tool_name, args) String
-    }
-
+    %% 核心Agent
     class ReactAgentMinimal {
         -Path work_dir
         -String model
@@ -183,113 +18,53 @@ classDiagram
         -List tools
         -Dict stats
         +__init__(work_dir, model, api_key, base_url, pressure_threshold, max_rounds)
-        +run(task) Dict
-        -_detect_base_url_for_key(api_key) String
+        +run(task: String) Dict
+        -_detect_base_url_for_key(api_key: String) String
         -_define_tools() List
-        -_call_llm(messages, tools) Dict
-        -_execute_tool(tool_name, args) String
+        -_call_llm(messages: List, tools: List) Dict
+        -_execute_tool(tool_name: String, args: Dict) String
     }
 
-    class KimiReactAgent {
-        <<deprecated>>
+    %% 记忆系统
+    class MemoryWithNaturalDecay {
+        -List~Dict~ messages
+        -List~CompressedMemory~ compressed_history
+        -int pressure_threshold
         -Path work_dir
-        -String model
-        -String api_key
-        -String base_url
-        -List knowledge_files
-        -String interface
-        -int max_rounds
-        -List tools
+        -bool enable_persistence
         -Dict stats
-        +__init__(work_dir, model, api_key, knowledge_files, interface, max_rounds)
-        +run(task) Dict
-        -_load_knowledge() String
-        -_define_tools() List
-        -_call_llm(messages, tools) Dict
-        -_execute_tool(tool_name, args) String
+        +__init__(pressure_threshold: int, work_dir: String, enable_persistence: bool)
+        +add_message(role: String, content: String, metadata: Dict)
+        +should_compact() bool
+        +compact() CompressedMemory
+        +get_context_window() List
+        +get_full_history() List
+        +clear_window()
+        +save()
+        +load()
+        -_extract_key_points(messages: List) List
+        -_extract_task_results(messages: List) List
+        -_generate_summary(messages: List) String
+        -_save_history()
+        -_load_history()
     }
 
-    class KimiReactAgentPSM {
-        <<deprecated>>
-        -Path work_dir
-        -String model
-        -String api_key
-        -String base_url
-        -List knowledge_files
-        -String interface
-        -int max_rounds
-        -List tools
-        -Dict stats
-        +__init__(work_dir, model, api_key, knowledge_files, interface, max_rounds)
-        +run(task) Dict
-        +generate_psm(description) String
-        -_load_knowledge() String
-        -_define_tools() List
-        -_call_llm(messages, tools) Dict
-        -_execute_tool(tool_name, args) String
+    class CompressedMemory {
+        +String timestamp
+        +String summary
+        +int message_count
+        +List~String~ key_points
+        +List~String~ task_results
+        +to_dict() Dict
+        +from_dict(data: Dict)$ CompressedMemory
     }
 
-    class QwenReactAgent {
-        <<deprecated>>
-        -Path work_dir
-        -String model
-        -String api_key
-        -String base_url
-        -List knowledge_files
-        -String interface
-        -int max_rounds
-        -List tools
-        -Dict stats
-        +__init__(work_dir, model, api_key, knowledge_files, interface, max_rounds)
-        +run(task) Dict
-        -_load_knowledge() String
-        -_define_tools() List
-        -_call_llm(messages, tools) Dict
-        -_execute_tool(tool_name, args) String
+    %% 工具输入模型 (Pydantic)
+    class BaseModel {
+        <<abstract>>
+        <<pydantic>>
     }
 
-    %% Tool System
-    class AgentToolWrapper {
-        <<deprecated>>
-        -Any agent
-        -String work_dir
-        -Dict context
-        +__init__(agent, work_dir, context)
-        +execute(task) String
-        +get_context() Dict
-        +update_context(new_context)
-    }
-
-    class GenericAgentInput {
-        <<deprecated>>
-        +String task_description
-        +Dict context
-        +int max_rounds
-    }
-
-    class GenericAgentTool {
-        <<deprecated>>
-        <<BaseTool>>
-        +String name
-        +String description
-        +GenericAgentInput args_schema
-        -AgentToolWrapper agent_wrapper
-        +__init__(agent_wrapper, name, description)
-        +_run(task_description, context, max_rounds) String
-        +_arun(task_description, context, max_rounds) String
-    }
-
-    class TeeOutput {
-        <<deprecated>>
-        -File original
-        -File log_file
-        +__init__(original, log_path)
-        +write(data)
-        +flush()
-        +close()
-    }
-
-    %% Tool Input Models
     class FileInput {
         +String file_path
         +String content
@@ -355,123 +130,126 @@ classDiagram
         +String url
     }
 
-    %% Relationships
-    BaseAgent <|-- ReactAgent : extends (deprecated)
-    BaseAgent <|-- ReactAgentMinimal : extends (deprecated base)
-    BaseAgent <|-- KimiReactAgent : extends (deprecated)
-    BaseAgent <|-- KimiReactAgentPSM : extends (deprecated)
-    BaseAgent <|-- QwenReactAgent : extends (deprecated)
+    %% 工具创建函数
+    class ToolFactory {
+        <<function>>
+        +create_tools(work_dir: String) List~Tool~
+    }
 
-    ReactAgent --> AgentConfig : uses (deprecated)
-    ReactAgent --> MemoryManagerAdapter : contains (deprecated)
-    ReactAgent --> CognitiveMemoryIntegration : contains (deprecated)
-
-    ReactAgentMinimal --> MemoryWithNaturalDecay : contains
-
-    SimpleMemoryManager <|-- MemoryManagerAdapter : extends (deprecated)
-    SimpleMemoryManager --> Message : manages (deprecated)
+    %% 关系
+    ReactAgentMinimal --> MemoryWithNaturalDecay : 包含
+    MemoryWithNaturalDecay --> CompressedMemory : 创建
+    ReactAgentMinimal --> ToolFactory : 使用
     
-    MemoryManagerAdapter --> Message : creates (deprecated)
-
-    MemoryWithNaturalDecay --> CompressedMemory : creates
-
-    NLPLMemorySystem --> MemoryEvent : manages (deprecated)
-
-    CognitiveMemoryIntegration --> SimpleMemoryManager : contains (deprecated)
-    CognitiveMemoryIntegration --> NLPLMemorySystem : contains (deprecated)
-
-    GenericAgentTool --> GenericAgentInput : uses (deprecated)
-    GenericAgentTool --> AgentToolWrapper : contains (deprecated)
-    AgentToolWrapper --> BaseAgent : wraps (deprecated)
-
-    TeeOutput --> AgentToolWrapper : used by (deprecated)
-
-    %% Tool Input relationships
-    ReactAgent --> FileInput : uses (deprecated)
-    ReactAgent --> DirectoryInput : uses (deprecated)
-    ReactAgent --> CommandInput : uses (deprecated)
-    ReactAgent --> SearchInput : uses (deprecated)
-    ReactAgent --> SearchReplaceInput : uses (deprecated)
-    ReactAgent --> EditLinesInput : uses (deprecated)
-    ReactAgent --> FindSymbolInput : uses (deprecated)
-    ReactAgent --> ExtractCodeInput : uses (deprecated)
-    ReactAgent --> DiffInput : uses (deprecated)
-    ReactAgent --> GoogleSearchInput : uses (deprecated)
-    ReactAgent --> WebPageInput : uses (deprecated)
+    %% 工具输入继承关系
+    BaseModel <|-- FileInput : 继承
+    BaseModel <|-- DirectoryInput : 继承
+    BaseModel <|-- CommandInput : 继承
+    BaseModel <|-- SearchInput : 继承
+    BaseModel <|-- SearchReplaceInput : 继承
+    BaseModel <|-- EditLinesInput : 继承
+    BaseModel <|-- FindSymbolInput : 继承
+    BaseModel <|-- ExtractCodeInput : 继承
+    BaseModel <|-- DiffInput : 继承
+    BaseModel <|-- GoogleSearchInput : 继承
+    BaseModel <|-- WebPageInput : 继承
     
-    %% Active relationships for ReactAgentMinimal
-    ReactAgentMinimal --> FileInput : uses
-    ReactAgentMinimal --> DirectoryInput : uses
-    ReactAgentMinimal --> CommandInput : uses
-    ReactAgentMinimal --> SearchInput : uses
-    ReactAgentMinimal --> SearchReplaceInput : uses
-    ReactAgentMinimal --> EditLinesInput : uses
-    ReactAgentMinimal --> FindSymbolInput : uses
-    ReactAgentMinimal --> ExtractCodeInput : uses
-    ReactAgentMinimal --> DiffInput : uses
-    ReactAgentMinimal --> GoogleSearchInput : uses
-    ReactAgentMinimal --> WebPageInput : uses
+    %% 工具使用关系
+    ReactAgentMinimal ..> FileInput : 使用
+    ReactAgentMinimal ..> DirectoryInput : 使用
+    ReactAgentMinimal ..> CommandInput : 使用
+    ReactAgentMinimal ..> SearchInput : 使用
+    ReactAgentMinimal ..> SearchReplaceInput : 使用
+    ReactAgentMinimal ..> EditLinesInput : 使用
+    ReactAgentMinimal ..> FindSymbolInput : 使用
+    ReactAgentMinimal ..> ExtractCodeInput : 使用
+    ReactAgentMinimal ..> DiffInput : 使用
+    ReactAgentMinimal ..> GoogleSearchInput : 使用
+    ReactAgentMinimal ..> WebPageInput : 使用
+
+    %% 样式
+    class ReactAgentMinimal {
+        <<主类>>
+    }
+    
+    class MemoryWithNaturalDecay {
+        <<核心记忆>>
+    }
+    
+    class CompressedMemory {
+        <<数据类>>
+    }
 ```
 
-## Key Design Patterns (Active Architecture)
+## 关键设计特性
 
-### 1. **Simplified Architecture**
-- **ReactAgentMinimal** is the only active agent implementation
-- No inheritance from BaseAgent (deprecated)
-- Direct integration with minimal dependencies
+### 1. **极致简约**
+- 整个系统只有**3个核心类**
+- **1个Agent类**：ReactAgentMinimal
+- **1个记忆系统**：MemoryWithNaturalDecay
+- **1个记忆单元**：CompressedMemory
 
-### 2. **Natural Decay Memory Pattern**
-- **Single memory system**: `MemoryWithNaturalDecay`
-- **Compression-based**: Automatic compression when pressure threshold exceeded
-- **Natural forgetting**: Mimics human memory decay through compression
+### 2. **自然记忆模式**
+记忆系统模仿人类记忆：
+- **基于压力的压缩**：消息数超过阈值时自动压缩
+- **自然衰减**：旧记忆随时间变得更抽象
+- **分层历史**：压缩的记忆形成自然层次
 
-### 3. **Minimal Dependencies**
-- Only requires:
-  - `MemoryWithNaturalDecay` for memory management
-  - `CompressedMemory` for storing compressed history
-  - Tool Input Models for validation
-  - Direct API calls (no complex abstractions)
+### 3. **清晰的工具系统**
+- 所有工具使用Pydantic模型进行验证
+- 强类型确保可靠性
+- 通过简单的工厂函数创建工具
 
-## Memory Architecture (Active)
+### 4. **最小依赖**
+```
+ReactAgentMinimal
+    └── MemoryWithNaturalDecay
+        └── CompressedMemory
+```
 
-### Natural Decay Memory (The Only System)
-- **Pressure-based compression**: Automatically compresses when message count exceeds threshold
-- **Layered history**: Compressed memories form natural layers over time
-- **Persistence**: Optional saving/loading of memory state
-- **Simplicity**: Single parameter (`pressure_threshold`) controls behavior
+## 记忆流程
 
-### ~~Deprecated Memory Systems~~
-- ~~Three-tier memory (SimpleMemoryManager)~~
-- ~~Cognitive Memory Integration~~
-- ~~NLPL Memory System~~
-- ~~Memory Manager Adapter~~
+```mermaid
+stateDiagram-v2
+    [*] --> 空: 初始化
+    空 --> 积累: 添加消息
+    积累 --> 压力: 消息数 > 阈值
+    压力 --> 压缩中: 触发压缩
+    压缩中 --> 已压缩: 提取摘要和要点
+    已压缩 --> 积累: 清空窗口(保留上下文)
+    积累 --> [*]: 完成
+```
 
-## Tool System Architecture
+## 压缩过程
 
-### Tool Input Models
-- Pydantic models for strong typing and validation
-- Comprehensive set covering:
-  - File operations (`FileInput`, `DirectoryInput`)
-  - Code manipulation (`EditLinesInput`, `SearchReplaceInput`)
-  - Code analysis (`FindSymbolInput`, `ExtractCodeInput`)
-  - External services (`GoogleSearchInput`, `WebPageInput`)
+压缩过程提取：
+1. **摘要**：对话的高层理解
+2. **要点**：重要的事实和决策
+3. **任务结果**：完成的动作和成果
 
-### Tool Execution Flow
-1. Agent receives task
-2. LLM decides which tool to use
-3. Tool input is validated through Pydantic model
-4. Tool is executed with validated input
-5. Result is returned to LLM for next decision
+## API集成
 
-## API Integration
+自动检测和配置：
+- **DeepSeek API**
+- **OpenRouter API**
+- **Moonshot API**
+- **Google Gemini API**
 
-### Supported Services
-- **OpenRouter**: Default service for model routing
-- **DeepSeek**: Direct API support
-- **Moonshot (Kimi)**: Direct API support
-- **Google Gemini**: Direct API support
+## 文件统计
 
-### Auto-detection Features
-- Service detection based on API URL
-- Context size detection based on model name
-- Automatic base URL configuration based on API key environment variables
+| 文件 | 代码行数 | 用途 |
+|------|---------|------|
+| react_agent_minimal.py | ~250 | 主Agent逻辑 |
+| memory_with_natural_decay.py | ~200 | 记忆系统 |
+| tools.py | ~150 | 工具定义 |
+| **总计** | **~600** | 完整系统 |
+
+## 设计哲学
+
+> "完美不是没有什么可以添加，而是没有什么可以删除。"
+> — 安托万·德·圣埃克苏佩里
+
+这个架构体现了：
+- **极简主义**：每一行代码都有其目的
+- **自然智能**：模仿人类认知过程
+- **呼吸理论**：压缩（吸入）→ 处理 → 解压（呼出）
