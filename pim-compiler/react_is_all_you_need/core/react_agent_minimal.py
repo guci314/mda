@@ -11,10 +11,64 @@ from typing import List, Dict, Any, Optional
 from pathlib import Path
 from datetime import datetime
 
-from .memory_with_natural_decay import MemoryWithNaturalDecay
+# 自动加载.env文件
+def load_env_file():
+    """自动查找并加载.env文件"""
+    # 尝试多个可能的.env文件位置（优先级从高到低）
+    possible_paths = [
+        Path(__file__).parent.parent.parent / ".env",  # pim-compiler/.env（优先）
+        Path(__file__).parent.parent / ".env",  # react_is_all_you_need/.env
+        Path.cwd() / ".env",  # 当前工作目录
+    ]
+    
+    for env_path in possible_paths:
+        if env_path.exists():
+            loaded_count = 0
+            with open(env_path) as f:
+                for line in f:
+                    line = line.strip()
+                    if line and not line.startswith('#') and '=' in line:
+                        key, value = line.split('=', 1)
+                        key = key.strip()
+                        value = value.strip()
+                        # 移除可能的引号
+                        if value.startswith('"') and value.endswith('"'):
+                            value = value[1:-1]
+                        elif value.startswith("'") and value.endswith("'"):
+                            value = value[1:-1]
+                        # 只设置尚未存在的环境变量
+                        if key not in os.environ:
+                            os.environ[key] = value
+                            loaded_count += 1
+            if loaded_count > 0:
+                print(f"  ✅ 已加载{loaded_count}个环境变量: {env_path}")
+            return  # 只加载第一个找到的.env文件
+    print("  ⚠️ 未找到.env文件，使用系统环境变量")
+
+# 使用标记避免重复加载
+_ENV_LOADED = False
+def ensure_env_loaded():
+    """确保环境变量只加载一次"""
+    global _ENV_LOADED
+    if not _ENV_LOADED:
+        load_env_file()
+        _ENV_LOADED = True
+
+# 模块加载时即确保环境变量已加载
+ensure_env_loaded()
+
+# 不再需要外部记忆系统 - Agent自己做笔记
+try:
+    from .tool_base import Function, ReadFileTool, WriteFileTool, ExecuteCommandTool
+except ImportError:
+    # 支持直接运行此文件
+    import sys
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).parent.parent))
+    from core.tool_base import Function, ReadFileTool, WriteFileTool, ExecuteCommandTool
 
 
-class ReactAgentMinimal:
+class ReactAgentMinimal(Function):
     """
     极简React Agent
     
@@ -24,12 +78,24 @@ class ReactAgentMinimal:
     3. 简单就是美
     """
     
+    # 默认参数定义
+    DEFAULT_PARAMETERS = {
+        "task": {
+            "type": "string",
+            "description": "要执行的任务描述"
+        }
+    }
+    
     def __init__(self, 
                  work_dir: str,
+                 name: str = "react_agent",
+                 description: str = "React Agent - 能够思考和使用工具的智能代理",
+                 parameters: Optional[Dict[str, Dict]] = None,
+                 return_type: str = "string",
                  model: str = "deepseek-chat",
                  api_key: Optional[str] = None,
                  base_url: Optional[str] = None,
-                 pressure_threshold: int = 50,
+                 window_size: int = 100,
                  max_rounds: int = 100,
                  knowledge_files: Optional[List[str]] = None):
         """
@@ -37,13 +103,35 @@ class ReactAgentMinimal:
         
         Args:
             work_dir: 工作目录
+            name: Agent名称
+            description: Agent描述
+            parameters: 参数定义，默认为{"task": {"type": "string", "description": "任务描述"}}
+            return_type: 返回值类型，默认为"string"
             model: 模型名称
             api_key: API密钥
             base_url: API基础URL
-            pressure_threshold: 记忆压缩阈值（唯一的记忆参数！）
+            window_size: 滑动窗口大小，默认100条消息（约20-30k tokens）
+                        简单任务可设为20-50，复杂任务可保持100或更高
             max_rounds: 最大执行轮数
             knowledge_files: 知识文件列表（自然语言程序）
         """
+        # 使用类变量作为默认值
+        if parameters is None:
+            parameters = self.DEFAULT_PARAMETERS.copy()
+        
+        # 初始化Function基类
+        super().__init__(
+            name=name,
+            description=description,
+            parameters=parameters,
+            return_type=return_type
+        )
+        
+        # 保存字段（方便直接访问）
+        self.name = name
+        self.description = description
+        self.parameters = parameters
+        self.return_type = return_type
         self.work_dir = Path(work_dir)
         self.work_dir.mkdir(parents=True, exist_ok=True)
         
@@ -54,44 +142,55 @@ class ReactAgentMinimal:
         self.api_key = api_key or self._detect_api_key()
         self.base_url = base_url or self._detect_base_url_for_key(self.api_key)
         
-        # 🌟 唯一的记忆系统！
-        self.memory = MemoryWithNaturalDecay(
-            pressure_threshold=pressure_threshold,
-            work_dir=str(self.work_dir / ".memory"),
-            enable_persistence=True
-        )
-        
-        # 知识文件（自然语言程序）
+        # 知识文件（自然语言程序）- 提前加载
         self.knowledge_files = knowledge_files or []
+        
+        # 自动添加两种笔记系统的知识文件
+        knowledge_dir = Path(__file__).parent.parent / "knowledge"
+        for knowledge_file in ["note_taking.md", "structured_notes.md"]:
+            knowledge_path = knowledge_dir / knowledge_file
+            if knowledge_path.exists() and str(knowledge_path) not in self.knowledge_files:
+                self.knowledge_files.append(str(knowledge_path))
         self.knowledge_content = self._load_knowledge()
         
-        # 定义工具
-        self.tools = self._define_minimal_tools()
+        # 🌟 笔记系统 - Agent自己就是智能压缩器！
+        self.window_size = window_size
+        # 不再需要 message_count，直接使用 len(messages) 计算压力
+        self.notes_dir = self.work_dir / ".notes"
+        self.notes_dir.mkdir(exist_ok=True)
+        self.notes_file = self.notes_dir / "session_notes.md"
+        
+        # 创建工具实例
+        self.tool_instances = self._create_tool_instances()
+        # 生成工具定义（用于API调用）
+        self.tools = [tool.to_openai_function() for tool in self.tool_instances]
         
         # 显示初始化信息
         print(f"🚀 极简Agent已初始化")
         print(f"  📍 API: {self._detect_service()}")
         print(f"  🤖 模型: {self.model}")
-        print(f"  🧠 记忆压力阈值: {pressure_threshold}")
+        print(f"  📝 滑动窗口大小: {window_size}条消息")
+        print(f"  📓 笔记位置: {self.notes_file}")
         if self.knowledge_files:
-            print(f"  📚 知识文件: {len(self.knowledge_files)}个")
-        print(f"  ✨ 极简即完美")
+            print(f"  📚 知识文件: {len(self.knowledge_files)}个（含笔记习惯）")
+        print(f"  ✨ Agent自己就是智能压缩器")
     
-    def execute_task(self, task: str) -> str:
+    def execute(self, **kwargs) -> str:
         """
-        执行任务 - 极简版本
+        执行任务 - 实现Function接口
         
         Args:
-            task: 要执行的任务
+            **kwargs: 包含task参数
             
         Returns:
             任务结果
         """
+        # 从kwargs中提取task参数
+        task = kwargs.get("task", "")
+        if not task:
+            return "错误：未提供任务描述"
         print(f"\n[极简Agent] 执行任务...")
         print(f"📝 任务: {task[:100]}...")
-        
-        # 添加任务到记忆
-        self.memory.add_message("user", task)
         
         # 初始化消息列表
         messages = [
@@ -112,14 +211,21 @@ class ReactAgentMinimal:
             message = response["choices"][0]["message"]
             messages.append(message)  # 添加assistant消息到对话历史
             
+            # 滑动窗口管理（FIFO）- 保持固定大小的工作记忆
+            if self.window_size > 0 and len(messages) > self.window_size:
+                # 保留系统提示词 + 最近的N条消息
+                system_messages = [m for m in messages if m["role"] == "system"]
+                recent_messages = messages[len(system_messages):][-self.window_size:]
+                messages = system_messages + recent_messages
+                print(f"  🔄 工作记忆滑动窗口：保持最近 {self.window_size} 条消息")
+            
             # 显示LLM的思考内容（如果有）
             if message.get("content"):
                 content_preview = message["content"][:200]
                 if len(content_preview) > 0:
                     print(f"💭 思考: {content_preview}...")
             
-            # 添加到记忆（可能触发自动压缩）
-            self.memory.add_message("assistant", message.get("content", ""))
+            # 滑动窗口自动管理，无需压力提示
             
             # 处理工具调用
             if "tool_calls" in message and message["tool_calls"]:
@@ -143,6 +249,11 @@ class ReactAgentMinimal:
                         result_preview = tool_result[:150] if len(tool_result) > 150 else tool_result
                         print(f"   ✅ 结果: {result_preview}")
                         
+                        # 检测是否写了笔记（只是外部备份，不影响滑动窗口）
+                        if tool_name == "write_file" and str(self.notes_file) in str(arguments.get("file_path", "")):
+                            print(f"\n   📝 笔记已保存（外部持久化）")
+                            print(f"   💭 工作记忆继续保持滑动窗口")
+                        
                         # 添加工具结果到消息（正确的格式）
                         tool_message = {
                             "role": "tool",
@@ -151,8 +262,7 @@ class ReactAgentMinimal:
                         }
                         messages.append(tool_message)
                         
-                        # 添加到记忆系统
-                        self.memory.add_message("tool", tool_result[:500])
+                        # 消息会被添加到messages列表，自动影响窗口大小
                         
                     except Exception as e:
                         tool_error = f"工具执行错误: {e}"
@@ -162,18 +272,16 @@ class ReactAgentMinimal:
                             "content": tool_error
                         }
                         messages.append(tool_message)
-                        self.memory.add_message("tool", tool_error)
+                        # 错误消息也会被添加到messages列表
             
             # 检查是否完成
             if response["choices"][0].get("finish_reason") == "stop" and not message.get("tool_calls"):
                 print(f"\n✅ 任务完成（第{round_num + 1}轮）")
                 
-                # 显示记忆统计
-                stats = self.memory.get_stats()
-                print(f"\n📊 记忆统计：")
-                print(f"  总消息: {stats['total_messages']}")
-                print(f"  压缩次数: {stats['compressions']}")
-                print(f"  当前压力: {stats['memory_pressure']}")
+                # 显示统计
+                print(f"\n📊 任务完成统计：")
+                if self.notes_file.exists():
+                    print(f"  ✅ 笔记已保存: {self.notes_file}")
                 
                 return message.get("content", "任务完成")
         
@@ -182,24 +290,55 @@ class ReactAgentMinimal:
     
     def _build_minimal_prompt(self) -> str:
         """构建极简系统提示"""
-        prompt = f"""你是一个编程助手，使用自然记忆衰减系统。
+        # 尝试加载外部系统提示词模板
+        prompt_template_path = Path(__file__).parent.parent / "knowledge" / "system_prompt.md"
+        
+        if prompt_template_path.exists():
+            # 使用外部模板
+            template = prompt_template_path.read_text(encoding='utf-8')
+            
+            # 检查是否有现存笔记（元记忆）
+            meta_memory = ""
+            if self.notes_file.exists():
+                meta_memory = "\n[元记忆] 发现之前的笔记，首次需要时使用read_file查看。"
+            
+            # 准备知识内容部分
+            knowledge_section = ""
+            if self.knowledge_content:
+                knowledge_section = f"\n## 知识库（可参考的自然语言程序）\n{self.knowledge_content}"
+            
+            # 替换模板中的占位符
+            prompt = template.format(
+                work_dir=self.work_dir,
+                notes_dir=self.notes_dir,
+                notes_file=self.notes_file,
+                meta_memory=meta_memory,
+                window_size=self.window_size,
+                knowledge_content=knowledge_section
+            )
+        else:
+            # 降级到内置提示词（保持向后兼容）
+            meta_memory = ""
+            if self.notes_file.exists():
+                meta_memory = f"\n[元记忆] 发现之前的笔记: {self.notes_file}\n首次需要时，使用read_file查看。\n"
+            
+            prompt = f"""你是一个编程助手，像数学家一样使用笔记扩展认知。
 
 工作目录：{self.work_dir}
+笔记目录：{self.notes_dir}
+{meta_memory}
+认知模型（滑动窗口）：
+- 工作记忆是固定大小的滑动窗口（{self.window_size}条消息）
+- 新信息进入，旧信息自然滑出（FIFO）
 
-记忆系统说明：
-- 你的记忆会自动压缩和衰减
-- 压缩的历史会保留关键信息
-- 专注于当前任务，历史只作参考
+这就是图灵完备：你 + 文件系统 = 数学家 + 纸笔
 """
+            
+            if self.knowledge_content:
+                prompt += f"\n知识库：\n{self.knowledge_content}"
+            
+            prompt += "\n请高效完成任务。"
         
-        # 注入知识文件（自然语言程序）
-        if self.knowledge_content:
-            prompt += f"""
-知识库（可参考的自然语言程序）：
-{self.knowledge_content}
-"""
-        
-        prompt += "\n请高效完成任务。"
         return prompt
     
     def _load_knowledge(self) -> str:
@@ -233,126 +372,24 @@ class ReactAgentMinimal:
         
         return "\n\n".join(knowledge_content) if knowledge_content else ""
     
-    def _define_minimal_tools(self) -> List[Dict]:
-        """定义最小工具集"""
+    def _create_tool_instances(self) -> List[Function]:
+        """创建工具实例"""
+        # 使用从tool_base导入的工具类
         return [
-            {
-                "type": "function",
-                "function": {
-                    "name": "read_file",
-                    "description": "读取文件内容，支持分段读取大文件",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "file_path": {
-                                "type": "string",
-                                "description": "要读取的文件路径"
-                            },
-                            "offset": {
-                                "type": "integer",
-                                "description": "起始字符位置，默认0"
-                            },
-                            "limit": {
-                                "type": "integer",
-                                "description": "读取字符数限制，默认2000"
-                            }
-                        },
-                        "required": ["file_path"]
-                    }
-                }
-            },
-            {
-                "type": "function",
-                "function": {
-                    "name": "write_file",
-                    "description": "创建或覆盖文件内容",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "file_path": {
-                                "type": "string",
-                                "description": "要写入的文件路径"
-                            },
-                            "content": {
-                                "type": "string",
-                                "description": "要写入的文件内容"
-                            }
-                        },
-                        "required": ["file_path", "content"]
-                    }
-                }
-            },
-            {
-                "type": "function",
-                "function": {
-                    "name": "execute_command",
-                    "description": "执行shell命令",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "command": {
-                                "type": "string",
-                                "description": "要执行的命令"
-                            }
-                        },
-                        "required": ["command"]
-                    }
-                }
-            }
+            ReadFileTool(self.work_dir),
+            WriteFileTool(self.work_dir),
+            ExecuteCommandTool(self.work_dir)
         ]
     
     def _execute_tool(self, tool_name: str, arguments: Dict) -> str:
-        """执行工具 - 极简实现"""
+        """执行工具 - 使用Tool实例"""
         try:
-            if tool_name == "read_file":
-                file_path = self.work_dir / arguments["file_path"]
-                if file_path.exists():
-                    offset = arguments.get("offset", 0)
-                    limit = arguments.get("limit", 2000)
-                    
-                    with open(file_path, 'r', encoding='utf-8') as f:
-                        file_size = file_path.stat().st_size
-                        
-                        # 处理负偏移（从文件末尾开始）
-                        if offset < 0:
-                            offset = max(0, file_size + offset)
-                        
-                        # 移动到指定位置
-                        if offset > 0:
-                            f.seek(offset)
-                        
-                        # 读取指定长度
-                        content = f.read(limit)
-                        
-                        # 添加位置信息（仅在分段读取时）
-                        if offset > 0 or (len(content) == limit and file_size > limit):
-                            end_pos = offset + len(content)
-                            return f"[读取范围: {offset}-{end_pos}/{file_size}字节]\n{content}"
-                        
-                        return content
-                return f"文件不存在: {arguments['file_path']}"
+            # 查找对应的工具实例
+            for tool in self.tool_instances:
+                if tool.name == tool_name:
+                    return tool.execute(**arguments)
             
-            elif tool_name == "write_file":
-                file_path = self.work_dir / arguments["file_path"]
-                file_path.parent.mkdir(parents=True, exist_ok=True)
-                with open(file_path, 'w', encoding='utf-8') as f:
-                    f.write(arguments["content"])
-                return f"文件已写入: {arguments['file_path']}"
-            
-            elif tool_name == "execute_command":
-                import subprocess
-                result = subprocess.run(
-                    arguments["command"],
-                    shell=True,
-                    capture_output=True,
-                    text=True,
-                    cwd=self.work_dir,
-                    timeout=10
-                )
-                return result.stdout[:500] if result.stdout else "命令执行完成"
-            
-            else:
-                return f"未知工具: {tool_name}"
+            return f"未知工具: {tool_name}"
                 
         except Exception as e:
             return f"工具执行错误: {str(e)}"
@@ -418,8 +455,9 @@ class ReactAgentMinimal:
     def _detect_api_key(self) -> str:
         """检测API密钥"""
         for key in ["DEEPSEEK_API_KEY", "MOONSHOT_API_KEY", "OPENROUTER_API_KEY"]:
-            if os.getenv(key):
-                return os.getenv(key)
+            api_key = os.getenv(key)
+            if api_key:
+                return api_key
         raise ValueError("未找到API密钥")
     
     def _detect_base_url_for_key(self, api_key: str) -> str:
@@ -452,57 +490,37 @@ class ReactAgentMinimal:
         else:
             return "Custom"
     
-    def search_memory(self, query: str) -> List[str]:
-        """搜索记忆"""
-        results = self.memory.search(query, limit=5)
-        return [f"{mem.summary}" for mem, score in results]
+    # 记忆功能已简化 - Agent自己做笔记
     
-    def get_memory_timeline(self) -> List[Dict]:
-        """获取记忆时间线"""
-        return self.memory.get_memory_timeline()
+    def to_openai_function(self) -> Dict:
+        """
+        转换为OpenAI function calling格式
+        使Agent可以作为工具被其他Agent调用
+        
+        Returns:
+            OpenAI格式的函数定义
+        """
+        return {
+            "type": "function",
+            "function": {
+                "name": self.name,
+                "description": self.description,
+                "parameters": {
+                    "type": "object",
+                    "properties": self.parameters,
+                    "required": [
+                        key for key, param in self.parameters.items() 
+                        if (param.get("required", True) if isinstance(param, dict) else True)
+                    ]
+                }
+            }
+        }
     
     def cleanup(self) -> None:
         """清理资源"""
-        self.memory.save_state()
-        print("🧹 资源已保存")
+        print(f"🧹 清理完成，笔记已保存在: {self.notes_file}")
 
 
-# 对比：新旧系统
-def compare_systems():
-    """对比新旧系统的复杂度"""
-    
-    print("=" * 60)
-    print("📊 系统复杂度对比")
-    print("=" * 60)
-    
-    old_system = """
-    旧系统（过度设计）：
-    - SimpleMemoryManager (200行)
-    - NLPLMemorySystem (500行)  
-    - CognitiveMemoryIntegration (400行)
-    - 4个认知Agent (各100行)
-    - MemoryManagerAdapter (150行)
-    总计：约1450行代码，6个类
-    """
-    
-    new_system = """
-    新系统（极简设计）：
-    - MemoryWithNaturalDecay (350行)
-    - ReactAgentMinimal (250行)
-    总计：约600行代码，2个类
-    
-    减少了60%的代码！
-    """
-    
-    print(old_system)
-    print(new_system)
-    
-    print("\n✨ 极简设计的优势：")
-    print("1. 代码量减少60%")
-    print("2. 概念简化：压缩=记忆=认知")
-    print("3. 零配置：只需一个pressure_threshold")
-    print("4. 自然行为：模仿Claude Code本身")
-    print("5. 性能更好：减少了层层抽象")
 
 
 if __name__ == "__main__":
@@ -510,13 +528,10 @@ if __name__ == "__main__":
     print("🌟 极简React Agent演示")
     print("=" * 60)
     
-    # 显示对比
-    compare_systems()
-    
     # 创建极简Agent
     agent = ReactAgentMinimal(
         work_dir="test_minimal",
-        pressure_threshold=20,  # 唯一的记忆参数！
+        window_size=100,  # 滑动窗口大小
         max_rounds=30
     )
     
@@ -525,7 +540,7 @@ if __name__ == "__main__":
     创建一个简单的Python函数，返回"Hello, Minimal World!"
     """
     
-    result = agent.execute_task(task)
+    result = agent.execute(task=task)
     print(f"\n结果：{result}")
     
     # 清理

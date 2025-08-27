@@ -1,20 +1,21 @@
 """
-React Agent核心模块 - 极简版本
+React Agent核心模块 - 极致简化版本
 
 这里包含了React Agent系统的极简实现：
-- react_agent_minimal: 极简Agent实现，使用自然衰减记忆
-- memory_with_natural_decay: 基于压缩的自然记忆衰减系统
-- tools: 工具系统，定义Agent的计算边界
+- react_agent_minimal: 极简Agent，自己做笔记
+- tool_base: Function基础类，统一的函数抽象
+
+核心理念：
+- Agent本身就是智能压缩器
+- 做笔记 = 智能压缩
+- 最简单的方案就是最好的
 """
 
-# 导入极简版本
+# 导入核心组件
 from .react_agent_minimal import ReactAgentMinimal
-from .memory_with_natural_decay import MemoryWithNaturalDecay, CompressedMemory
-from .tools import create_tools
+from .tool_base import Function
 
 __all__ = [
-    'ReactAgentMinimal',           # 极简React Agent
-    'MemoryWithNaturalDecay',      # 自然衰减记忆系统
-    'CompressedMemory',            # 压缩记忆单元
-    'create_tools',                # 工具创建函数
+    'ReactAgentMinimal',           # 极简React Agent（自己做笔记）
+    'Function',                    # 函数基类
 ]
