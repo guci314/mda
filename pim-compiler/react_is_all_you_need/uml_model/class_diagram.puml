@@ -1,0 +1,126 @@
+@startuml ReactAgentMinimal类图
+
+!define ABSTRACT abstract
+!define STATIC static
+
+skinparam classAttributeIconSize 0
+skinparam classFontSize 14
+skinparam class {
+    BackgroundColor<<abstract>> #F0F0F0
+    BorderColor<<abstract>> #888888
+    BackgroundColor<<tool>> #E8F4FF
+    BorderColor<<tool>> #4A90E2
+}
+
+package "core" {
+    
+    ABSTRACT class Function <<abstract>> {
+        - name: str
+        - description: str
+        - parameters: Dict[str, Dict]
+        - return_type: str
+        - parameter_types: Dict[str, str]
+        --
+        + __init__(name, description, parameters, return_type)
+        + {abstract} execute(**kwargs) : Any
+        + __call__(**kwargs) : Any
+        + to_openai_function() : Dict
+        + __repr__() : str
+    }
+    
+    class ReactAgentMinimal extends Function {
+        - DEFAULT_PARAMETERS: Dict {static}
+        - work_dir: Path
+        - model: str
+        - api_key: str
+        - base_url: str
+        - window_size: int
+        - max_rounds: int
+        - knowledge_files: List[str]
+        - knowledge_content: str
+        - notes_dir: Path
+        - notes_file: Path
+        - tool_instances: List[Function]
+        - tools: List[Dict]
+        --
+        + __init__(work_dir, name, description, ...)
+        + execute(**kwargs) : str
+        - _load_knowledge() : str
+        - _create_tool_instances() : List[Function]
+        - _execute_tool(tool_name, arguments) : str
+        - _call_api(messages) : Dict
+        - _build_minimal_prompt() : str
+        - _detect_api_key() : str
+        - _detect_base_url_for_key(api_key) : str
+        - _detect_service() : str
+    }
+    
+    class ReadFileTool extends Function <<tool>> {
+        - work_dir: Path
+        --
+        + __init__(work_dir)
+        + execute(**kwargs) : str
+    }
+    
+    class WriteFileTool extends Function <<tool>> {
+        - work_dir: Path
+        --
+        + __init__(work_dir)
+        + execute(**kwargs) : str
+    }
+    
+    class ExecuteCommandTool extends Function <<tool>> {
+        - work_dir: Path
+        --
+        + __init__(work_dir)
+        + execute(**kwargs) : str
+    }
+}
+
+package "knowledge" {
+    class "structured_notes.md" <<knowledge>> {
+        三层笔记架构知识
+        --
+        experience.md 指导
+        task_state.md 指导
+        environment.md 指导
+    }
+    
+    class "system_prompt.md" <<template>> {
+        系统提示词模板
+        --
+        工作环境设置
+        笔记策略说明
+        认知模型描述
+    }
+}
+
+' 关系
+ReactAgentMinimal --> ReadFileTool : creates
+ReactAgentMinimal --> WriteFileTool : creates
+ReactAgentMinimal --> ExecuteCommandTool : creates
+ReactAgentMinimal ..> "structured_notes.md" : loads
+ReactAgentMinimal ..> "system_prompt.md" : uses
+
+' 注释
+note right of ReactAgentMinimal
+    核心Agent实现
+    - 滑动窗口内存管理 (默认50条)
+    - 最大执行轮数 (默认100轮)
+    - 自动加载环境变量
+    - 支持多种LLM API
+end note
+
+note left of Function
+    抽象基类
+    所有工具和Agent都继承此类
+    提供统一的接口
+end note
+
+note bottom of ReadFileTool
+    支持分段读取大文件
+    - offset: 起始位置
+    - limit: 读取限制
+end note
+
+@enduml

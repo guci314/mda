@@ -25,10 +25,10 @@ class User:
     def __init__(self, ...):
         self.id = id or uuid4()
         
-# SQLAlchemy 模型示例
+# SQLAlchemy 模型示例（SQLite兼容）
 class UserDB(Base):
     __tablename__ = "users"
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid4()))  # SQLite使用String存储UUID
     
 # Pydantic 模型示例
 class UserCreate(BaseModel):
@@ -43,7 +43,7 @@ class UserCreate(BaseModel):
 - Business Services（业务服务）：实现核心业务逻辑
   - 每个实体对应一个 Service 类
   - 使用依赖注入获取数据库会话
-  - 所有方法使用 async/await
+  - 使用同步方法，简化实现
 - Repository Pattern（仓储模式）：封装数据访问逻辑
   - 抽象接口定义
   - 具体实现类
@@ -56,7 +56,7 @@ class UserService:
     def __init__(self, repository: UserRepository):
         self.repository = repository
     
-    async def register_user(self, user_data: UserCreate) -> UserResponse:
+    def register_user(self, user_data: UserCreate) -> UserResponse:
         # 业务逻辑实现
         pass
 ```
@@ -80,11 +80,11 @@ class UserService:
 router = APIRouter(prefix="/api/users", tags=["users"])
 
 @router.post("/", response_model=UserResponse)
-async def create_user(
+def create_user(
     user_data: UserCreate,
     service: UserService = Depends(get_user_service)
 ):
-    return await service.create_user(user_data)
+    return service.create_user(user_data)
 ```
 
 ### 4. Application Configuration（应用配置）
@@ -92,7 +92,7 @@ async def create_user(
 
 **必须包含**：
 - Main Application（主应用）：FastAPI 应用初始化
-- Database Configuration（数据库配置）：连接池、会话管理
+- Database Configuration（数据库配置）：SQLite连接、会话管理
 - Dependency Injection（依赖注入）：服务和仓储的注入配置
 - Environment Settings（环境配置）：配置管理
 - Startup/Shutdown Events（启动关闭事件）：应用生命周期
@@ -102,9 +102,9 @@ async def create_user(
 app = FastAPI(title="User Management API")
 
 @app.on_event("startup")
-async def startup_event():
+def startup_event():
     # 初始化数据库等
-    pass
+    Base.metadata.create_all(bind=engine)
 ```
 
 ### 5. Testing Specifications（测试规范）
@@ -118,31 +118,40 @@ async def startup_event():
 
 **代码规范**：
 ```python
-@pytest.mark.asyncio
-async def test_create_user(client: TestClient):
-    response = await client.post("/api/users", json={...})
-    assert response.status_code == 201
+import unittest
+from fastapi.testclient import TestClient
+
+class TestUserAPI(unittest.TestCase):
+    def setUp(self):
+        self.client = TestClient(app)
+    
+    def test_create_user(self):
+        response = self.client.post("/api/users", json={...})
+        self.assertEqual(response.status_code, 201)
 ```
 
 ## FastAPI 平台特定知识
 
 ### 技术栈
 - **框架**：FastAPI (最新版本)
-- **ORM**：SQLAlchemy 2.0 (使用异步)
-- **数据库**：PostgreSQL
+- **ORM**：SQLAlchemy 2.0 (同步模式)
+- **数据库**：SQLite（轻量级，适合开发和测试）
 - **验证**：Pydantic v2
-- **测试**：pytest + httpx
-- **异步**：全面使用 async/await
+- **测试**：unittest（Python标准库）
+- **同步**：使用同步模式，简化开发
 
 ### 最佳实践
 
 #### 1. 依赖注入
 ```python
-async def get_db() -> AsyncGenerator[AsyncSession, None]:
-    async with async_session() as session:
-        yield session
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
-def get_user_service(db: AsyncSession = Depends(get_db)) -> UserService:
+def get_user_service(db: Session = Depends(get_db)) -> UserService:
     repository = UserRepository(db)
     return UserService(repository)
 ```
@@ -157,12 +166,14 @@ async def value_error_handler(request: Request, exc: ValueError):
     )
 ```
 
-#### 3. 异步 SQLAlchemy
+#### 3. 同步 SQLAlchemy with SQLite
 ```python
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 
-engine = create_async_engine("postgresql+asyncpg://...")
-async_session = sessionmaker(engine, class_=AsyncSession)
+# SQLite同步配置
+engine = create_engine("sqlite:///./blog.db", connect_args={"check_same_thread": False})
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 ```
 
 #### 4. Pydantic v2 特性
@@ -226,6 +237,20 @@ src/
 - 使用中文注释说明业务逻辑
 - 复杂逻辑必须添加行内注释
 
+### SQLite特定配置
+- 数据库文件：`blog.db`（本地文件）
+- UUID存储：使用String(36)而非UUID类型
+- 同步驱动：标准sqlite3
+- 连接字符串：`sqlite:///./blog.db`
+- 线程安全：`connect_args={"check_same_thread": False}`
+
+### unittest测试配置
+- 使用`unittest.TestCase`处理同步测试
+- 使用`TestClient`来测试FastAPI应用
+- 测试数据库：使用独立的`test_blog.db`
+- 测试命令：`python -m unittest discover tests/`
+- 测试文件命名：`test_*.py`
+
 ## 生成指导原则
 
 1. **完整性**：每个章节的代码必须是完整的、可运行的
@@ -233,6 +258,68 @@ src/
 3. **专业性**：遵循 FastAPI 和 Python 最佳实践
 4. **可测试性**：所有代码都应该易于测试
 5. **文档化**：包含充分的注释和文档字符串
+6. **必须生成所有5个章节**：不能只生成部分章节就停止
+
+## PSM文档生成步骤（必须全部执行）
+
+**重要**：PSM文档包含5个章节，必须全部生成，不能中途停止！
+
+### 步骤1：创建文件并写入第一章
+```bash
+write_file(file_path="blog_psm.md", content="""# Platform Specific Model (PSM) - 博客系统
+
+## 1. Domain Models（领域模型）
+
+### Entity Definitions（实体定义）
+...第一章完整内容...
+""")
+```
+
+### 步骤2：追加第二章（必须执行）
+```bash
+execute_command('cat >> blog_psm.md << "EOF"
+
+## 2. Service Layer（服务层）
+
+### Business Services（业务服务）
+...第二章完整内容...
+EOF')
+```
+
+### 步骤3：追加第三章（必须执行）
+```bash
+execute_command('cat >> blog_psm.md << "EOF"
+
+## 3. REST API Design（API设计）
+
+### API Endpoints（端点定义）
+...第三章完整内容...
+EOF')
+```
+
+### 步骤4：追加第四章（必须执行）
+```bash
+execute_command('cat >> blog_psm.md << "EOF"
+
+## 4. Application Configuration（应用配置）
+
+### Main Application（主应用）
+...第四章完整内容...
+EOF')
+```
+
+### 步骤5：追加第五章（必须执行）
+```bash
+execute_command('cat >> blog_psm.md << "EOF"
+
+## 5. Testing Specifications（测试规范）
+
+### Unit Tests（单元测试）
+...第五章完整内容...
+EOF')
+```
+
+**记住**：即使内容很长，也必须完成所有5个章节！使用cat的HERE文档语法可以安全地追加多行内容。
 
 ## 章节依赖关系
 

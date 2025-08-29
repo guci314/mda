@@ -20,6 +20,34 @@
 - **API Key Environment Variable**: `DEEPSEEK_API_KEY`
 - **Temperature**: 0 (for deterministic outputs)
 
+#### Claude Sonnet (通过OpenRouter) ⭐ 
+- **Models**: 
+  - `anthropic/claude-3.5-sonnet` (推荐 - 最新版本)
+  - `anthropic/claude-3.5-sonnet-20241022` (Claude Sonnet 4)
+  - `anthropic/claude-3-opus` (最强能力)
+  - `anthropic/claude-3-haiku` (最快速度)
+- **Base URL**: `https://openrouter.ai/api/v1`
+- **API Key Environment Variable**: `OPENROUTER_API_KEY`
+- **Temperature**: 0 (for deterministic outputs)
+- **Special Features**:
+  - OpenRouter自动处理格式转换，使用OpenAI格式即可
+  - 无需特殊的Claude兼容层
+  - 价格通常比直接使用Anthropic API更优惠
+  - 直接使用ReactAgentMinimal即可
+
+Example configuration:
+```python
+from core.react_agent_minimal import ReactAgentMinimal
+
+agent = ReactAgentMinimal(
+    work_dir="my_project",
+    model="anthropic/claude-3.5-sonnet",
+    base_url="https://openrouter.ai/api/v1",
+    api_key=os.getenv("OPENROUTER_API_KEY"),
+    knowledge_files=["knowledge/debug_knowledge.md"]
+)
+```
+
 #### Qwen3 Coder (通义千问 - 代码能力强)
 - **Models**: 
   - `qwen/qwen3-coder` (推荐 - 优化用于agent编码任务，支持function calling和tool use)
@@ -87,6 +115,48 @@ llm_temperature=0
 - 知识文件是程序，不是数据
 - 元认知通过知识实现，不需要复杂代码
 - 系统可以自举：生成和修改自己的知识文件
+
+## 核心设计原则 ⚠️
+
+### 1. 大道至简原则 (Simplicity First)
+**永远选择最简单的解决方案**
+- React Agent Minimal必须保持在500行代码左右
+- 拒绝过度设计和过度抽象
+- 能用1行解决的问题，绝不写10行
+- 发现缺陷 ≠ 必须修复
+- 理论完美 ≠ 需要实现
+- 简单够用 > 完美复杂
+
+**检查清单**：
+- 这个改进真的必要吗？
+- 能否用更简单的方式实现？
+- 是否会破坏系统的简洁性？
+- 是否在追求不必要的完美？
+
+### 2. 知识驱动原则 (Knowledge-Driven Development)
+**用知识而非代码定义行为**
+- 行为逻辑写在Markdown知识文件中
+- 代码只是执行框架，不包含业务逻辑
+- 优先修改知识文件，而不是修改代码
+- 元认知通过知识实现，不需要复杂代码
+- 系统改进应该通过添加知识，而不是添加代码
+
+**实践指南**：
+- 新功能 → 先考虑写知识文件
+- Bug修复 → 先考虑更新知识文件
+- 行为改变 → 修改知识文件即可
+- 代码改动 → 只在绝对必要时
+
+### 3. 违背原则时的提醒
+如果你在建议或实施以下行为，我会立即提醒你：
+- 添加复杂的新功能
+- 追求理论上的完美
+- 代码超过合理范围（500行±20%）
+- 用代码解决知识可以解决的问题
+- 过度优化已经够用的功能
+- 为了完备性而增加复杂度
+
+**记住**：完美是优秀的敌人。我们的目标是证明简单也能实现AGI，而不是构建一个完美的生产系统。
 
 ## 核心代码目录
 pim-compiler/react_is_all_you_need

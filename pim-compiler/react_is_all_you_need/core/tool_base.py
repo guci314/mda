@@ -113,8 +113,9 @@ class ReadFileTool(Function):
     def execute(self, **kwargs) -> str:
         file_path = self.work_dir / kwargs["file_path"]
         if file_path.exists():
-            offset = kwargs.get("offset", 0)
-            limit = kwargs.get("limit", 2000)
+            # 确保offset和limit是整数
+            offset = int(kwargs.get("offset", 0))
+            limit = int(kwargs.get("limit", 2000))
             
             with open(file_path, 'r', encoding='utf-8') as f:
                 file_size = file_path.stat().st_size

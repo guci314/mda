@@ -1,0 +1,140 @@
+@startuml React系统组件图
+
+!define COMPONENT component
+!define DATABASE database
+!define CLOUD cloud
+!define FOLDER folder
+
+skinparam component {
+    BackgroundColor #E8F4FF
+    BorderColor #4A90E2
+}
+
+skinparam database {
+    BackgroundColor #FFF8DC
+    BorderColor #DAA520
+}
+
+skinparam cloud {
+    BackgroundColor #FFE4E1
+    BorderColor #DC143C
+}
+
+title React Agent Minimal 系统架构
+
+package "React Agent System" {
+    
+    COMPONENT [ReactAgentMinimal] as agent {
+        主控制器
+        --
+        · 任务执行循环
+        · 滑动窗口管理
+        · 工具调用协调
+    }
+    
+    package "工具层 Tool Layer" {
+        COMPONENT [ReadFileTool] as read
+        COMPONENT [WriteFileTool] as write
+        COMPONENT [ExecuteCommandTool] as exec
+    }
+    
+    package "认知模型 Cognitive Model" {
+        COMPONENT [滑动窗口] as window {
+            工作记忆
+            --
+            · 固定大小: 50条
+            · FIFO策略
+            · 自动管理
+        }
+        
+        COMPONENT [知识加载器] as knowledge {
+            知识管理
+            --
+            · 加载knowledge文件
+            · 构建系统提示词
+        }
+    }
+}
+
+package "外部系统 External Systems" {
+    CLOUD [LLM API] as api {
+        语言模型服务
+        --
+        · DeepSeek
+        · Moonshot
+        · OpenAI
+    }
+    
+    DATABASE [文件系统] as fs {
+        持久化存储
+        --
+        · 工作文件
+        · 笔记文件
+        · 知识文件
+    }
+}
+
+package "知识库 Knowledge Base" {
+    FOLDER [structured_notes.md] as notes {
+        三层笔记架构
+        --
+        · experience.md
+        · task_state.md
+        · environment.md
+    }
+    
+    FOLDER [system_prompt.md] as prompt {
+        系统提示词模板
+    }
+}
+
+package "环境配置 Environment" {
+    FOLDER [.env] as env {
+        API配置
+        --
+        · API Keys
+        · Base URLs
+    }
+}
+
+' 连接关系
+agent --> read : 使用
+agent --> write : 使用
+agent --> exec : 使用
+
+agent <--> api : API调用
+agent --> window : 管理
+agent --> knowledge : 使用
+
+read <--> fs : 读取
+write <--> fs : 写入
+exec <--> fs : 执行
+
+knowledge --> notes : 加载
+knowledge --> prompt : 加载
+
+agent --> env : 读取配置
+
+' 注释
+note bottom of agent
+    核心特性：
+    1. React循环 (Thought-Action-Observation)
+    2. 图灵完备 (Agent + 文件系统)
+    3. 智能压缩 (通过笔记扩展认知)
+end note
+
+note right of window
+    滑动窗口机制：
+    - 新消息进入，旧消息滑出
+    - 保留系统提示词
+    - 自动触发笔记写入
+end note
+
+note left of fs
+    实现无限存储：
+    - 突破上下文限制
+    - 知识持久化
+    - 状态管理
+end note
+
+@enduml

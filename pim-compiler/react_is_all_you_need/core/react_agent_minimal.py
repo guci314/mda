@@ -95,7 +95,7 @@ class ReactAgentMinimal(Function):
                  model: str = "deepseek-chat",
                  api_key: Optional[str] = None,
                  base_url: Optional[str] = None,
-                 window_size: int = 100,
+                 window_size: int = 50,
                  max_rounds: int = 100,
                  knowledge_files: Optional[List[str]] = None):
         """
@@ -110,8 +110,8 @@ class ReactAgentMinimal(Function):
             model: 模型名称
             api_key: API密钥
             base_url: API基础URL
-            window_size: 滑动窗口大小，默认100条消息（约20-30k tokens）
-                        简单任务可设为20-50，复杂任务可保持100或更高
+            window_size: 滑动窗口大小，默认50条消息（约10-15k tokens）
+                        简单任务可设为20-30，复杂任务可设为100或更高
             max_rounds: 最大执行轮数
             knowledge_files: 知识文件列表（自然语言程序）
         """
@@ -145,12 +145,11 @@ class ReactAgentMinimal(Function):
         # 知识文件（自然语言程序）- 提前加载
         self.knowledge_files = knowledge_files or []
         
-        # 自动添加两种笔记系统的知识文件
+        # 自动添加结构化笔记系统的知识文件
         knowledge_dir = Path(__file__).parent.parent / "knowledge"
-        for knowledge_file in ["note_taking.md", "structured_notes.md"]:
-            knowledge_path = knowledge_dir / knowledge_file
-            if knowledge_path.exists() and str(knowledge_path) not in self.knowledge_files:
-                self.knowledge_files.append(str(knowledge_path))
+        structured_notes_path = knowledge_dir / "structured_notes.md"
+        if structured_notes_path.exists() and str(structured_notes_path) not in self.knowledge_files:
+            self.knowledge_files.append(str(structured_notes_path))
         self.knowledge_content = self._load_knowledge()
         
         # 🌟 笔记系统 - Agent自己就是智能压缩器！
@@ -158,6 +157,11 @@ class ReactAgentMinimal(Function):
         # 不再需要 message_count，直接使用 len(messages) 计算压力
         self.notes_dir = self.work_dir / ".notes"
         self.notes_dir.mkdir(exist_ok=True)
+        # 三层笔记架构文件
+        self.experience_file = self.notes_dir / "experience.md"
+        self.task_state_file = self.notes_dir / "task_state.md"
+        self.environment_file = self.notes_dir / "environment.md"
+        # 保留旧的notes_file以兼容（但不再使用）
         self.notes_file = self.notes_dir / "session_notes.md"
         
         # 创建工具实例
@@ -170,9 +174,12 @@ class ReactAgentMinimal(Function):
         print(f"  📍 API: {self._detect_service()}")
         print(f"  🤖 模型: {self.model}")
         print(f"  📝 滑动窗口大小: {window_size}条消息")
-        print(f"  📓 笔记位置: {self.notes_file}")
+        print(f"  📓 笔记目录: {self.notes_dir}")
+        print(f"     - experience.md (经验库)")
+        print(f"     - task_state.md (任务状态)")
+        print(f"     - environment.md (环境知识)")
         if self.knowledge_files:
-            print(f"  📚 知识文件: {len(self.knowledge_files)}个（含笔记习惯）")
+            print(f"  📚 知识文件: {len(self.knowledge_files)}个")
         print(f"  ✨ Agent自己就是智能压缩器")
     
     def execute(self, **kwargs) -> str:
@@ -213,11 +220,80 @@ class ReactAgentMinimal(Function):
             
             # 滑动窗口管理（FIFO）- 保持固定大小的工作记忆
             if self.window_size > 0 and len(messages) > self.window_size:
-                # 保留系统提示词 + 最近的N条消息
+                # 识别关键消息
                 system_messages = [m for m in messages if m["role"] == "system"]
-                recent_messages = messages[len(system_messages):][-self.window_size:]
-                messages = system_messages + recent_messages
-                print(f"  🔄 工作记忆滑动窗口：保持最近 {self.window_size} 条消息")
+                
+                # 找到最后一条用户消息（当前任务）
+                last_user_msg = None
+                last_user_idx = -1
+                for i in range(len(messages) - 1, -1, -1):
+                    if messages[i]["role"] == "user":
+                        last_user_msg = messages[i]
+                        last_user_idx = i
+                        break
+                
+                # 计算可用窗口大小（减去系统消息和最后的用户消息）
+                reserved_count = len(system_messages) + (1 if last_user_msg else 0)
+                available_window = self.window_size - reserved_count
+                
+                if available_window > 0:
+                    # 将消息分组为原子单元（保持tool消息与其tool_calls配对）
+                    message_units = []
+                    i = 0
+                    while i < len(messages):
+                        msg = messages[i]
+                        
+                        # 跳过系统消息和最后的用户消息（它们会被特殊处理）
+                        if msg["role"] == "system" or i == last_user_idx:
+                            i += 1
+                            continue
+                        
+                        # 如果是带有tool_calls的assistant消息，收集所有相关的tool响应
+                        if msg["role"] == "assistant" and msg.get("tool_calls"):
+                            unit = [msg]
+                            i += 1
+                            # 收集所有紧跟的tool消息
+                            while i < len(messages) and messages[i]["role"] == "tool":
+                                unit.append(messages[i])
+                                i += 1
+                            message_units.append(unit)
+                        else:
+                            # 单独的消息作为一个单元
+                            message_units.append([msg])
+                            i += 1
+                    
+                    # 计算每个单元的消息数
+                    unit_sizes = [len(unit) for unit in message_units]
+                    
+                    # 从后向前选择单元，直到达到窗口限制
+                    selected_units = []
+                    current_size = 0
+                    for i in range(len(message_units) - 1, -1, -1):
+                        unit_size = unit_sizes[i]
+                        if current_size + unit_size <= available_window:
+                            selected_units.insert(0, message_units[i])
+                            current_size += unit_size
+                        else:
+                            break
+                    
+                    # 展开选中的单元为消息列表
+                    recent_other = []
+                    for unit in selected_units:
+                        recent_other.extend(unit)
+                    
+                    # 重组消息：系统 + 最后用户消息 + 最近的其他消息
+                    messages = system_messages
+                    if last_user_msg:
+                        messages.append(last_user_msg)
+                    messages.extend(recent_other)
+                    
+                    print(f"  🔄 工作记忆滑动窗口：保持系统提示、当前任务和最近 {current_size} 条消息（{len(selected_units)} 个单元）")
+                else:
+                    # 窗口太小，只保留系统消息和最后的用户消息
+                    messages = system_messages
+                    if last_user_msg:
+                        messages.append(last_user_msg)
+                    print(f"  🔄 工作记忆滑动窗口：仅保持系统提示和当前任务")
             
             # 显示LLM的思考内容（如果有）
             if message.get("content"):
@@ -249,10 +325,20 @@ class ReactAgentMinimal(Function):
                         result_preview = tool_result[:150] if len(tool_result) > 150 else tool_result
                         print(f"   ✅ 结果: {result_preview}")
                         
-                        # 检测是否写了笔记（只是外部备份，不影响滑动窗口）
-                        if tool_name == "write_file" and str(self.notes_file) in str(arguments.get("file_path", "")):
-                            print(f"\n   📝 笔记已保存（外部持久化）")
-                            print(f"   💭 工作记忆继续保持滑动窗口")
+                        # 检测是否写了笔记（三层架构）
+                        if tool_name == "write_file":
+                            file_path = str(arguments.get("file_path", ""))
+                            if "experience.md" in file_path:
+                                print(f"\n   📝 经验库已更新（长期知识）")
+                            elif "task_state.md" in file_path:
+                                print(f"\n   📋 任务状态已更新（TODO管理）")
+                            elif "environment.md" in file_path:
+                                print(f"\n   🏗️ 环境知识已更新（系统架构）")
+                            elif str(self.notes_dir) in file_path:
+                                print(f"\n   📝 笔记已保存（外部持久化）")
+                            
+                            if str(self.notes_dir) in file_path:
+                                print(f"   💭 工作记忆继续保持滑动窗口")
                         
                         # 添加工具结果到消息（正确的格式）
                         tool_message = {
@@ -280,8 +366,18 @@ class ReactAgentMinimal(Function):
                 
                 # 显示统计
                 print(f"\n📊 任务完成统计：")
-                if self.notes_file.exists():
-                    print(f"  ✅ 笔记已保存: {self.notes_file}")
+                notes_created = []
+                if self.experience_file.exists():
+                    notes_created.append("experience.md")
+                if self.task_state_file.exists():
+                    notes_created.append("task_state.md")
+                if self.environment_file.exists():
+                    notes_created.append("environment.md")
+                
+                if notes_created:
+                    print(f"  ✅ 已创建/更新笔记: {', '.join(notes_created)}")
+                else:
+                    print(f"  ℹ️ 未创建笔记（任务简单或无需记录）")
                 
                 return message.get("content", "任务完成")
         
@@ -299,8 +395,16 @@ class ReactAgentMinimal(Function):
             
             # 检查是否有现存笔记（元记忆）
             meta_memory = ""
-            if self.notes_file.exists():
-                meta_memory = "\n[元记忆] 发现之前的笔记，首次需要时使用read_file查看。"
+            existing_notes = []
+            if self.experience_file.exists():
+                existing_notes.append("experience.md")
+            if self.task_state_file.exists():
+                existing_notes.append("task_state.md")
+            if self.environment_file.exists():
+                existing_notes.append("environment.md")
+            
+            if existing_notes:
+                meta_memory = f"\n[元记忆] 发现之前的笔记文件：{', '.join(existing_notes)}\n首次需要时使用read_file查看。"
             
             # 准备知识内容部分
             knowledge_section = ""
@@ -403,20 +507,23 @@ class ReactAgentMinimal(Function):
         
         for attempt in range(max_retries):
             try:
+                # 准备请求数据
+                request_data = {
+                    "model": self.model,
+                    "messages": messages,
+                    "tools": self.tools,
+                    "tool_choice": "auto",
+                    "temperature": 0.3,
+                    "max_tokens": 4096
+                }
+                
                 response = requests.post(
                     f"{self.base_url}/chat/completions",
                     headers={
                         "Authorization": f"Bearer {self.api_key}",
                         "Content-Type": "application/json"
                     },
-                    json={
-                        "model": self.model,
-                        "messages": messages,
-                        "tools": self.tools,
-                        "tool_choice": "auto",
-                        "temperature": 0.3,
-                        "max_tokens": 4096
-                    },
+                    json=request_data,
                     timeout=60  # 增加到60秒
                 )
             
