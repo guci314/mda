@@ -117,26 +117,31 @@ class ReadFileTool(Function):
             offset = int(kwargs.get("offset", 0))
             limit = int(kwargs.get("limit", 2000))
             
+            # 读取整个文件内容（这样可以按字符而不是字节处理）
             with open(file_path, 'r', encoding='utf-8') as f:
-                file_size = file_path.stat().st_size
-                
-                # 处理负偏移（从文件末尾开始）
-                if offset < 0:
-                    offset = max(0, file_size + offset)
-                
-                # 移动到指定位置
-                if offset > 0:
-                    f.seek(offset)
-                
-                # 读取指定长度
-                content = f.read(limit)
-                
-                # 添加位置信息（仅在分段读取时）
-                if offset > 0 or (len(content) == limit and file_size > limit):
-                    end_pos = offset + len(content)
-                    return f"[读取范围: {offset}-{end_pos}/{file_size}字节]\n{content}"
-                
-                return content
+                content = f.read()
+            
+            # 获取文件的字节大小（用于显示）
+            file_size = file_path.stat().st_size
+            content_length = len(content)
+            
+            # 处理负偏移（从文件末尾开始）
+            if offset < 0:
+                offset = max(0, content_length + offset)
+            
+            # 确保offset不超过文件长度
+            if offset >= content_length:
+                return f"偏移量{offset}超过文件长度{content_length}字符"
+            
+            # 按字符切片（而不是字节）
+            end_pos = min(offset + limit, content_length)
+            result = content[offset:end_pos]
+            
+            # 添加位置信息（仅在分段读取时）
+            if offset > 0 or end_pos < content_length:
+                return f"[读取范围: {offset}-{end_pos}/{content_length}字符]\n{result}"
+            
+            return result
         return f"文件不存在: {kwargs['file_path']}"
 
 

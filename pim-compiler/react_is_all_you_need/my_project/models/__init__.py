@@ -1,4 +1,5 @@
-# 模型包初始化
+"""数据模型包"""
+
 from .article import ArticleDB
 from .category import CategoryDB
 from .comment import CommentDB

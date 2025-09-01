@@ -1,6 +1,7 @@
-# 服务层包初始化
-from .article_service import ArticleService
-from .category_service import CategoryService
-from .comment_service import CommentService
+"""服务层包"""
+
+from .article import ArticleService
+from .category import CategoryService
+from .comment import CommentService
 
 __all__ = ["ArticleService", "CategoryService", "CommentService"]

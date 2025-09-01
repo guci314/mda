@@ -1,153 +1,161 @@
-# 博客系统API
+# Blog API
 
-基于FastAPI构建的博客系统，支持文章、分类和评论管理。
+基于FastAPI的博客系统API，提供文章、分类、评论等管理功能。
 
 ## 功能特性
 
-- **文章管理**：创建、更新、删除、发布文章
-- **分类管理**：创建、更新、删除分类
-- **评论系统**：创建、审核、屏蔽评论
-- **RESTful API**：符合REST设计原则的API接口
-- **数据验证**：使用Pydantic进行数据验证
-- **单元测试**：完整的unittest测试套件
+- ✅ 文章管理（创建、读取、更新、删除、发布）
+- ✅ 分类管理
+- ✅ 评论管理（支持审核）
+- ✅ RESTful API设计
+- ✅ SQLite数据库
+- ✅ 单元测试覆盖
+- ✅ OpenAPI文档
+
+## 技术栈
+
+- **框架**: FastAPI
+- **数据库**: SQLite + SQLAlchemy ORM
+- **验证**: Pydantic
+- **测试**: unittest
+- **文档**: OpenAPI/Swagger
 
 ## 项目结构
 
 ```
-blog-api/
-├── main.py              # 主应用入口
-├── database.py          # 数据库配置
-├── requirements.txt     # 依赖列表
-├── run_tests.py        # 测试运行脚本
-├── .env.example        # 环境变量示例
-├── models/             # 数据库模型
+blog_api/
+├── main.py                 # 应用入口
+├── database.py            # 数据库配置
+├── requirements.txt       # 依赖列表
+├── run_tests.py          # 测试运行脚本
+├── .env.example          # 环境变量示例
+├── models/               # 数据模型
+│   ├── __init__.py
 │   ├── article.py
 │   ├── category.py
-│   ├── comment.py
-│   └── __init__.py
-├── schemas/            # 数据验证模式
+│   └── comment.py
+├── schemas/              # Pydantic模式
+│   ├── __init__.py
 │   ├── article.py
 │   ├── category.py
-│   ├── comment.py
-│   └── __init__.py
-├── routers/            # API路由
-│   ├── articles.py
-│   ├── categories.py
-│   ├── comments.py
-│   └── __init__.py
-├── services/           # 业务逻辑层
-│   ├── article_service.py
-│   ├── category_service.py
-│   ├── comment_service.py
-│   └── __init__.py
-└── tests/              # 单元测试
+│   └── comment.py
+├── repositories/         # 数据访问层
+│   ├── __init__.py
+│   ├── article.py
+│   ├── category.py
+│   └── comment.py
+├── services/             # 业务逻辑层
+│   ├── __init__.py
+│   ├── article.py
+│   ├── category.py
+│   └── comment.py
+├── routers/              # API路由
+│   ├── __init__.py
+│   ├── article.py
+│   ├── category.py
+│   └── comment.py
+└── tests/                # 单元测试
+    ├── __init__.py
+    ├── conftest.py
+    ├── test_main.py
     ├── test_articles.py
     ├── test_categories.py
-    ├── test_comments.py
-    ├── test_main.py
-    └── __init__.py
+    └── test_comments.py
 ```
 
-## 快速开始
+## 安装运行
 
-### 1. 环境准备
-
+1. 克隆项目
 ```bash
-# 克隆项目
 git clone <repository-url>
-cd blog-api
+cd blog_api
+```
 
-# 创建虚拟环境
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
-
-# 安装依赖
+2. 安装依赖
+```bash
 pip install -r requirements.txt
 ```
 
-### 2. 运行应用
-
+3. 配置环境变量（可选）
 ```bash
-# 直接运行
-python main.py
-
-# 或使用uvicorn
-uvicorn main:app --reload
+cp .env.example .env
+# 编辑 .env 文件配置参数
 ```
 
-### 3. 访问API文档
+4. 运行应用
+```bash
+uvicorn main:app --reload --host 0.0.0.0 --port 8000
+```
 
-启动后访问：http://localhost:8000/docs
+5. 访问文档
+- Swagger UI: http://localhost:8000/docs
+- ReDoc: http://localhost:8000/redoc
 
 ## API端点
 
 ### 文章管理
-- `POST /api/v1/articles/` - 创建文章
-- `GET /api/v1/articles/` - 获取文章列表
-- `GET /api/v1/articles/{id}` - 获取单篇文章
-- `PUT /api/v1/articles/{id}` - 更新文章
-- `DELETE /api/v1/articles/{id}` - 删除文章
-- `POST /api/v1/articles/{id}/publish` - 发布文章
-- `POST /api/v1/articles/{id}/increment-view` - 增加浏览量
+- `GET /articles/` - 获取文章列表
+- `POST /articles/` - 创建文章
+- `GET /articles/{id}` - 获取文章详情
+- `PUT /articles/{id}` - 更新文章
+- `DELETE /articles/{id}` - 删除文章
+- `POST /articles/{id}/publish` - 发布文章
 
 ### 分类管理
-- `POST /api/v1/categories/` - 创建分类
-- `GET /api/v1/categories/` - 获取分类列表
-- `GET /api/v1/categories/{id}` - 获取单个分类
-- `PUT /api/v1/categories/{id}` - 更新分类
-- `DELETE /api/v1/categories/{id}` - 删除分类
+- `GET /categories/` - 获取分类列表
+- `POST /categories/` - 创建分类
+- `GET /categories/{id}` - 获取分类详情
+- `PUT /categories/{id}` - 更新分类
+- `DELETE /categories/{id}` - 删除分类
 
 ### 评论管理
-- `POST /api/v1/comments/` - 创建评论
-- `GET /api/v1/comments/` - 获取评论列表
-- `GET /api/v1/comments/{id}` - 获取单个评论
-- `PUT /api/v1/comments/{id}` - 更新评论
-- `DELETE /api/v1/comments/{id}` - 删除评论
-- `POST /api/v1/comments/{id}/approve` - 审核通过评论
-- `POST /api/v1/comments/{id}/block` - 屏蔽评论
+- `GET /comments/` - 获取评论列表（需article_id参数）
+- `POST /comments/` - 创建评论
+- `GET /comments/{id}` - 获取评论详情
+- `PUT /comments/{id}` - 更新评论状态
+- `DELETE /comments/{id}` - 删除评论
+- `POST /comments/{id}/publish` - 发布评论
+- `POST /comments/{id}/block` - 屏蔽评论
 
-## 运行测试
+## 测试
 
+运行所有测试：
 ```bash
-# 运行所有测试
 python run_tests.py
-
-# 或运行特定测试
-python -m unittest tests.test_articles
-python -m unittest tests.test_categories
-python -m unittest tests.test_comments
 ```
 
-## 环境变量
-
-复制 `.env.example` 为 `.env` 并根据需要修改：
-
+或者使用unittest：
 ```bash
-cp .env.example .env
+python -m unittest discover tests/
 ```
 
-## 技术栈
+## 开发
 
-- **FastAPI**: 现代、快速的Web框架
-- **SQLAlchemy**: Python SQL工具包和ORM
-- **SQLite**: 轻量级数据库（可替换为PostgreSQL/MySQL）
-- **Pydantic**: 数据验证和设置管理
-- **unittest**: Python标准库测试框架
+### 代码风格
+项目遵循PEP8规范，建议使用black进行代码格式化：
+```bash
+black .
+```
 
-## 开发规范
+### 添加新功能
+1. 在对应层添加代码（模型→模式→仓储→服务→路由）
+2. 编写单元测试
+3. 更新API文档
 
-- 使用Pydantic进行数据验证
-- 遵循RESTful API设计原则
-- 使用三层架构：路由层、服务层、数据层
-- 为每个功能编写单元测试
-- 使用类型注解提高代码可读性
+## 部署
 
-## 扩展建议
+### 生产环境建议
+1. 使用PostgreSQL替代SQLite
+2. 配置合适的数据库连接池
+3. 启用HTTPS
+4. 配置反向代理（Nginx）
+5. 使用进程管理器（Gunicorn + Uvicorn）
+6. 设置监控和日志
 
-- 添加用户认证和授权
-- 实现文章搜索功能
-- 添加文章标签系统
-- 实现文章点赞功能
-- 添加文件上传功能
-- 实现缓存机制
-- 添加日志系统
+## 许可证
+
+MIT License
+
+## 贡献
+
+欢迎提交Issue和Pull Request！

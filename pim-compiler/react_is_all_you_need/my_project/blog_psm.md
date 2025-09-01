@@ -4,1076 +4,688 @@
 
 ### Entity Definitions（实体定义）
 
-#### Article（文章实体）
 ```python
+from uuid import uuid4
 from datetime import datetime
 from typing import Optional
-from uuid import uuid4
 
 class Article:
     """文章领域实体"""
-    
     def __init__(
         self,
         title: str,
         content: str,
-        summary: str,
-        author: str,
+        summary: Optional[str] = None,
+        author: str = "Anonymous",
         category_id: Optional[str] = None,
-        id: Optional[str] = None,
-        status: str = "draft",
-        view_count: int = 0
+        status: str = "draft"
     ):
-        self.id = id or str(uuid4())
+        self.id = str(uuid4())
         self.title = title
         self.content = content
         self.summary = summary
         self.author = author
         self.category_id = category_id
         self.status = status  # draft/published
-        self.view_count = view_count
+        self.view_count = 0
         self.created_at = datetime.now()
         self.updated_at = datetime.now()
 
-    def publish(self):
-        """发布文章"""
-        self.status = "published"
-        self.updated_at = datetime.now()
-
-    def increment_view(self):
-        """增加浏览量"""
-        self.view_count += 1
-
-    def update_content(self, new_title: str, new_content: str, new_summary: str):
-        """更新文章内容"""
-        self.title = new_title
-        self.content = new_content
-        self.summary = new_summary
-        self.updated_at = datetime.now()
-```
-
-#### Category（分类实体）
-```python
 class Category:
     """分类领域实体"""
-    
-    def __init__(self, name: str, description: str, id: Optional[str] = None):
-        self.id = id or str(uuid4())
+    def __init__(self, name: str, description: Optional[str] = None):
+        self.id = str(uuid4())
         self.name = name
         self.description = description
         self.article_count = 0
+        self.created_at = datetime.now()
 
-    def increment_article_count(self):
-        """增加文章数量"""
-        self.article_count += 1
-
-    def decrement_article_count(self):
-        """减少文章数量"""
-        self.article_count = max(0, self.article_count - 1)
-```
-
-#### Comment（评论实体）
-```python
 class Comment:
     """评论领域实体"""
-    
     def __init__(
         self,
         article_id: str,
         author_name: str,
         email: str,
         content: str,
-        id: Optional[str] = None
+        status: str = "pending"
     ):
-        self.id = id or str(uuid4())
+        self.id = str(uuid4())
         self.article_id = article_id
         self.author_name = author_name
         self.email = email
         self.content = content
+        self.status = status  # pending/published/blocked
         self.created_at = datetime.now()
-        self.status = "pending"  # pending/published/blocked
-
-    def approve(self):
-        """审核通过评论"""
-        self.status = "published"
-
-    def block(self):
-        """屏蔽评论"""
-        self.status = "blocked"
 ```
 
 ### Database Models（数据库模型）
 
-#### ArticleDB（文章数据库模型）
 ```python
-from sqlalchemy import Column, String, Text, DateTime, Integer, ForeignKey
-from sqlalchemy.orm import relationship
-from sqlalchemy.sql import func
-from db.base import Base
+from sqlalchemy import Column, String, Text, Integer, DateTime, ForeignKey
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+
+class Base(DeclarativeBase):
+    pass
 
 class ArticleDB(Base):
     __tablename__ = "articles"
     
-    id = Column(String(36), primary_key=True, default=lambda: str(uuid4()))
-    title = Column(String(200), nullable=False)
-    content = Column(Text, nullable=False)
-    summary = Column(String(500), nullable=False)
-    author = Column(String(50), nullable=False)
-    category_id = Column(String(36), ForeignKey("categories.id"), nullable=True)
-    status = Column(String(20), default="draft")  # draft/published
-    view_count = Column(Integer, default=0)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    title: Mapped[str] = mapped_column(String(200), nullable=False)
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    summary: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    author: Mapped[str] = mapped_column(String(100), nullable=False, default="Anonymous")
+    category_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("categories.id"), nullable=True)
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="draft")
+    view_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.now)
     
     # 关系
-    category = relationship("CategoryDB", back_populates="articles")
-    comments = relationship("CommentDB", back_populates="article", cascade="all, delete-orphan")
-```
+    category: Mapped[Optional["CategoryDB"]] = relationship("CategoryDB", back_populates="articles")
+    comments: Mapped[list["CommentDB"]] = relationship("CommentDB", back_populates="article")
 
-#### CategoryDB（分类数据库模型）
-```python
 class CategoryDB(Base):
     __tablename__ = "categories"
     
-    id = Column(String(36), primary_key=True, default=lambda: str(uuid4()))
-    name = Column(String(50), unique=True, nullable=False)
-    description = Column(String(500), nullable=True)
-    article_count = Column(Integer, default=0)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    name: Mapped[str] = mapped_column(String(100), nullable=False, unique=True)
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    article_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.now)
     
     # 关系
-    articles = relationship("ArticleDB", back_populates="category")
-```
+    articles: Mapped[list["ArticleDB"]] = relationship("ArticleDB", back_populates="category")
 
-#### CommentDB（评论数据库模型）
-```python
 class CommentDB(Base):
     __tablename__ = "comments"
     
-    id = Column(String(36), primary_key=True, default=lambda: str(uuid4()))
-    article_id = Column(String(36), ForeignKey("articles.id"), nullable=False)
-    author_name = Column(String(50), nullable=False)
-    email = Column(String(100), nullable=False)
-    content = Column(Text, nullable=False)
-    status = Column(String(20), default="pending")  # pending/published/blocked
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    article_id: Mapped[str] = mapped_column(String(36), ForeignKey("articles.id"), nullable=False)
+    author_name: Mapped[str] = mapped_column(String(100), nullable=False)
+    email: Mapped[str] = mapped_column(String(200), nullable=False)
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="pending")
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.now)
     
     # 关系
-    article = relationship("ArticleDB", back_populates="comments")
+    article: Mapped["ArticleDB"] = relationship("ArticleDB", back_populates="comments")
 ```
 
 ### Pydantic Schemas（验证模型）
 
-#### Article Schemas（文章验证模型）
 ```python
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 from typing import Optional
 from datetime import datetime
 
-class ArticleCreate(BaseModel):
-    """创建文章的输入模型"""
+# Article schemas
+class ArticleBase(BaseModel):
     title: str = Field(..., min_length=1, max_length=200)
     content: str = Field(..., min_length=1)
-    summary: str = Field(..., min_length=1, max_length=500)
-    author: str = Field(..., min_length=1, max_length=50)
+    summary: Optional[str] = Field(None, max_length=500)
+    author: str = Field("Anonymous", min_length=1, max_length=100)
     category_id: Optional[str] = None
-    
-    model_config = ConfigDict(from_attributes=True)
+    status: str = Field("draft", pattern="^(draft|published)$")
+
+class ArticleCreate(ArticleBase):
+    pass
 
 class ArticleUpdate(BaseModel):
-    """更新文章的输入模型"""
     title: Optional[str] = Field(None, min_length=1, max_length=200)
     content: Optional[str] = Field(None, min_length=1)
-    summary: Optional[str] = Field(None, min_length=1, max_length=500)
+    summary: Optional[str] = Field(None, max_length=500)
+    author: Optional[str] = Field(None, min_length=1, max_length=100)
     category_id: Optional[str] = None
     status: Optional[str] = Field(None, pattern="^(draft|published)$")
-    
-    model_config = ConfigDict(from_attributes=True)
 
-class ArticleResponse(BaseModel):
-    """文章响应模型"""
+class ArticleResponse(ArticleBase):
+    model_config = ConfigDict(from_attributes=True)
+    
     id: str
-    title: str
-    content: str
-    summary: str
-    author: str
-    category_id: Optional[str] = None
-    status: str
     view_count: int
     created_at: datetime
-    updated_at: Optional[datetime] = None
-    
-    model_config = ConfigDict(from_attributes=True)
+    updated_at: datetime
 
 class ArticleQuery(BaseModel):
-    """文章查询参数模型"""
     category_id: Optional[str] = None
-    status: Optional[str] = None
-    search: Optional[str] = None
+    status: Optional[str] = Field(None, pattern="^(draft|published)$")
+    search: Optional[str] = Field(None, min_length=1)
     skip: int = Field(0, ge=0)
     limit: int = Field(10, ge=1, le=100)
-    
-    model_config = ConfigDict(from_attributes=True)
-```
 
-#### Category Schemas（分类验证模型）
-```python
-class CategoryCreate(BaseModel):
-    """创建分类的输入模型"""
-    name: str = Field(..., min_length=1, max_length=50)
+# Category schemas
+class CategoryBase(BaseModel):
+    name: str = Field(..., min_length=1, max_length=100)
     description: Optional[str] = Field(None, max_length=500)
-    
-    model_config = ConfigDict(from_attributes=True)
+
+class CategoryCreate(CategoryBase):
+    pass
 
 class CategoryUpdate(BaseModel):
-    """更新分类的输入模型"""
-    name: Optional[str] = Field(None, min_length=1, max_length=50)
+    name: Optional[str] = Field(None, min_length=1, max_length=100)
     description: Optional[str] = Field(None, max_length=500)
-    
-    model_config = ConfigDict(from_attributes=True)
 
-class CategoryResponse(BaseModel):
-    """分类响应模型"""
+class CategoryResponse(CategoryBase):
+    model_config = ConfigDict(from_attributes=True)
+    
     id: str
-    name: str
-    description: Optional[str] = None
     article_count: int
     created_at: datetime
-    
-    model_config = ConfigDict(from_attributes=True)
-```
 
-#### Comment Schemas（评论验证模型）
-```python
-class CommentCreate(BaseModel):
-    """创建评论的输入模型"""
-    article_id: str
-    author_name: str = Field(..., min_length=1, max_length=50)
-    email: str = Field(..., pattern=r'^[^@]+@[^@]+\.[^@]+$')
-    content: str = Field(..., min_length=1, max_length=1000)
-    
-    model_config = ConfigDict(from_attributes=True)
+# Comment schemas
+class CommentBase(BaseModel):
+    author_name: str = Field(..., min_length=1, max_length=100)
+    email: str = Field(..., min_length=1, max_length=200)
+    content: str = Field(..., min_length=1)
+
+class CommentCreate(CommentBase):
+    pass
 
 class CommentUpdate(BaseModel):
-    """更新评论的输入模型"""
-    content: Optional[str] = Field(None, min_length=1, max_length=1000)
     status: Optional[str] = Field(None, pattern="^(pending|published|blocked)$")
-    
-    model_config = ConfigDict(from_attributes=True)
 
-class CommentResponse(BaseModel):
-    """评论响应模型"""
+class CommentResponse(CommentBase):
+    model_config = ConfigDict(from_attributes=True)
+    
     id: str
     article_id: str
-    author_name: str
-    email: str
-    content: str
     status: str
     created_at: datetime
-    
-    model_config = ConfigDict(from_attributes=True)
 
 class CommentQuery(BaseModel):
-    """评论查询参数模型"""
-    article_id: Optional[str] = None
-    status: Optional[str] = None
+    article_id: str
+    status: Optional[str] = Field(None, pattern="^(pending|published|blocked)$")
     skip: int = Field(0, ge=0)
     limit: int = Field(10, ge=1, le=100)
-    
-    model_config = ConfigDict(from_attributes=True)
 ```
 
 ### Enums and Constants（枚举和常量）
+
 ```python
 from enum import Enum
 
 class ArticleStatus(str, Enum):
-    """文章状态枚举"""
     DRAFT = "draft"
     PUBLISHED = "published"
 
 class CommentStatus(str, Enum):
-    """评论状态枚举"""
     PENDING = "pending"
     PUBLISHED = "published"
     BLOCKED = "blocked"
-
-# 业务常量
-MAX_TITLE_LENGTH = 200
-MAX_SUMMARY_LENGTH = 500
-MAX_AUTHOR_LENGTH = 50
-MAX_CONTENT_LENGTH = 10000
-MAX_COMMENT_LENGTH = 1000
 ```
 ## 2. Service Layer（服务层）
 
 ### Business Services（业务服务）
 
-#### ArticleService（文章服务）
 ```python
 from typing import List, Optional
 from sqlalchemy.orm import Session
-from models.article import ArticleDB, ArticleStatus
-from schemas.article import ArticleCreate, ArticleUpdate
-from repositories.article_repository import ArticleRepository
+from .models import ArticleDB, CategoryDB, CommentDB
+from .schemas import (
+    ArticleCreate, ArticleUpdate, ArticleResponse, ArticleQuery,
+    CategoryCreate, CategoryUpdate, CategoryResponse,
+    CommentCreate, CommentUpdate, CommentResponse, CommentQuery
+)
 
 class ArticleService:
     """文章业务服务"""
     
-    def __init__(self, repository: ArticleRepository):
+    def __init__(self, repository: "ArticleRepository"):
         self.repository = repository
     
-    def create_article(self, article_data: ArticleCreate) -> ArticleDB:
-        """创建新文章（草稿状态）"""
-        # 验证分类存在性
-        if article_data.category_id:
-            from repositories.category_repository import CategoryRepository
-            category_repo = CategoryRepository(self.repository.db)
-            category = category_repo.get_by_id(article_data.category_id)
-            if not category:
-                raise ValueError(f"分类不存在: {article_data.category_id}")
-        
-        article = ArticleDB(
+    def create_article(self, article_data: ArticleCreate) -> ArticleResponse:
+        """创建文章"""
+        article = Article(
             title=article_data.title,
             content=article_data.content,
             summary=article_data.summary,
             author=article_data.author,
             category_id=article_data.category_id,
-            status=ArticleStatus.DRAFT
+            status=article_data.status
         )
-        return self.repository.create(article)
+        db_article = self.repository.save(article)
+        return ArticleResponse.model_validate(db_article)
     
-    def publish_article(self, article_id: str) -> ArticleDB:
-        """发布文章"""
-        article = self.repository.get_by_id(article_id)
-        if not article:
-            raise ValueError(f"文章不存在: {article_id}")
-        
-        article.status = ArticleStatus.PUBLISHED
-        return self.repository.update(article)
+    def get_article(self, article_id: str) -> Optional[ArticleResponse]:
+        """获取文章"""
+        db_article = self.repository.get_by_id(article_id)
+        if db_article:
+            # 增加浏览量
+            db_article.view_count += 1
+            self.repository.save(db_article)
+            return ArticleResponse.model_validate(db_article)
+        return None
     
-    def update_article(self, article_id: str, update_data: ArticleUpdate) -> ArticleDB:
+    def update_article(self, article_id: str, article_data: ArticleUpdate) -> Optional[ArticleResponse]:
         """更新文章"""
-        article = self.repository.get_by_id(article_id)
-        if not article:
-            raise ValueError(f"文章不存在: {article_id}")
+        db_article = self.repository.get_by_id(article_id)
+        if not db_article:
+            return None
         
-        # 更新字段
-        update_dict = update_data.model_dump(exclude_unset=True)
-        for field, value in update_dict.items():
-            setattr(article, field, value)
+        update_data = article_data.model_dump(exclude_unset=True)
+        for field, value in update_data.items():
+            setattr(db_article, field, value)
+        db_article.updated_at = datetime.now()
         
-        return self.repository.update(article)
+        self.repository.save(db_article)
+        return ArticleResponse.model_validate(db_article)
     
     def delete_article(self, article_id: str) -> bool:
         """删除文章"""
         return self.repository.delete(article_id)
     
-    def get_articles_by_category(self, category_id: str, skip: int = 0, limit: int = 10) -> List[ArticleDB]:
-        """按分类获取文章列表"""
-        return self.repository.get_by_category(category_id, skip, limit)
+    def list_articles(self, query: ArticleQuery) -> List[ArticleResponse]:
+        """查询文章列表"""
+        db_articles = self.repository.query_articles(query)
+        return [ArticleResponse.model_validate(article) for article in db_articles]
     
-    def search_articles(self, query: str, skip: int = 0, limit: int = 10) -> List[ArticleDB]:
-        """搜索文章（按标题或内容）"""
-        return self.repository.search(query, skip, limit)
-    
-    def increment_view_count(self, article_id: str) -> ArticleDB:
-        """增加文章浏览量"""
-        article = self.repository.get_by_id(article_id)
-        if article:
-            article.view_count += 1
-            return self.repository.update(article)
-        raise ValueError(f"文章不存在: {article_id}")
-    
-    def get_published_articles(self, skip: int = 0, limit: int = 10) -> List[ArticleDB]:
-        """获取已发布的文章列表"""
-        return self.repository.get_published(skip, limit)
-```
+    def publish_article(self, article_id: str) -> Optional[ArticleResponse]:
+        """发布文章"""
+        db_article = self.repository.get_by_id(article_id)
+        if db_article and db_article.status == "draft":
+            db_article.status = "published"
+            db_article.updated_at = datetime.now()
+            self.repository.save(db_article)
+            return ArticleResponse.model_validate(db_article)
+        return None
 
-#### CategoryService（分类服务）
-```python
 class CategoryService:
     """分类业务服务"""
     
-    def __init__(self, repository: CategoryRepository):
+    def __init__(self, repository: "CategoryRepository"):
         self.repository = repository
     
-    def create_category(self, category_data: CategoryCreate) -> CategoryDB:
-        """创建新分类"""
-        # 检查名称唯一性
-        existing = self.repository.get_by_name(category_data.name)
-        if existing:
-            raise ValueError(f"分类名称已存在: {category_data.name}")
-        
-        category = CategoryDB(
+    def create_category(self, category_data: CategoryCreate) -> CategoryResponse:
+        """创建分类"""
+        category = Category(
             name=category_data.name,
             description=category_data.description
         )
-        return self.repository.create(category)
+        db_category = self.repository.save(category)
+        return CategoryResponse.model_validate(db_category)
     
-    def update_category(self, category_id: str, update_data: CategoryUpdate) -> CategoryDB:
+    def get_category(self, category_id: str) -> Optional[CategoryResponse]:
+        """获取分类"""
+        db_category = self.repository.get_by_id(category_id)
+        if db_category:
+            return CategoryResponse.model_validate(db_category)
+        return None
+    
+    def update_category(self, category_id: str, category_data: CategoryUpdate) -> Optional[CategoryResponse]:
         """更新分类"""
-        category = self.repository.get_by_id(category_id)
-        if not category:
-            raise ValueError(f"分类不存在: {category_id}")
+        db_category = self.repository.get_by_id(category_id)
+        if not db_category:
+            return None
         
-        # 如果更新名称，检查唯一性
-        if update_data.name and update_data.name != category.name:
-            existing = self.repository.get_by_name(update_data.name)
-            if existing:
-                raise ValueError(f"分类名称已存在: {update_data.name}")
+        update_data = category_data.model_dump(exclude_unset=True)
+        for field, value in update_data.items():
+            setattr(db_category, field, value)
         
-        update_dict = update_data.model_dump(exclude_unset=True)
-        for field, value in update_dict.items():
-            setattr(category, field, value)
-        
-        return self.repository.update(category)
+        self.repository.save(db_category)
+        return CategoryResponse.model_validate(db_category)
     
     def delete_category(self, category_id: str) -> bool:
         """删除分类"""
-        # 检查是否有文章使用该分类
-        article_count = self.repository.get_article_count(category_id)
-        if article_count > 0:
-            raise ValueError("该分类下还有文章，无法删除")
-        
         return self.repository.delete(category_id)
     
-    def get_all_categories(self) -> List[CategoryDB]:
+    def list_categories(self) -> List[CategoryResponse]:
         """获取所有分类"""
-        return self.repository.get_all()
-    
-    def get_category_with_articles(self, category_id: str) -> CategoryDB:
-        """获取分类及其文章"""
-        return self.repository.get_with_articles(category_id)
-```
+        db_categories = self.repository.get_all()
+        return [CategoryResponse.model_validate(category) for category in db_categories]
 
-#### CommentService（评论服务）
-```python
 class CommentService:
     """评论业务服务"""
     
-    def __init__(self, repository: CommentRepository):
+    def __init__(self, repository: "CommentRepository"):
         self.repository = repository
     
-    def create_comment(self, comment_data: CommentCreate) -> CommentDB:
-        """创建新评论"""
-        # 验证文章存在性
-        from repositories.article_repository import ArticleRepository
-        article_repo = ArticleRepository(self.repository.db)
-        article = article_repo.get_by_id(comment_data.article_id)
-        if not article:
-            raise ValueError(f"文章不存在: {comment_data.article_id}")
-        
-        comment = CommentDB(
+    def create_comment(self, comment_data: CommentCreate) -> CommentResponse:
+        """创建评论"""
+        comment = Comment(
             article_id=comment_data.article_id,
             author_name=comment_data.author_name,
             email=comment_data.email,
             content=comment_data.content
         )
-        return self.repository.create(comment)
+        db_comment = self.repository.save(comment)
+        return CommentResponse.model_validate(db_comment)
     
-    def approve_comment(self, comment_id: str) -> CommentDB:
-        """审核通过评论"""
-        comment = self.repository.get_by_id(comment_id)
-        if not comment:
-            raise ValueError(f"评论不存在: {comment_id}")
-        
-        comment.status = CommentStatus.PUBLISHED
-        return self.repository.update(comment)
+    def get_comment(self, comment_id: str) -> Optional[CommentResponse]:
+        """获取评论"""
+        db_comment = self.repository.get_by_id(comment_id)
+        if db_comment:
+            return CommentResponse.model_validate(db_comment)
+        return None
     
-    def block_comment(self, comment_id: str) -> CommentDB:
-        """屏蔽评论"""
-        comment = self.repository.get_by_id(comment_id)
-        if not comment:
-            raise ValueError(f"评论不存在: {comment_id}")
+    def update_comment(self, comment_id: str, comment_data: CommentUpdate) -> Optional[CommentResponse]:
+        """更新评论"""
+        db_comment = self.repository.get_by_id(comment_id)
+        if not db_comment:
+            return None
         
-        comment.status = CommentStatus.BLOCKED
-        return self.repository.update(comment)
+        update_data = comment_data.model_dump(exclude_unset=True)
+        for field, value in update_data.items():
+            setattr(db_comment, field, value)
+        
+        self.repository.save(db_comment)
+        return CommentResponse.model_validate(db_comment)
     
     def delete_comment(self, comment_id: str) -> bool:
         """删除评论"""
         return self.repository.delete(comment_id)
     
-    def get_comments_by_article(self, article_id: str, skip: int = 0, limit: int = 10) -> List[CommentDB]:
-        """获取文章的评论列表"""
-        return self.repository.get_by_article(article_id, skip, limit)
+    def list_comments(self, query: CommentQuery) -> List[CommentResponse]:
+        """查询评论列表"""
+        db_comments = self.repository.query_comments(query)
+        return [CommentResponse.model_validate(comment) for comment in db_comments]
     
-    def get_pending_comments(self, skip: int = 0, limit: int = 10) -> List[CommentDB]:
-        """获取待审核的评论列表"""
-        return self.repository.get_pending(skip, limit)
+    def approve_comment(self, comment_id: str) -> Optional[CommentResponse]:
+        """审核通过评论"""
+        db_comment = self.repository.get_by_id(comment_id)
+        if db_comment and db_comment.status == "pending":
+            db_comment.status = "published"
+            self.repository.save(db_comment)
+            return CommentResponse.model_validate(db_comment)
+        return None
 ```
 
 ### Repository Pattern（仓储模式）
 
-#### BaseRepository（基础仓储）
 ```python
-from typing import Generic, TypeVar, List, Optional
+from typing import List, Optional
 from sqlalchemy.orm import Session
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy import or_, and_
+from .models import ArticleDB, CategoryDB, CommentDB
+from .schemas import ArticleQuery, CommentQuery
 
-T = TypeVar('T')
-
-class BaseRepository(Generic[T]):
-    """基础仓储类"""
-    
-    def __init__(self, db: Session, model_class: type):
-        self.db = db
-        self.model_class = model_class
-    
-    def create(self, entity: T) -> T:
-        """创建实体"""
-        try:
-            self.db.add(entity)
-            self.db.commit()
-            self.db.refresh(entity)
-            return entity
-        except IntegrityError as e:
-            self.db.rollback()
-            raise ValueError(f"创建失败: {str(e)}")
-    
-    def get_by_id(self, entity_id: str) -> Optional[T]:
-        """根据ID获取实体"""
-        return self.db.query(self.model_class).filter(self.model_class.id == entity_id).first()
-    
-    def get_all(self, skip: int = 0, limit: int = 100) -> List[T]:
-        """获取所有实体"""
-        return self.db.query(self.model_class).offset(skip).limit(limit).all()
-    
-    def update(self, entity: T) -> T:
-        """更新实体"""
-        try:
-            self.db.commit()
-            self.db.refresh(entity)
-            return entity
-        except IntegrityError as e:
-            self.db.rollback()
-            raise ValueError(f"更新失败: {str(e)}")
-    
-    def delete(self, entity_id: str) -> bool:
-        """删除实体"""
-        entity = self.get_by_id(entity_id)
-        if entity:
-            self.db.delete(entity)
-            self.db.commit()
-            return True
-        return False
-```
-
-#### ArticleRepository（文章仓储）
-```python
-from sqlalchemy import or_
-from typing import List
-
-class ArticleRepository(BaseRepository[ArticleDB]):
+class ArticleRepository:
     """文章仓储"""
     
     def __init__(self, db: Session):
-        super().__init__(db, ArticleDB)
+        self.db = db
     
-    def get_by_category(self, category_id: str, skip: int = 0, limit: int = 10) -> List[ArticleDB]:
-        """按分类获取文章"""
-        return self.db.query(ArticleDB)\
-            .filter(ArticleDB.category_id == category_id)\
-            .offset(skip).limit(limit).all()
+    def save(self, article: Article) -> ArticleDB:
+        """保存文章"""
+        db_article = ArticleDB(
+            title=article.title,
+            content=article.content,
+            summary=article.summary,
+            author=article.author,
+            category_id=article.category_id,
+            status=article.status,
+            view_count=article.view_count,
+            created_at=article.created_at,
+            updated_at=article.updated_at
+        )
+        self.db.add(db_article)
+        self.db.commit()
+        self.db.refresh(db_article)
+        return db_article
     
-    def search(self, query: str, skip: int = 0, limit: int = 10) -> List[ArticleDB]:
-        """搜索文章"""
-        search_term = f"%{query}%"
-        return self.db.query(ArticleDB)\
-            .filter(
+    def save(self, db_article: ArticleDB) -> ArticleDB:
+        """保存或更新文章"""
+        self.db.add(db_article)
+        self.db.commit()
+        self.db.refresh(db_article)
+        return db_article
+    
+    def get_by_id(self, article_id: str) -> Optional[ArticleDB]:
+        """根据ID获取文章"""
+        return self.db.query(ArticleDB).filter(ArticleDB.id == article_id).first()
+    
+    def delete(self, article_id: str) -> bool:
+        """删除文章"""
+        db_article = self.get_by_id(article_id)
+        if db_article:
+            self.db.delete(db_article)
+            self.db.commit()
+            return True
+        return False
+    
+    def query_articles(self, query: ArticleQuery) -> List[ArticleDB]:
+        """查询文章"""
+        q = self.db.query(ArticleDB)
+        
+        if query.category_id:
+            q = q.filter(ArticleDB.category_id == query.category_id)
+        
+        if query.status:
+            q = q.filter(ArticleDB.status == query.status)
+        
+        if query.search:
+            search_term = f"%{query.search}%"
+            q = q.filter(
                 or_(
-                    ArticleDB.title.like(search_term),
-                    ArticleDB.content.like(search_term)
+                    ArticleDB.title.ilike(search_term),
+                    ArticleDB.content.ilike(search_term)
                 )
-            )\
-            .offset(skip).limit(limit).all()
-    
-    def get_published(self, skip: int = 0, limit: int = 10) -> List[ArticleDB]:
-        """获取已发布的文章"""
-        return self.db.query(ArticleDB)\
-            .filter(ArticleDB.status == ArticleStatus.PUBLISHED)\
-            .offset(skip).limit(limit).all()
-```
+            )
+        
+        q = q.offset(query.skip).limit(query.limit)
+        return q.all()
 
-#### CategoryRepository（分类仓储）
-```python
-class CategoryRepository(BaseRepository[CategoryDB]):
+class CategoryRepository:
     """分类仓储"""
     
     def __init__(self, db: Session):
-        super().__init__(db, CategoryDB)
+        self.db = db
     
-    def get_by_name(self, name: str) -> Optional[CategoryDB]:
-        """根据名称获取分类"""
-        return self.db.query(CategoryDB).filter(CategoryDB.name == name).first()
+    def save(self, category: Category) -> CategoryDB:
+        """保存分类"""
+        db_category = CategoryDB(
+            name=category.name,
+            description=category.description,
+            article_count=category.article_count,
+            created_at=category.created_at
+        )
+        self.db.add(db_category)
+        self.db.commit()
+        self.db.refresh(db_category)
+        return db_category
     
-    def get_article_count(self, category_id: str) -> int:
-        """获取分类下的文章数量"""
-        from models.article import ArticleDB
-        return self.db.query(ArticleDB)\
-            .filter(ArticleDB.category_id == category_id)\
-            .count()
+    def save(self, db_category: CategoryDB) -> CategoryDB:
+        """保存或更新分类"""
+        self.db.add(db_category)
+        self.db.commit()
+        self.db.refresh(db_category)
+        return db_category
     
-    def get_with_articles(self, category_id: str) -> Optional[CategoryDB]:
-        """获取分类及其文章"""
-        return self.db.query(CategoryDB)\
-            .filter(CategoryDB.id == category_id)\
-            .first()
-```
+    def get_by_id(self, category_id: str) -> Optional[CategoryDB]:
+        """根据ID获取分类"""
+        return self.db.query(CategoryDB).filter(CategoryDB.id == category_id).first()
+    
+    def get_all(self) -> List[CategoryDB]:
+        """获取所有分类"""
+        return self.db.query(CategoryDB).all()
+    
+    def delete(self, category_id: str) -> bool:
+        """删除分类"""
+        db_category = self.get_by_id(category_id)
+        if db_category:
+            self.db.delete(db_category)
+            self.db.commit()
+            return True
+        return False
 
-#### CommentRepository（评论仓储）
-```python
-class CommentRepository(BaseRepository[CommentDB]):
+class CommentRepository:
     """评论仓储"""
     
     def __init__(self, db: Session):
-        super().__init__(db, CommentDB)
+        self.db = db
     
-    def get_by_article(self, article_id: str, skip: int = 0, limit: int = 10) -> List[CommentDB]:
-        """获取文章的评论"""
-        return self.db.query(CommentDB)\
-            .filter(CommentDB.article_id == article_id)\
-            .order_by(CommentDB.created_at.desc())\
-            .offset(skip).limit(limit).all()
+    def save(self, comment: Comment) -> CommentDB:
+        """保存评论"""
+        db_comment = CommentDB(
+            article_id=comment.article_id,
+            author_name=comment.author_name,
+            email=comment.email,
+            content=comment.content,
+            status=comment.status,
+            created_at=comment.created_at
+        )
+        self.db.add(db_comment)
+        self.db.commit()
+        self.db.refresh(db_comment)
+        return db_comment
     
-    def get_pending(self, skip: int = 0, limit: int = 10) -> List[CommentDB]:
-        """获取待审核的评论"""
-        return self.db.query(CommentDB)\
-            .filter(CommentDB.status == CommentStatus.PENDING)\
-            .order_by(CommentDB.created_at.desc())\
-            .offset(skip).limit(limit).all()
+    def save(self, db_comment: CommentDB) -> CommentDB:
+        """保存或更新评论"""
+        self.db.add(db_comment)
+        self.db.commit()
+        self.db.refresh(db_comment)
+        return db_comment
+    
+    def get_by_id(self, comment_id: str) -> Optional[CommentDB]:
+        """根据ID获取评论"""
+        return self.db.query(CommentDB).filter(CommentDB.id == comment_id).first()
+    
+    def delete(self, comment_id: str) -> bool:
+        """删除评论"""
+        db_comment = self.get_by_id(comment_id)
+        if db_comment:
+            self.db.delete(db_comment)
+            self.db.commit()
+            return True
+        return False
+    
+    def query_comments(self, query: CommentQuery) -> List[CommentDB]:
+        """查询评论"""
+        q = self.db.query(CommentDB).filter(CommentDB.article_id == query.article_id)
+        
+        if query.status:
+            q = q.filter(CommentDB.status == query.status)
+        
+        q = q.offset(query.skip).limit(query.limit)
+        return q.all()
 ```
 
 ### Transaction Management（事务管理）
+
 ```python
 from contextlib import contextmanager
 from sqlalchemy.orm import Session
 
-class TransactionManager:
-    """事务管理器"""
-    
-    def __init__(self, db: Session):
-        self.db = db
-    
-    @contextmanager
-    def transaction(self):
-        """事务上下文管理器"""
-        try:
-            yield self.db
-            self.db.commit()
-        except Exception as e:
-            self.db.rollback()
-            raise e
-    
-    def commit(self):
-        """提交事务"""
-        self.db.commit()
-    
-    def rollback(self):
-        """回滚事务"""
-        self.db.rollback()
+@contextmanager
+def get_db_session():
+    """获取数据库会话上下文管理器"""
+    db = SessionLocal()
+    try:
+        yield db
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise e
+    finally:
+        db.close()
+
+def transactional(func):
+    """事务装饰器"""
+    def wrapper(*args, **kwargs):
+        with get_db_session() as db:
+            return func(db, *args, **kwargs)
+    return wrapper
 ```
 
 ### Business Rules（业务规则）
+
 ```python
 class BusinessRules:
-    """业务规则验证器"""
+    """业务规则验证"""
     
     @staticmethod
-    def validate_article_creation(article_data: ArticleCreate):
-        """验证文章创建规则"""
-        if len(article_data.title) > MAX_TITLE_LENGTH:
-            raise ValueError(f"标题长度不能超过 {MAX_TITLE_LENGTH} 字符")
-        
-        if len(article_data.summary) > MAX_SUMMARY_LENGTH:
-            raise ValueError(f"摘要长度不能超过 {MAX_SUMMARY_LENGTH} 字符")
-        
-        if len(article_data.author) > MAX_AUTHOR_LENGTH:
-            raise ValueError(f"作者名称长度不能超过 {MAX_AUTHOR_LENGTH} 字符")
+    def validate_article_publish(article: ArticleDB) -> None:
+        """验证文章发布规则"""
+        if not article.title.strip():
+            raise ValueError("文章标题不能为空")
+        if not article.content.strip():
+            raise ValueError("文章内容不能为空")
+        if len(article.title) > 200:
+            raise ValueError("文章标题不能超过200字符")
     
     @staticmethod
-    def validate_comment_creation(comment_data: CommentCreate):
-        """验证评论创建规则"""
-        if len(comment_data.content) > MAX_COMMENT_LENGTH:
-            raise ValueError(f"评论内容长度不能超过 {MAX_COMMENT_LENGTH} 字符")
-        
-        if len(comment_data.author_name) > MAX_AUTHOR_LENGTH:
-            raise ValueError(f"评论者名称长度不能超过 {MAX_AUTHOR_LENGTH} 字符")
+    def validate_category_name(name: str) -> None:
+        """验证分类名称规则"""
+        if not name.strip():
+            raise ValueError("分类名称不能为空")
+        if len(name) > 100:
+            raise ValueError("分类名称不能超过100字符")
+    
+    @staticmethod
+    def validate_comment_publish(comment: CommentDB) -> None:
+        """验证评论发布规则"""
+        if not comment.content.strip():
+            raise ValueError("评论内容不能为空")
+        if len(comment.author_name) > 100:
+            raise ValueError("评论者姓名不能超过100字符")
 ```
 
 ## 3. REST API Design（API设计）
 
 ### API Endpoints（端点定义）
 
-#### Articles API（文章API）
-
-##### 文章列表查询
 ```python
-GET /api/v1/articles
-```
-- **描述**：获取文章列表，支持分页和过滤
-- **参数**：
-  - `category_id` (可选): 分类ID过滤
-  - `status` (可选): 状态过滤 (draft/published)
-  - `search` (可选): 搜索关键词
-  - `skip` (可选): 跳过记录数，默认0
-  - `limit` (可选): 返回记录数，默认10，最大100
-- **响应**：200 OK
-```json
-{
-  "items": [
-    {
-      "id": "uuid-string",
-      "title": "文章标题",
-      "summary": "文章摘要",
-      "author": "作者名称",
-      "category_id": "uuid-string",
-      "status": "published",
-      "view_count": 100,
-      "created_at": "2024-01-01T00:00:00Z",
-      "updated_at": "2024-01-01T00:00:00Z"
-    }
-  ],
-  "total": 50,
-  "skip": 0,
-  "limit": 10
-}
-```
-
-##### 获取单个文章
-```python
-GET /api/v1/articles/{article_id}
-```
-- **描述**：根据ID获取文章详情
-- **响应**：200 OK 或 404 Not Found
-```json
-{
-  "id": "uuid-string",
-  "title": "文章标题",
-  "content": "文章内容...",
-  "summary": "文章摘要",
-  "author": "作者名称",
-  "category_id": "uuid-string",
-  "status": "published",
-  "view_count": 100,
-  "created_at": "2024-01-01T00:00:00Z",
-  "updated_at": "2024-01-01T00:00:00Z"
-}
-```
-
-##### 创建文章
-```python
-POST /api/v1/articles
-```
-- **描述**：创建新文章（默认为草稿状态）
-- **请求体**：
-```json
-{
-  "title": "新文章标题",
-  "content": "文章内容...",
-  "summary": "文章摘要",
-  "author": "作者名称",
-  "category_id": "uuid-string"
-}
-```
-- **响应**：201 Created
-```json
-{
-  "id": "uuid-string",
-  "title": "新文章标题",
-  "content": "文章内容...",
-  "summary": "文章摘要",
-  "author": "作者名称",
-  "category_id": "uuid-string",
-  "status": "draft",
-  "view_count": 0,
-  "created_at": "2024-01-01T00:00:00Z",
-  "updated_at": null
-}
-```
-
-##### 更新文章
-```python
-PUT /api/v1/articles/{article_id}
-```
-- **描述**：更新文章信息
-- **请求体**：
-```json
-{
-  "title": "更新后的标题",
-  "content": "更新后的内容...",
-  "summary": "更新后的摘要",
-  "category_id": "uuid-string"
-}
-```
-- **响应**：200 OK 或 404 Not Found
-
-##### 删除文章
-```python
-DELETE /api/v1/articles/{article_id}
-```
-- **描述**：删除文章
-- **响应**：204 No Content 或 404 Not Found
-
-##### 发布文章
-```python
-POST /api/v1/articles/{article_id}/publish
-```
-- **描述**：将草稿文章发布
-- **响应**：200 OK
-
-##### 增加浏览量
-```python
-POST /api/v1/articles/{article_id}/view
-```
-- **描述**：增加文章浏览量计数
-- **响应**：200 OK
-
-#### Categories API（分类API）
-
-##### 获取所有分类
-```python
-GET /api/v1/categories
-```
-- **描述**：获取所有分类列表
-- **响应**：200 OK
-```json
-[
-  {
-    "id": "uuid-string",
-    "name": "技术",
-    "description": "技术相关文章",
-    "article_count": 25,
-    "created_at": "2024-01-01T00:00:00Z"
-  }
-]
-```
-
-##### 创建分类
-```python
-POST /api/v1/categories
-```
-- **描述**：创建新分类
-- **请求体**：
-```json
-{
-  "name": "新分类",
-  "description": "分类描述"
-}
-```
-- **响应**：201 Created
-
-##### 更新分类
-```python
-PUT /api/v1/categories/{category_id}
-```
-- **描述**：更新分类信息
-- **请求体**：
-```json
-{
-  "name": "更新后的分类名称",
-  "description": "更新后的描述"
-}
-```
-- **响应**：200 OK
-
-##### 删除分类
-```python
-DELETE /api/v1/categories/{category_id}
-```
-- **描述**：删除分类（分类下无文章时才能删除）
-- **响应**：204 No Content 或 400 Bad Request
-
-#### Comments API（评论API）
-
-##### 获取文章评论
-```python
-GET /api/v1/articles/{article_id}/comments
-```
-- **描述**：获取指定文章的所有评论
-- **参数**：
-  - `skip` (可选): 跳过记录数，默认0
-  - `limit` (可选): 返回记录数，默认10，最大100
-- **响应**：200 OK
-```json
-[
-  {
-    "id": "uuid-string",
-    "article_id": "uuid-string",
-    "author_name": "评论者",
-    "email": "commenter@example.com",
-    "content": "评论内容",
-    "status": "published",
-    "created_at": "2024-01-01T00:00:00Z"
-  }
-]
-```
-
-##### 发表评论
-```python
-POST /api/v1/articles/{article_id}/comments
-```
-- **描述**：为文章添加评论
-- **请求体**：
-```json
-{
-  "author_name": "评论者名称",
-  "email": "commenter@example.com",
-  "content": "评论内容"
-}
-```
-- **响应**：201 Created
-
-##### 审核评论
-```python
-POST /api/v1/comments/{comment_id}/approve
-```
-- **描述**：审核通过评论
-- **响应**：200 OK
-
-##### 屏蔽评论
-```python
-POST /api/v1/comments/{comment_id}/block
-```
-- **描述**：屏蔽评论
-- **响应**：200 OK
-
-##### 删除评论
-```python
-DELETE /api/v1/comments/{comment_id}
-```
-- **描述**：删除评论
-- **响应**：204 No Content
-
-##### 获取待审核评论
-```python
-GET /api/v1/comments/pending
-```
-- **描述**：获取所有待审核的评论（管理员功能）
-- **参数**：
-  - `skip` (可选): 跳过记录数，默认0
-  - `limit` (可选): 返回记录数，默认10，最大100
-- **响应**：200 OK
-
-### Request/Response Models（请求响应模型）
-
-#### 统一响应格式
-```python
-from typing import Generic, TypeVar
-from pydantic import BaseModel
-
-T = TypeVar('T')
-
-class ApiResponse(BaseModel, Generic[T]):
-    """统一API响应格式"""
-    code: int = 200
-    message: str = "success"
-    data: Optional[T] = None
-
-class ErrorResponse(BaseModel):
-    """错误响应格式"""
-    code: int
-    message: str
-    detail: Optional[str] = None
-```
-
-#### 分页响应模型
-```python
-from typing import List, Generic, TypeVar
-
-T = TypeVar('T')
-
-class PaginatedResponse(BaseModel, Generic[T]):
-    """分页响应模型"""
-    items: List[T]
-    total: int
-    skip: int
-    limit: int
-```
-
-### API Routing（路由配置）
-
-#### 主路由配置
-```python
-from fastapi import FastAPI
-from api.v1.articles import router as articles_router
-from api.v1.categories import router as categories_router
-from api.v1.comments import router as comments_router
-
-app = FastAPI(
-    title="博客系统API",
-    description="一个简单的博客发布系统API",
-    version="1.0.0"
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
+from typing import List
+from .database import get_db
+from .services import ArticleService, CategoryService, CommentService
+from .repositories import ArticleRepository, CategoryRepository, CommentRepository
+from .schemas import (
+    ArticleCreate, ArticleUpdate, ArticleResponse, ArticleQuery,
+    CategoryCreate, CategoryUpdate, CategoryResponse,
+    CommentCreate, CommentUpdate, CommentResponse, CommentQuery
 )
 
-# 注册路由
-app.include_router(articles_router, prefix="/api/v1")
-app.include_router(categories_router, prefix="/api/v1")
-app.include_router(comments_router, prefix="/api/v1")
-```
+# 依赖注入函数
+def get_article_service(db: Session = Depends(get_db)) -> ArticleService:
+    repository = ArticleRepository(db)
+    return ArticleService(repository)
 
-#### 文章路由
-```python
-from fastapi import APIRouter, Depends, HTTPException, Query
-from typing import List, Optional
-from sqlalchemy.orm import Session
-from schemas.article import ArticleCreate, ArticleUpdate, ArticleResponse
-from services.article_service import ArticleService
-from api.v1.deps import get_article_service
+def get_category_service(db: Session = Depends(get_db)) -> CategoryService:
+    repository = CategoryRepository(db)
+    return CategoryService(repository)
 
-router = APIRouter(prefix="/articles", tags=["articles"])
+def get_comment_service(db: Session = Depends(get_db)) -> CommentService:
+    repository = CommentRepository(db)
+    return CommentService(repository)
 
-@router.get("/", response_model=PaginatedResponse[ArticleResponse])
-def get_articles(
-    category_id: Optional[str] = Query(None, description="分类ID"),
-    status: Optional[str] = Query(None, description="文章状态"),
-    search: Optional[str] = Query(None, description="搜索关键词"),
-    skip: int = Query(0, ge=0, description="跳过记录数"),
-    limit: int = Query(10, ge=1, le=100, description="返回记录数"),
-    service: ArticleService = Depends(get_article_service)
-):
-    """获取文章列表"""
-    articles = service.get_published_articles(skip, limit)
-    total = len(articles)  # 实际应该查询总数
-    return PaginatedResponse(items=articles, total=total, skip=skip, limit=limit)
+# 文章路由
+article_router = APIRouter(prefix="/api/articles", tags=["articles"])
 
-@router.get("/{article_id}", response_model=ArticleResponse)
-def get_article(
-    article_id: str,
-    service: ArticleService = Depends(get_article_service)
-):
-    """获取文章详情"""
-    article = service.repository.get_by_id(article_id)
-    if not article:
-        raise HTTPException(status_code=404, detail="文章不存在")
-    return article
-
-@router.post("/", response_model=ArticleResponse, status_code=201)
+@article_router.post("/", response_model=ArticleResponse, status_code=status.HTTP_201_CREATED)
 def create_article(
     article_data: ArticleCreate,
     service: ArticleService = Depends(get_article_service)
 ):
-    """创建新文章"""
-    try:
-        article = service.create_article(article_data)
-        return article
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    """创建文章"""
+    return service.create_article(article_data)
 
-@router.put("/{article_id}", response_model=ArticleResponse)
+@article_router.get("/{article_id}", response_model=ArticleResponse)
+def get_article(
+    article_id: str,
+    service: ArticleService = Depends(get_article_service)
+):
+    """获取文章"""
+    article = service.get_article(article_id)
+    if not article:
+        raise HTTPException(status_code=404, detail="文章不存在")
+    return article
+
+@article_router.put("/{article_id}", response_model=ArticleResponse)
 def update_article(
     article_id: str,
     article_data: ArticleUpdate,
     service: ArticleService = Depends(get_article_service)
 ):
     """更新文章"""
-    try:
-        article = service.update_article(article_id, article_data)
-        return article
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+    article = service.update_article(article_id, article_data)
+    if not article:
+        raise HTTPException(status_code=404, detail="文章不存在")
+    return article
 
-@router.delete("/{article_id}", status_code=204)
+@article_router.delete("/{article_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_article(
     article_id: str,
     service: ArticleService = Depends(get_article_service)
@@ -1082,209 +694,286 @@ def delete_article(
     if not service.delete_article(article_id):
         raise HTTPException(status_code=404, detail="文章不存在")
 
-@router.post("/{article_id}/publish", response_model=ArticleResponse)
+@article_router.get("/", response_model=List[ArticleResponse])
+def list_articles(
+    query: ArticleQuery = Depends(),
+    service: ArticleService = Depends(get_article_service)
+):
+    """查询文章列表"""
+    return service.list_articles(query)
+
+@article_router.post("/{article_id}/publish", response_model=ArticleResponse)
 def publish_article(
     article_id: str,
     service: ArticleService = Depends(get_article_service)
 ):
     """发布文章"""
-    try:
-        article = service.publish_article(article_id)
-        return article
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+    article = service.publish_article(article_id)
+    if not article:
+        raise HTTPException(status_code=400, detail="无法发布文章")
+    return article
 
-@router.post("/{article_id}/view", response_model=ArticleResponse)
-def increment_view(
-    article_id: str,
-    service: ArticleService = Depends(get_article_service)
+# 分类路由
+category_router = APIRouter(prefix="/api/categories", tags=["categories"])
+
+@category_router.post("/", response_model=CategoryResponse, status_code=status.HTTP_201_CREATED)
+def create_category(
+    category_data: CategoryCreate,
+    service: CategoryService = Depends(get_category_service)
 ):
-    """增加文章浏览量"""
-    try:
-        article = service.increment_view_count(article_id)
-        return article
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+    """创建分类"""
+    return service.create_category(category_data)
+
+@category_router.get("/{category_id}", response_model=CategoryResponse)
+def get_category(
+    category_id: str,
+    service: CategoryService = Depends(get_category_service)
+):
+    """获取分类"""
+    category = service.get_category(category_id)
+    if not category:
+        raise HTTPException(status_code=404, detail="分类不存在")
+    return category
+
+@category_router.put("/{category_id}", response_model=CategoryResponse)
+def update_category(
+    category_id: str,
+    category_data: CategoryUpdate,
+    service: CategoryService = Depends(get_category_service)
+):
+    """更新分类"""
+    category = service.update_category(category_id, category_data)
+    if not category:
+        raise HTTPException(status_code=404, detail="分类不存在")
+    return category
+
+@category_router.delete("/{category_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_category(
+    category_id: str,
+    service: CategoryService = Depends(get_category_service)
+):
+    """删除分类"""
+    if not service.delete_category(category_id):
+        raise HTTPException(status_code=404, detail="分类不存在")
+
+@category_router.get("/", response_model=List[CategoryResponse])
+def list_categories(
+    service: CategoryService = Depends(get_category_service)
+):
+    """获取所有分类"""
+    return service.list_categories()
+
+# 评论路由
+comment_router = APIRouter(prefix="/api/comments", tags=["comments"])
+
+@comment_router.post("/", response_model=CommentResponse, status_code=status.HTTP_201_CREATED)
+def create_comment(
+    comment_data: CommentCreate,
+    service: CommentService = Depends(get_comment_service)
+):
+    """创建评论"""
+    return service.create_comment(comment_data)
+
+@comment_router.get("/{comment_id}", response_model=CommentResponse)
+def get_comment(
+    comment_id: str,
+    service: CommentService = Depends(get_comment_service)
+):
+    """获取评论"""
+    comment = service.get_comment(comment_id)
+    if not comment:
+        raise HTTPException(status_code=404, detail="评论不存在")
+    return comment
+
+@comment_router.put("/{comment_id}", response_model=CommentResponse)
+def update_comment(
+    comment_id: str,
+    comment_data: CommentUpdate,
+    service: CommentService = Depends(get_comment_service)
+):
+    """更新评论"""
+    comment = service.update_comment(comment_id, comment_data)
+    if not comment:
+        raise HTTPException(status_code=404, detail="评论不存在")
+    return comment
+
+@comment_router.delete("/{comment_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_comment(
+    comment_id: str,
+    service: CommentService = Depends(get_comment_service)
+):
+    """删除评论"""
+    if not service.delete_comment(comment_id):
+        raise HTTPException(status_code=404, detail="评论不存在")
+
+@comment_router.get("/", response_model=List[CommentResponse])
+def list_comments(
+    query: CommentQuery = Depends(),
+    service: CommentService = Depends(get_comment_service)
+):
+    """查询评论列表"""
+    return service.list_comments(query)
+
+@comment_router.post("/{comment_id}/approve", response_model=CommentResponse)
+def approve_comment(
+    comment_id: str,
+    service: CommentService = Depends(get_comment_service)
+):
+    """审核通过评论"""
+    comment = service.approve_comment(comment_id)
+    if not comment:
+        raise HTTPException(status_code=400, detail="无法审核评论")
+    return comment
+```
+
+### Request/Response Models（请求响应模型）
+
+已在Domain Models章节定义。
+
+### API Routing（路由配置）
+
+```python
+from fastapi import FastAPI
+from .routers import article_router, category_router, comment_router
+
+def create_application() -> FastAPI:
+    """创建FastAPI应用"""
+    app = FastAPI(
+        title="博客系统 API",
+        description="简单的博客发布系统，支持文章发布、分类和评论功能",
+        version="1.0.0"
+    )
+    
+    # 注册路由
+    app.include_router(article_router)
+    app.include_router(category_router)
+    app.include_router(comment_router)
+    
+    return app
 ```
 
 ### Middleware（中间件）
 
-#### 错误处理中间件
 ```python
-from fastapi import Request
-from fastapi.responses import JSONResponse
-import logging
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
 
-logger = logging.getLogger(__name__)
+def add_middleware(app: FastAPI):
+    """添加中间件"""
+    # CORS中间件
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],  # 在生产环境中应该设置具体的域名
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+    
+    # 可信主机中间件
+    app.add_middleware(
+        TrustedHostMiddleware,
+        allowed_hosts=["*"]  # 在生产环境中应该设置具体的主机
+    )
+```
+
+### Error Handling（错误处理）
+
+```python
+from fastapi import Request, HTTPException
+from fastapi.responses import JSONResponse
+from sqlalchemy.exc import IntegrityError
+
+@app.exception_handler(IntegrityError)
+async def integrity_error_handler(request: Request, exc: IntegrityError):
+    """处理数据库完整性错误"""
+    return JSONResponse(
+        status_code=400,
+        content={"detail": "数据完整性错误，请检查输入数据"}
+    )
 
 @app.exception_handler(ValueError)
 async def value_error_handler(request: Request, exc: ValueError):
-    """值错误处理"""
+    """处理业务逻辑错误"""
     return JSONResponse(
         status_code=400,
-        content={"code": 400, "message": str(exc), "detail": "请求参数错误"}
+        content={"detail": str(exc)}
     )
 
-@app.exception_handler(404)
-async def not_found_handler(request: Request, exc):
-    """404错误处理"""
-    return JSONResponse(
-        status_code=404,
-        content={"code": 404, "message": "资源不存在", "detail": str(exc)}
-    )
-
-@app.exception_handler(500)
-async def internal_error_handler(request: Request, exc):
-    """500错误处理"""
-    logger.error(f"Internal server error: {exc}")
+@app.exception_handler(Exception)
+async def general_error_handler(request: Request, exc: Exception):
+    """处理一般错误"""
     return JSONResponse(
         status_code=500,
-        content={"code": 500, "message": "服务器内部错误", "detail": "请联系管理员"}
+        content={"detail": "服务器内部错误"}
     )
-```
-
-#### 日志中间件
-```python
-import time
-from fastapi import Request
-
-@app.middleware("http")
-async def log_requests(request: Request, call_next):
-    """请求日志中间件"""
-    start_time = time.time()
-    
-    response = await call_next(request)
-    
-    process_time = time.time() - start_time
-    logger.info(
-        f"{request.method} {request.url.path} - "
-        f"Status: {response.status_code} - "
-        f"Time: {process_time:.4f}s"
-    )
-    
-    return response
-```
-
-#### CORS中间件
-```python
-from fastapi.middleware.cors import CORSMiddleware
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # 生产环境应该配置具体域名
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 ```
 
 ## 4. Application Configuration（应用配置）
 
 ### Main Application（主应用）
 
-#### 主应用入口
 ```python
-# main.py
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from core.config import settings
-from db.session import engine
-from db.base import Base
-from api.v1.router import api_router
-import logging
+from contextlib import asynccontextmanager
+from .database import create_tables, engine
+from .middleware import add_middleware
+from .routers import create_application
 
-# 配置日志
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
-
-# 创建FastAPI应用
-app = FastAPI(
-    title=settings.PROJECT_NAME,
-    description=settings.PROJECT_DESCRIPTION,
-    version=settings.VERSION,
-    openapi_url=f"{settings.API_V1_STR}/openapi.json"
-)
-
-# 配置CORS
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.BACKEND_CORS_ORIGINS,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# 注册路由
-app.include_router(api_router, prefix=settings.API_V1_STR)
-
-@app.on_event("startup")
-async def startup_event():
-    """应用启动事件"""
-    logger.info("Starting up...")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """应用生命周期管理"""
+    # 启动时
+    create_tables()
+    print("数据库表创建完成")
     
-    # 创建数据库表
-    Base.metadata.create_all(bind=engine)
-    logger.info("Database tables created")
+    yield
     
-    # 初始化数据（可选）
-    await init_db()
+    # 关闭时
+    print("应用关闭")
 
-@app.on_event("shutdown")
-async def shutdown_event():
-    """应用关闭事件"""
-    logger.info("Shutting down...")
-
-async def init_db():
-    """初始化数据库数据"""
-    from sqlalchemy.orm import Session
-    from db.session import SessionLocal
-    from models.category import CategoryDB
-    
-    db = SessionLocal()
-    try:
-        # 检查是否已存在分类
-        category_count = db.query(CategoryDB).count()
-        if category_count == 0:
-            # 创建默认分类
-            default_categories = [
-                CategoryDB(name="技术", description="技术相关文章"),
-                CategoryDB(name="生活", description="生活随笔"),
-                CategoryDB(name="学习", description="学习笔记")
-            ]
-            for category in default_categories:
-                db.add(category)
-            db.commit()
-            logger.info("Default categories created")
-    finally:
-        db.close()
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(
-        "main:app",
-        host=settings.HOST,
-        port=settings.PORT,
-        reload=settings.DEBUG
+def create_app() -> FastAPI:
+    """创建FastAPI应用实例"""
+    app = FastAPI(
+        title="博客系统 API",
+        description="简单的博客发布系统，支持文章发布、分类和评论功能",
+        version="1.0.0",
+        lifespan=lifespan
     )
+    
+    # 添加中间件
+    add_middleware(app)
+    
+    # 注册路由
+    from .api.routers import article_router, category_router, comment_router
+    app.include_router(article_router)
+    app.include_router(category_router)
+    app.include_router(comment_router)
+    
+    # 添加异常处理器
+    from .api.error_handlers import add_error_handlers
+    add_error_handlers(app)
+    
+    return app
+
+# 创建应用实例
+app = create_app()
 ```
 
 ### Database Configuration（数据库配置）
 
-#### 数据库连接配置
 ```python
-# db/session.py
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from core.config import settings
+from sqlalchemy.orm import sessionmaker, Session
+from typing import Generator
 
-# 创建数据库引擎
+# SQLite数据库配置
+DATABASE_URL = "sqlite:///./blog.db"
+
+# 创建引擎
 engine = create_engine(
-    settings.DATABASE_URL,
-    connect_args={"check_same_thread": False} if "sqlite" in settings.DATABASE_URL else {},
-    echo=settings.DEBUG  # 调试模式下打印SQL
+    DATABASE_URL,
+    connect_args={"check_same_thread": False},  # SQLite多线程支持
+    echo=True  # 开发环境开启SQL日志
 )
 
 # 创建会话工厂
@@ -1294,305 +983,221 @@ SessionLocal = sessionmaker(
     bind=engine
 )
 
-# 数据库依赖
-from typing import Generator
-
-def get_db() -> Generator:
+def get_db() -> Generator[Session, None, None]:
     """获取数据库会话"""
     db = SessionLocal()
     try:
         yield db
     finally:
         db.close()
-```
 
-#### 数据库基础模型
-```python
-# db/base.py
-from sqlalchemy.ext.declarative import declarative_base
+def create_tables():
+    """创建所有数据库表"""
+    from .models import Base
+    Base.metadata.create_all(bind=engine)
 
-Base = declarative_base()
+def drop_tables():
+    """删除所有数据库表"""
+    from .models import Base
+    Base.metadata.drop_all(bind=engine)
 ```
 
 ### Dependency Injection（依赖注入）
 
-#### 服务依赖注入配置
 ```python
-# api/v1/deps.py
-from typing import Generator
-from sqlalchemy.orm import Session
-from db.session import get_db
-from repositories.article_repository import ArticleRepository
-from repositories.category_repository import CategoryRepository
-from repositories.comment_repository import CommentRepository
-from services.article_service import ArticleService
-from services.category_service import CategoryService
-from services.comment_service import CommentService
+from typing import Callable, Type
+from functools import lru_cache
 
-def get_article_repository(db: Session = Depends(get_db)) -> ArticleRepository:
-    """获取文章仓储"""
-    return ArticleRepository(db)
+@lru_cache()
+def get_article_service():
+    """获取文章服务实例"""
+    from .services import ArticleService
+    from .repositories import ArticleRepository
+    from .database import get_db
+    
+    def _get_service(db: Session = Depends(get_db)) -> ArticleService:
+        repository = ArticleRepository(db)
+        return ArticleService(repository)
+    
+    return _get_service
 
-def get_category_repository(db: Session = Depends(get_db)) -> CategoryRepository:
-    """获取分类仓储"""
-    return CategoryRepository(db)
+@lru_cache()
+def get_category_service():
+    """获取分类服务实例"""
+    from .services import CategoryService
+    from .repositories import CategoryRepository
+    from .database import get_db
+    
+    def _get_service(db: Session = Depends(get_db)) -> CategoryService:
+        repository = CategoryRepository(db)
+        return CategoryService(repository)
+    
+    return _get_service
 
-def get_comment_repository(db: Session = Depends(get_db)) -> CommentRepository:
-    """获取评论仓储"""
-    return CommentRepository(db)
-
-def get_article_service(
-    repository: ArticleRepository = Depends(get_article_repository)
-) -> ArticleService:
-    """获取文章服务"""
-    return ArticleService(repository)
-
-def get_category_service(
-    repository: CategoryRepository = Depends(get_category_repository)
-) -> CategoryService:
-    """获取分类服务"""
-    return CategoryService(repository)
-
-def get_comment_service(
-    repository: CommentRepository = Depends(get_comment_repository)
-) -> CommentService:
-    """获取评论服务"""
-    return CommentService(repository)
-```
-
-#### API路由配置
-```python
-# api/v1/router.py
-from fastapi import APIRouter
-from api.v1.articles import router as articles_router
-from api.v1.categories import router as categories_router
-from api.v1.comments import router as comments_router
-
-api_router = APIRouter()
-
-# 注册各个模块的路由
-api_router.include_router(articles_router, prefix="/articles", tags=["articles"])
-api_router.include_router(categories_router, prefix="/categories", tags=["categories"])
-api_router.include_router(comments_router, prefix="/comments", tags=["comments"])
+@lru_cache()
+def get_comment_service():
+    """获取评论服务实例"""
+    from .services import CommentService
+    from .repositories import CommentRepository
+    from .database import get_db
+    
+    def _get_service(db: Session = Depends(get_db)) -> CommentService:
+        repository = CommentRepository(db)
+        return CommentService(repository)
+    
+    return _get_service
 ```
 
 ### Environment Settings（环境配置）
 
-#### 配置管理
 ```python
-# core/config.py
-from pydantic import BaseSettings, validator
-from typing import List, Union
-import os
+from pydantic import BaseSettings, Field
+from typing import Optional
 
 class Settings(BaseSettings):
     """应用配置"""
     
-    # 项目信息
-    PROJECT_NAME: str = "博客系统API"
-    PROJECT_DESCRIPTION: str = "一个简单的博客发布系统API"
-    VERSION: str = "1.0.0"
+    # 数据库配置
+    database_url: str = Field(default="sqlite:///./blog.db", env="DATABASE_URL")
+    
+    # 应用配置
+    app_name: str = Field(default="博客系统 API", env="APP_NAME")
+    app_version: str = Field(default="1.0.0", env="APP_VERSION")
+    debug: bool = Field(default=True, env="DEBUG")
     
     # API配置
-    API_V1_STR: str = "/api/v1"
-    
-    # 服务器配置
-    HOST: str = "0.0.0.0"
-    PORT: int = 8000
-    DEBUG: bool = True
-    
-    # 数据库配置
-    DATABASE_URL: str = "sqlite:///./blog.db"
+    api_prefix: str = Field(default="/api", env="API_PREFIX")
+    api_version: str = Field(default="v1", env="API_VERSION")
     
     # CORS配置
-    BACKEND_CORS_ORIGINS: List[str] = ["*"]
+    cors_origins: list[str] = Field(default=["*"], env="CORS_ORIGINS")
     
-    @validator("BACKEND_CORS_ORIGINS", pre=True)
-    def assemble_cors_origins(cls, v: Union[str, List[str]]) -> Union[List[str], str]:
-        """组装CORS源配置"""
-        if isinstance(v, str) and not v.startswith("["):
-            return [i.strip() for i in v.split(",")]
-        elif isinstance(v, (list, str)):
-            return v
-        raise ValueError(v)
+    # 分页配置
+    default_page_size: int = Field(default=10, env="DEFAULT_PAGE_SIZE")
+    max_page_size: int = Field(default=100, env="MAX_PAGE_SIZE")
     
     class Config:
         env_file = ".env"
-        case_sensitive = True
+        case_sensitive = False
 
-settings = Settings()
-```
-
-#### 环境变量文件示例
-```bash
-# .env.example
-# 项目配置
-PROJECT_NAME="博客系统API"
-PROJECT_DESCRIPTION="一个简单的博客发布系统API"
-VERSION="1.0.0"
-
-# 服务器配置
-HOST="0.0.0.0"
-PORT=8000
-DEBUG=true
-
-# 数据库配置
-DATABASE_URL="sqlite:///./blog.db"
-
-# CORS配置
-BACKEND_CORS_ORIGINS=["http://localhost:3000","http://localhost:8080"]
+@lru_cache()
+def get_settings() -> Settings:
+    """获取配置实例"""
+    return Settings()
 ```
 
 ### Startup/Shutdown Events（启动关闭事件）
 
-#### 数据库初始化
 ```python
-# db/init_db.py
-from sqlalchemy.orm import Session
-from models.category import CategoryDB
-from models.article import ArticleDB
-from models.comment import CommentDB
+from fastapi import FastAPI
+from .database import create_tables, engine
+from .settings import get_settings
 
-def init_database(db: Session):
-    """初始化数据库"""
-    # 创建表
-    from db.base import Base
-    from db.session import engine
-    Base.metadata.create_all(bind=engine)
+def startup_event():
+    """应用启动事件"""
+    settings = get_settings()
+    print(f"启动 {settings.app_name} v{settings.app_version}")
     
-    # 检查是否需要初始化数据
-    category_count = db.query(CategoryDB).count()
-    if category_count == 0:
-        # 创建示例分类
-        categories = [
-            CategoryDB(name="技术", description="技术相关文章和教程"),
-            CategoryDB(name="生活", description="日常生活记录和感悟"),
-            CategoryDB(name="学习", description="学习笔记和经验分享"),
-            CategoryDB(name="随笔", description="随意记录的想法和观点")
-        ]
-        
-        for category in categories:
-            db.add(category)
-        
-        db.commit()
-        print("示例分类已创建")
+    # 创建数据库表
+    create_tables()
+    print("数据库表初始化完成")
+    
+    # 其他启动逻辑
+    if settings.debug:
+        print("调试模式已启用")
+
+def shutdown_event():
+    """应用关闭事件"""
+    print("应用关闭")
+    
+    # 清理资源
+    engine.dispose()
+    print("数据库连接已关闭")
+
+def add_lifespan_events(app: FastAPI):
+    """添加生命周期事件"""
+    @app.on_event("startup")
+    async def startup():
+        startup_event()
+    
+    @app.on_event("shutdown")
+    async def shutdown():
+        shutdown_event()
 ```
 
-#### 健康检查端点
+### Logging Configuration（日志配置）
+
 ```python
-# api/health.py
-from fastapi import APIRouter
-from sqlalchemy.orm import Session
-from db.session import get_db
+import logging
+from .settings import get_settings
 
-router = APIRouter()
-
-@router.get("/health")
-def health_check(db: Session = Depends(get_db)):
-    """健康检查"""
-    try:
-        # 检查数据库连接
-        db.execute("SELECT 1")
-        return {"status": "healthy", "database": "connected"}
-    except Exception as e:
-        return {"status": "unhealthy", "database": "disconnected", "error": str(e)}
+def setup_logging():
+    """配置日志"""
+    settings = get_settings()
+    
+    logging.basicConfig(
+        level=logging.DEBUG if settings.debug else logging.INFO,
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        handlers=[
+            logging.StreamHandler(),
+            logging.FileHandler("blog.log") if not settings.debug else logging.NullHandler()
+        ]
+    )
+    
+    # 设置第三方库日志级别
+    logging.getLogger("sqlalchemy").setLevel(logging.WARNING)
+    logging.getLogger("uvicorn").setLevel(logging.INFO)
 ```
 
-### 项目结构组织
+### Configuration Files（配置文件）
 
-#### 推荐项目结构
-```
-src/
-├── api/
-│   ├── v1/
-│   │   ├── __init__.py
-│   │   ├── articles.py          # 文章API
-│   │   ├── categories.py        # 分类API
-│   │   ├── comments.py          # 评论API
-│   │   ├── deps.py              # 依赖注入
-│   │   └── router.py            # 路由配置
-│   └── health.py                # 健康检查
-├── core/
-│   ├── __init__.py
-│   └── config.py                # 配置管理
-├── db/
-│   ├── __init__.py
-│   ├── base.py                  # 基础模型
-│   ├── init_db.py               # 数据库初始化
-│   └── session.py               # 数据库会话
-├── models/
-│   ├── __init__.py
-│   ├── article.py               # 文章模型
-│   ├── category.py              # 分类模型
-│   └── comment.py               # 评论模型
-├── schemas/
-│   ├── __init__.py
-│   ├── article.py               # 文章验证模型
-│   ├── category.py              # 分类验证模型
-│   └── comment.py               # 评论验证模型
-├── repositories/
-│   ├── __init__.py
-│   ├── base.py                  # 基础仓储
-│   ├── article_repository.py    # 文章仓储
-│   ├── category_repository.py   # 分类仓储
-│   └── comment_repository.py    # 评论仓储
-├── services/
-│   ├── __init__.py
-│   ├── article_service.py       # 文章服务
-│   ├── category_service.py      # 分类服务
-│   └── comment_service.py       # 评论服务
-├── tests/
-│   ├── __init__.py
-│   ├── test_articles.py         # 文章测试
-│   ├── test_categories.py       # 分类测试
-│   └── test_comments.py         # 评论测试
-├── requirements.txt             # 依赖列表
-├── .env.example                 # 环境变量示例
-└── main.py                      # 应用入口
+创建 `config.py` 文件：
+
+```python
+# config.py
+from .settings import Settings, get_settings
+
+# 全局配置实例
+settings = get_settings()
+
+# 数据库配置
+DATABASE_URL = settings.database_url
+
+# API配置
+API_PREFIX = settings.api_prefix
+API_VERSION = settings.api_version
+
+# 分页配置
+DEFAULT_PAGE_SIZE = settings.default_page_size
+MAX_PAGE_SIZE = settings.max_page_size
 ```
 
-#### 依赖安装
+创建 `.env` 文件模板：
+
 ```bash
-# requirements.txt
-fastapi==0.104.1
-uvicorn[standard]==0.24.0
-sqlalchemy==2.0.23
-pydantic==2.5.0
-python-multipart==0.0.6
-email-validator==2.1.0
-python-dotenv==1.0.0
-```
-
-#### 启动脚本
-```bash
-#!/bin/bash
-# start.sh
-
-echo "启动博客系统API..."
-
-# 检查Python版本
-python_version=$(python --version 2>&1 | awk '{print $2}')
-echo "Python版本: $python_version"
-
-# 安装依赖
-pip install -r requirements.txt
-
-# 启动应用
-uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+# .env
+DATABASE_URL=sqlite:///./blog.db
+APP_NAME=博客系统 API
+APP_VERSION=1.0.0
+DEBUG=true
+API_PREFIX=/api
+API_VERSION=v1
+CORS_ORIGINS=["http://localhost:3000", "http://localhost:8080"]
+DEFAULT_PAGE_SIZE=10
+MAX_PAGE_SIZE=100
 ```
 
 ## 5. Testing Specifications（测试规范）
 
 ### Unit Tests（单元测试）
 
-#### 服务层单元测试
 ```python
-# tests/test_article_service.py
 import unittest
-from unittest.mock import Mock
-from services.article_service import ArticleService
-from models.article import ArticleDB, ArticleStatus
-from schemas.article import ArticleCreate, ArticleUpdate
+from unittest.mock import Mock, patch
+from datetime import datetime
+from ..models import Article, Category, Comment
+from ..services import ArticleService, CategoryService, CommentService
+from ..schemas import ArticleCreate, CategoryCreate, CommentCreate
 
 class TestArticleService(unittest.TestCase):
     """文章服务单元测试"""
@@ -1603,266 +1208,540 @@ class TestArticleService(unittest.TestCase):
         self.service = ArticleService(self.mock_repository)
     
     def test_create_article_success(self):
-        """测试成功创建文章"""
+        """测试创建文章成功"""
+        # 准备测试数据
         article_data = ArticleCreate(
             title="测试文章",
             content="测试内容",
-            summary="测试摘要",
             author="测试作者"
         )
         
-        mock_article = ArticleDB(
-            id="test-id",
-            title="测试文章",
-            content="测试内容",
-            summary="测试摘要",
-            author="测试作者",
-            status=ArticleStatus.DRAFT
-        )
-        self.mock_repository.create.return_value = mock_article
+        # Mock仓储行为
+        mock_db_article = Mock()
+        mock_db_article.id = "test-id"
+        mock_db_article.title = article_data.title
+        self.mock_repository.save.return_value = mock_db_article
         
+        # 执行测试
         result = self.service.create_article(article_data)
         
+        # 验证结果
+        self.assertEqual(result.id, "test-id")
         self.assertEqual(result.title, "测试文章")
-        self.assertEqual(result.status, ArticleStatus.DRAFT)
+        self.mock_repository.save.assert_called_once()
     
-    def test_publish_article_success(self):
-        """测试成功发布文章"""
-        mock_article = ArticleDB(
-            id="test-id",
-            title="测试文章",
-            status=ArticleStatus.DRAFT
+    def test_get_article_success(self):
+        """测试获取文章成功"""
+        # Mock仓储行为
+        mock_db_article = Mock()
+        mock_db_article.id = "test-id"
+        mock_db_article.view_count = 5
+        self.mock_repository.get_by_id.return_value = mock_db_article
+        
+        # 执行测试
+        result = self.service.get_article("test-id")
+        
+        # 验证结果
+        self.assertIsNotNone(result)
+        self.assertEqual(result.id, "test-id")
+        # 验证浏览量增加
+        self.assertEqual(mock_db_article.view_count, 6)
+    
+    def test_get_article_not_found(self):
+        """测试获取不存在的文章"""
+        self.mock_repository.get_by_id.return_value = None
+        
+        result = self.service.get_article("non-existent-id")
+        
+        self.assertIsNone(result)
+
+class TestCategoryService(unittest.TestCase):
+    """分类服务单元测试"""
+    
+    def setUp(self):
+        self.mock_repository = Mock()
+        self.service = CategoryService(self.mock_repository)
+    
+    def test_create_category_success(self):
+        """测试创建分类成功"""
+        category_data = CategoryCreate(
+            name="测试分类",
+            description="测试描述"
         )
-        self.mock_repository.get_by_id.return_value = mock_article
-        self.mock_repository.update.return_value = mock_article
         
-        result = self.service.publish_article("test-id")
+        mock_db_category = Mock()
+        mock_db_category.id = "test-id"
+        mock_db_category.name = category_data.name
+        self.mock_repository.save.return_value = mock_db_category
         
-        self.assertEqual(result.status, ArticleStatus.PUBLISHED)
+        result = self.service.create_category(category_data)
+        
+        self.assertEqual(result.id, "test-id")
+        self.assertEqual(result.name, "测试分类")
+    
+    def test_list_categories(self):
+        """测试获取分类列表"""
+        mock_categories = [Mock(), Mock()]
+        self.mock_repository.get_all.return_value = mock_categories
+        
+        result = self.service.list_categories()
+        
+        self.assertEqual(len(result), 2)
+        self.mock_repository.get_all.assert_called_once()
+
+class TestCommentService(unittest.TestCase):
+    """评论服务单元测试"""
+    
+    def setUp(self):
+        self.mock_repository = Mock()
+        self.service = CommentService(self.mock_repository)
+    
+    def test_create_comment_success(self):
+        """测试创建评论成功"""
+        comment_data = CommentCreate(
+            article_id="article-id",
+            author_name="评论者",
+            email="test@example.com",
+            content="测试评论"
+        )
+        
+        mock_db_comment = Mock()
+        mock_db_comment.id = "test-id"
+        self.mock_repository.save.return_value = mock_db_comment
+        
+        result = self.service.create_comment(comment_data)
+        
+        self.assertEqual(result.id, "test-id")
+    
+    def test_approve_comment_success(self):
+        """测试审核评论成功"""
+        mock_db_comment = Mock()
+        mock_db_comment.status = "pending"
+        self.mock_repository.get_by_id.return_value = mock_db_comment
+        
+        result = self.service.approve_comment("comment-id")
+        
+        self.assertEqual(mock_db_comment.status, "published")
+        self.assertIsNotNone(result)
+    
+    def test_approve_comment_invalid_status(self):
+        """测试审核已发布的评论"""
+        mock_db_comment = Mock()
+        mock_db_comment.status = "published"
+        self.mock_repository.get_by_id.return_value = mock_db_comment
+        
+        result = self.service.approve_comment("comment-id")
+        
+        self.assertIsNone(result)
+
+class TestBusinessRules(unittest.TestCase):
+    """业务规则测试"""
+    
+    def test_validate_article_publish_valid(self):
+        """测试有效的文章发布"""
+        from ..services import BusinessRules
+        
+        mock_article = Mock()
+        mock_article.title = "有效标题"
+        mock_article.content = "有效内容"
+        
+        # 不应该抛出异常
+        BusinessRules.validate_article_publish(mock_article)
+    
+    def test_validate_article_publish_empty_title(self):
+        """测试空标题的文章发布"""
+        from ..services import BusinessRules
+        
+        mock_article = Mock()
+        mock_article.title = ""
+        mock_article.content = "有效内容"
+        
+        with self.assertRaises(ValueError) as cm:
+            BusinessRules.validate_article_publish(mock_article)
+        
+        self.assertIn("标题不能为空", str(cm.exception))
+    
+    def test_validate_category_name_valid(self):
+        """测试有效的分类名称"""
+        from ..services import BusinessRules
+        
+        # 不应该抛出异常
+        BusinessRules.validate_category_name("有效分类名")
+    
+    def test_validate_category_name_empty(self):
+        """测试空分类名称"""
+        from ..services import BusinessRules
+        
+        with self.assertRaises(ValueError) as cm:
+            BusinessRules.validate_category_name("")
+        
+        self.assertIn("分类名称不能为空", str(cm.exception))
 ```
 
 ### Integration Tests（集成测试）
 
-#### API集成测试
 ```python
-# tests/test_api_integration.py
 import unittest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from main import app
-from db.base import Base
-from db.session import get_db
+from ..main import app
+from ..database import Base, get_db
+from ..models import ArticleDB, CategoryDB, CommentDB
 
-# 测试数据库配置
-SQLALCHEMY_DATABASE_URL = "sqlite:///./test_blog.db"
-engine = create_engine(
-    SQLALCHEMY_DATABASE_URL,
-    connect_args={"check_same_thread": False}
-)
-TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-# 覆盖数据库依赖
-def override_get_db():
-    try:
-        db = TestingSessionLocal()
-        yield db
-    finally:
-        db.close()
-
-app.dependency_overrides[get_db] = override_get_db
-
-class TestArticleAPI(unittest.TestCase):
-    """文章API集成测试"""
+class TestBlogAPI(unittest.TestCase):
+    """博客API集成测试"""
     
     def setUp(self):
         """测试前准备"""
+        # 创建测试数据库
+        self.engine = create_engine("sqlite:///./test_blog.db", connect_args={"check_same_thread": False})
+        TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=self.engine)
+        
+        # 创建表
+        Base.metadata.create_all(bind=self.engine)
+        
+        # 依赖注入测试数据库
+        def override_get_db():
+            db = TestingSessionLocal()
+            try:
+                yield db
+            finally:
+                db.close()
+        
+        app.dependency_overrides[get_db] = override_get_db
         self.client = TestClient(app)
-        Base.metadata.create_all(bind=engine)
     
     def tearDown(self):
         """测试后清理"""
-        Base.metadata.drop_all(bind=engine)
+        Base.metadata.drop_all(bind=self.engine)
+        self.engine.dispose()
     
     def test_create_and_get_article(self):
         """测试创建和获取文章"""
+        # 创建文章
         article_data = {
             "title": "测试文章",
-            "content": "这是测试内容",
-            "summary": "测试摘要",
-            "author": "测试作者"
+            "content": "测试内容",
+            "author": "测试作者",
+            "status": "draft"
         }
         
-        response = self.client.post("/api/v1/articles/", json=article_data)
+        response = self.client.post("/api/articles", json=article_data)
         self.assertEqual(response.status_code, 201)
+        created_article = response.json()
+        article_id = created_article["id"]
         
-        article = response.json()
-        article_id = article["id"]
-        
-        response = self.client.get(f"/api/v1/articles/{article_id}")
+        # 获取文章
+        response = self.client.get(f"/api/articles/{article_id}")
         self.assertEqual(response.status_code, 200)
-        
         retrieved_article = response.json()
+        
         self.assertEqual(retrieved_article["title"], "测试文章")
+        self.assertEqual(retrieved_article["view_count"], 1)  # 浏览量应该增加
     
-    def test_list_articles(self):
-        """测试文章列表"""
-        for i in range(3):
+    def test_create_category(self):
+        """测试创建分类"""
+        category_data = {
+            "name": "测试分类",
+            "description": "测试描述"
+        }
+        
+        response = self.client.post("/api/categories", json=category_data)
+        self.assertEqual(response.status_code, 201)
+        created_category = response.json()
+        
+        self.assertEqual(created_category["name"], "测试分类")
+        self.assertEqual(created_category["description"], "测试描述")
+    
+    def test_create_comment(self):
+        """测试创建评论"""
+        # 先创建文章
+        article_data = {
+            "title": "测试文章",
+            "content": "测试内容",
+            "author": "测试作者"
+        }
+        article_response = self.client.post("/api/articles", json=article_data)
+        article_id = article_response.json()["id"]
+        
+        # 创建评论
+        comment_data = {
+            "article_id": article_id,
+            "author_name": "评论者",
+            "email": "test@example.com",
+            "content": "测试评论"
+        }
+        
+        response = self.client.post("/api/comments", json=comment_data)
+        self.assertEqual(response.status_code, 201)
+        created_comment = response.json()
+        
+        self.assertEqual(created_comment["content"], "测试评论")
+        self.assertEqual(created_comment["status"], "pending")
+    
+    def test_publish_article(self):
+        """测试发布文章"""
+        # 创建草稿文章
+        article_data = {
+            "title": "草稿文章",
+            "content": "草稿内容",
+            "status": "draft"
+        }
+        article_response = self.client.post("/api/articles", json=article_data)
+        article_id = article_response.json()["id"]
+        
+        # 发布文章
+        response = self.client.post(f"/api/articles/{article_id}/publish")
+        self.assertEqual(response.status_code, 200)
+        published_article = response.json()
+        
+        self.assertEqual(published_article["status"], "published")
+    
+    def test_list_articles_with_pagination(self):
+        """测试文章列表分页"""
+        # 创建多个文章
+        for i in range(5):
             article_data = {
                 "title": f"文章{i}",
                 "content": f"内容{i}",
-                "summary": f"摘要{i}",
                 "author": "作者"
             }
-            self.client.post("/api/v1/articles/", json=article_data)
+            self.client.post("/api/articles", json=article_data)
         
-        response = self.client.get("/api/v1/articles/")
+        # 获取第一页
+        response = self.client.get("/api/articles?skip=0&limit=3")
         self.assertEqual(response.status_code, 200)
+        articles = response.json()
         
-        data = response.json()
-        self.assertEqual(len(data["items"]), 3)
+        self.assertEqual(len(articles), 3)
+    
+    def test_search_articles(self):
+        """测试搜索文章"""
+        # 创建文章
+        article_data = {
+            "title": "Python编程",
+            "content": "学习Python编程",
+            "author": "专家"
+        }
+        self.client.post("/api/articles", json=article_data)
+        
+        # 搜索
+        response = self.client.get("/api/articles?search=Python")
+        self.assertEqual(response.status_code, 200)
+        articles = response.json()
+        
+        self.assertGreater(len(articles), 0)
+        self.assertIn("Python", articles[0]["title"])
+    
+    def test_approve_comment(self):
+        """测试审核评论"""
+        # 创建文章和评论
+        article_data = {"title": "文章", "content": "内容", "author": "作者"}
+        article_response = self.client.post("/api/articles", json=article_data)
+        article_id = article_response.json()["id"]
+        
+        comment_data = {
+            "article_id": article_id,
+            "author_name": "评论者",
+            "email": "test@example.com",
+            "content": "评论内容"
+        }
+        comment_response = self.client.post("/api/comments", json=comment_data)
+        comment_id = comment_response.json()["id"]
+        
+        # 审核评论
+        response = self.client.post(f"/api/comments/{comment_id}/approve")
+        self.assertEqual(response.status_code, 200)
+        approved_comment = response.json()
+        
+        self.assertEqual(approved_comment["status"], "published")
 ```
 
 ### Test Fixtures（测试夹具）
 
-#### 测试数据工厂
 ```python
-# tests/fixtures.py
-class ArticleFactory:
-    """文章测试数据工厂"""
-    
-    @staticmethod
-    def create_article_data(**overrides):
-        """创建文章测试数据"""
-        data = {
-            "title": "测试文章",
-            "content": "这是测试内容",
-            "summary": "测试摘要",
-            "author": "测试作者"
-        }
-        data.update(overrides)
-        return data
-
-class CategoryFactory:
-    """分类测试数据工厂"""
-    
-    @staticmethod
-    def create_category_data(**overrides):
-        """创建分类测试数据"""
-        data = {
-            "name": "测试分类",
-            "description": "测试分类描述"
-        }
-        data.update(overrides)
-        return data
-```
-
-### Test Configuration（测试配置）
-
-#### 测试配置文件
-```python
-# tests/conftest.py
 import pytest
-from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from main import app
-from db.base import Base
-from db.session import get_db
+from ..database import Base
+from ..models import ArticleDB, CategoryDB, CommentDB
 
-# 测试数据库
-SQLALCHEMY_DATABASE_URL = "sqlite:///./test_blog.db"
-engine = create_engine(
-    SQLALCHEMY_DATABASE_URL,
-    connect_args={"check_same_thread": False}
-)
-TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+@pytest.fixture(scope="session")
+def test_engine():
+    """测试数据库引擎"""
+    engine = create_engine("sqlite:///./test_blog.db", connect_args={"check_same_thread": False})
+    yield engine
+    engine.dispose()
 
-@pytest.fixture(scope="function")
-def db_session():
+@pytest.fixture(scope="session")
+def tables(test_engine):
+    """创建测试表"""
+    Base.metadata.create_all(bind=test_engine)
+    yield
+    Base.metadata.drop_all(bind=test_engine)
+
+@pytest.fixture
+def db_session(test_engine, tables):
     """测试数据库会话"""
-    Base.metadata.create_all(bind=engine)
+    TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=test_engine)
     db = TestingSessionLocal()
     try:
         yield db
     finally:
         db.close()
-        Base.metadata.drop_all(bind=engine)
 
-@pytest.fixture(scope="function")
-def client():
+@pytest.fixture
+def sample_category(db_session):
+    """示例分类"""
+    category = CategoryDB(
+        name="技术",
+        description="技术文章分类"
+    )
+    db_session.add(category)
+    db_session.commit()
+    db_session.refresh(category)
+    return category
+
+@pytest.fixture
+def sample_article(db_session, sample_category):
+    """示例文章"""
+    article = ArticleDB(
+        title="测试文章",
+        content="测试内容",
+        author="测试作者",
+        category_id=sample_category.id,
+        status="published"
+    )
+    db_session.add(article)
+    db_session.commit()
+    db_session.refresh(article)
+    return article
+
+@pytest.fixture
+def sample_comment(db_session, sample_article):
+    """示例评论"""
+    comment = CommentDB(
+        article_id=sample_article.id,
+        author_name="评论者",
+        email="test@example.com",
+        content="测试评论",
+        status="pending"
+    )
+    db_session.add(comment)
+    db_session.commit()
+    db_session.refresh(comment)
+    return comment
+```
+
+### Test Configuration（测试配置）
+
+```python
+# tests/__init__.py
+# 测试包初始化
+
+# tests/conftest.py
+import pytest
+from fastapi.testclient import TestClient
+from ..main import app
+from ..database import get_db
+from .fixtures import db_session
+
+@pytest.fixture
+def client(db_session):
     """测试客户端"""
     def override_get_db():
-        try:
-            db = TestingSessionLocal()
-            yield db
-        finally:
-            db.close()
+        yield db_session
     
     app.dependency_overrides[get_db] = override_get_db
-    
-    with TestClient(app) as test_client:
-        yield test_client
-    
-    app.dependency_overrides.clear()
+    return TestClient(app)
+
+# pytest.ini
+[tool:pytest]
+testpaths = tests
+python_files = test_*.py
+python_classes = Test*
+python_functions = test_*
+addopts = -v --tb=short --strict-markers
+markers =
+    unit: 单元测试
+    integration: 集成测试
+    slow: 慢速测试
+
+# requirements-test.txt
+pytest==7.4.0
+pytest-cov==4.1.0
+httpx==0.24.1
 ```
 
-#### 测试运行配置
+### Running Tests（运行测试）
+
 ```bash
 # 运行所有测试
-python -m unittest discover tests/
+python -m pytest
+
+# 运行单元测试
+python -m pytest -m unit
+
+# 运行集成测试
+python -m pytest -m integration
+
+# 生成覆盖率报告
+python -m pytest --cov=src --cov-report=html
 
 # 运行特定测试文件
-python -m unittest tests/test_article_service.py
+python -m unittest tests.test_services.TestArticleService
 
-# 运行特定测试类
-python -m unittest tests.test_api_integration.TestArticleAPI
-
-# 使用pytest运行测试（需要安装pytest）
-pytest tests/
+# 使用测试发现
+python -m unittest discover tests/
 ```
 
-#### 测试覆盖率
-```bash
-# 安装覆盖率工具
-pip install coverage
+### Test Best Practices（测试最佳实践）
 
-# 运行测试并生成覆盖率报告
-coverage run -m unittest discover tests/
-coverage report
-coverage html  # 生成HTML报告
+```python
+# tests/test_best_practices.py
+import unittest
+
+class TestBestPractices(unittest.TestCase):
+    """测试最佳实践示例"""
+    
+    def test_should_use_descriptive_test_names(self):
+        """测试方法名应该描述测试的目的"""
+        # 好的例子：test_should_return_empty_list_when_no_articles
+        # 坏的例子：test_empty_list
+        
+        self.assertTrue(True)  # 占位符
+    
+    def test_should_test_one_thing_per_test(self):
+        """每个测试应该只测试一件事"""
+        # 不要在一个测试中测试创建和删除
+        # 应该拆分为 test_create_article 和 test_delete_article
+        
+        self.assertTrue(True)
+    
+    def test_should_use_assertion_messages(self):
+        """断言应该有描述性消息"""
+        result = 2 + 2
+        self.assertEqual(result, 4, "2 + 2 应该等于 4")
+    
+    def test_should_mock_external_dependencies(self):
+        """应该模拟外部依赖"""
+        # 使用 Mock 来隔离被测试的代码
+        
+        self.assertTrue(True)
+    
+    def test_should_test_edge_cases(self):
+        """应该测试边界情况"""
+        # 测试空值、无效输入、极限值等
+        
+        self.assertTrue(True)
 ```
 
-### 测试策略总结
+### Continuous Integration（持续集成）
 
-#### 测试金字塔
-1. **单元测试** (70%)
-   - 服务层逻辑测试
-   - 仓储层CRUD操作测试
-   - 验证模型和验证器
-
-2. **集成测试** (20%)
-   - API端点测试
-   - 数据库操作测试
-   - 服务间交互测试
-
-3. **端到端测试** (10%)
-   - 完整业务流程测试
-   - 错误处理测试
-   - 性能测试
-
-#### 测试最佳实践
-- 使用内存数据库进行隔离测试
-- 每个测试后清理数据
-- 使用工厂模式创建测试数据
-- 测试覆盖率目标：>80%
-- 包含边界条件测试
-- 包含错误场景测试
-
-#### 持续集成
 ```yaml
 # .github/workflows/test.yml
-name: Test
+name: Tests
 
 on: [push, pull_request]
 
@@ -1871,25 +1750,24 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-    - uses: actions/checkout@v2
-    
+    - uses: actions/checkout@v3
     - name: Set up Python
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v4
       with:
-        python-version: '3.9'
+        python-version: '3.11'
     
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-        pip install pytest pytest-cov
+        pip install -r requirements-test.txt
     
     - name: Run tests
       run: |
-        pytest tests/ --cov=src --cov-report=xml
+        python -m pytest --cov=src --cov-report=xml
     
     - name: Upload coverage
-      uses: codecov/codecov-action@v1
+      uses: codecov/codecov-action@v3
       with:
         file: ./coverage.xml
 ```

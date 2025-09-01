@@ -97,7 +97,8 @@ class ReactAgentMinimal(Function):
                  base_url: Optional[str] = None,
                  window_size: int = 50,
                  max_rounds: int = 100,
-                 knowledge_files: Optional[List[str]] = None):
+                 knowledge_files: Optional[List[str]] = None,
+                 agent_name: Optional[str] = None):
         """
         初始化极简Agent
         
@@ -114,6 +115,7 @@ class ReactAgentMinimal(Function):
                         简单任务可设为20-30，复杂任务可设为100或更高
             max_rounds: 最大执行轮数
             knowledge_files: 知识文件列表（自然语言程序）
+            agent_name: Agent唯一名称，用于创建独立的笔记目录，默认为"main_agent"
         """
         # 使用类变量作为默认值
         if parameters is None:
@@ -155,12 +157,19 @@ class ReactAgentMinimal(Function):
         # 🌟 笔记系统 - Agent自己就是智能压缩器！
         self.window_size = window_size
         # 不再需要 message_count，直接使用 len(messages) 计算压力
-        self.notes_dir = self.work_dir / ".notes"
-        self.notes_dir.mkdir(exist_ok=True)
-        # 三层笔记架构文件
-        self.experience_file = self.notes_dir / "experience.md"
-        self.task_state_file = self.notes_dir / "task_state.md"
-        self.environment_file = self.notes_dir / "environment.md"
+        # 使用agent_name创建独立的笔记目录
+        self.agent_name = agent_name or "main_agent"
+        self.notes_dir = self.work_dir / ".notes" / self.agent_name
+        self.notes_dir.mkdir(parents=True, exist_ok=True)
+        # 双维度记忆理论文件
+        self.agent_knowledge_file = self.notes_dir / "agent_knowledge.md"
+        self.task_process_file = self.notes_dir / "task_process.md"
+        self.world_state_file = self.notes_dir / "world_state.md"
+        # 保留旧命名以兼容
+        self.experience_file = self.agent_knowledge_file
+        self.agent_state_file = self.agent_knowledge_file
+        self.task_state_file = self.task_process_file
+        self.environment_file = self.world_state_file
         # 保留旧的notes_file以兼容（但不再使用）
         self.notes_file = self.notes_dir / "session_notes.md"
         
@@ -170,14 +179,14 @@ class ReactAgentMinimal(Function):
         self.tools = [tool.to_openai_function() for tool in self.tool_instances]
         
         # 显示初始化信息
-        print(f"🚀 极简Agent已初始化")
+        print(f"🚀 极简Agent已初始化 [{self.agent_name}]")
         print(f"  📍 API: {self._detect_service()}")
         print(f"  🤖 模型: {self.model}")
         print(f"  📝 滑动窗口大小: {window_size}条消息")
-        print(f"  📓 笔记目录: {self.notes_dir}")
-        print(f"     - experience.md (经验库)")
-        print(f"     - task_state.md (任务状态)")
-        print(f"     - environment.md (环境知识)")
+        print(f"  📓 笔记目录: .notes/{self.agent_name}")
+        print(f"     - agent_knowledge.md (Agent知识库)")
+        print(f"     - task_process.md (任务过程)")
+        print(f"     - world_state.md (世界状态)")
         if self.knowledge_files:
             print(f"  📚 知识文件: {len(self.knowledge_files)}个")
         print(f"  ✨ Agent自己就是智能压缩器")
@@ -325,15 +334,15 @@ class ReactAgentMinimal(Function):
                         result_preview = tool_result[:150] if len(tool_result) > 150 else tool_result
                         print(f"   ✅ 结果: {result_preview}")
                         
-                        # 检测是否写了笔记（三层架构）
+                        # 检测是否写了笔记（双维度记忆理论）
                         if tool_name == "write_file":
                             file_path = str(arguments.get("file_path", ""))
-                            if "experience.md" in file_path:
-                                print(f"\n   📝 经验库已更新（长期知识）")
-                            elif "task_state.md" in file_path:
-                                print(f"\n   📋 任务状态已更新（TODO管理）")
-                            elif "environment.md" in file_path:
-                                print(f"\n   🏗️ 环境知识已更新（系统架构）")
+                            if "agent_knowledge.md" in file_path or "agent_state.md" in file_path or "experience.md" in file_path:
+                                print(f"\n   📝 Agent知识库已更新（主体知识）")
+                            elif "task_process.md" in file_path or "task_state.md" in file_path:
+                                print(f"\n   📋 任务过程已更新（事务记录）")
+                            elif "world_state.md" in file_path or "environment.md" in file_path:
+                                print(f"\n   🏗️ 世界状态已更新（客体快照）")
                             elif str(self.notes_dir) in file_path:
                                 print(f"\n   📝 笔记已保存（外部持久化）")
                             
@@ -367,12 +376,12 @@ class ReactAgentMinimal(Function):
                 # 显示统计
                 print(f"\n📊 任务完成统计：")
                 notes_created = []
-                if self.experience_file.exists():
-                    notes_created.append("experience.md")
-                if self.task_state_file.exists():
-                    notes_created.append("task_state.md")
-                if self.environment_file.exists():
-                    notes_created.append("environment.md")
+                if self.agent_knowledge_file.exists():
+                    notes_created.append("agent_knowledge.md")
+                if self.task_process_file.exists():
+                    notes_created.append("task_process.md")
+                if self.world_state_file.exists():
+                    notes_created.append("world_state.md")
                 
                 if notes_created:
                     print(f"  ✅ 已创建/更新笔记: {', '.join(notes_created)}")
@@ -396,12 +405,12 @@ class ReactAgentMinimal(Function):
             # 检查是否有现存笔记（元记忆）
             meta_memory = ""
             existing_notes = []
-            if self.experience_file.exists():
-                existing_notes.append("experience.md")
-            if self.task_state_file.exists():
-                existing_notes.append("task_state.md")
-            if self.environment_file.exists():
-                existing_notes.append("environment.md")
+            if self.agent_knowledge_file.exists():
+                existing_notes.append("agent_knowledge.md")
+            if self.task_process_file.exists():
+                existing_notes.append("task_process.md")
+            if self.world_state_file.exists():
+                existing_notes.append("world_state.md")
             
             if existing_notes:
                 meta_memory = f"\n[元记忆] 发现之前的笔记文件：{', '.join(existing_notes)}\n首次需要时使用read_file查看。"
@@ -409,7 +418,7 @@ class ReactAgentMinimal(Function):
             # 准备知识内容部分
             knowledge_section = ""
             if self.knowledge_content:
-                knowledge_section = f"\n## 知识库（可参考的自然语言程序）\n{self.knowledge_content}"
+                knowledge_section = f"\n## 知识库（可参考的自然语言程序）\n**说明**：以下是已加载的知识文件内容，直接参考使用，无需再去文件系统查找。\n\n{self.knowledge_content}"
             
             # 替换模板中的占位符
             prompt = template.format(
@@ -517,6 +526,16 @@ class ReactAgentMinimal(Function):
                     "max_tokens": 4096
                 }
                 
+                # 对于中国的API服务，不使用代理
+                proxies = None
+                if 'moonshot.cn' in self.base_url or 'deepseek.com' in self.base_url:
+                    # 禁用代理 - 使用空字符串覆盖环境变量
+                    proxies = {
+                        'http': '',
+                        'https': '',
+                        'all': ''
+                    }
+                
                 response = requests.post(
                     f"{self.base_url}/chat/completions",
                     headers={
@@ -524,7 +543,8 @@ class ReactAgentMinimal(Function):
                         "Content-Type": "application/json"
                     },
                     json=request_data,
-                    timeout=60  # 增加到60秒
+                    timeout=60,  # 增加到60秒
+                    proxies=proxies
                 )
             
                 if response.status_code == 200:

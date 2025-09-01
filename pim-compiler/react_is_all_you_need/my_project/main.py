@@ -1,52 +1,47 @@
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
-import database
-from routers import articles_router, categories_router, comments_router
-
+from database import init_db, get_db
+from routers.article import router as articles_router
+from routers.category import router as categories_router
+from routers.comment import router as comments_router
+import uvicorn
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """应用生命周期管理"""
     # 启动时初始化数据库
-    database.init_db()
+    init_db()
+    print("✅ 数据库初始化完成")
     yield
-
+    # 关闭时清理资源
+    print("🔄 应用正在关闭...")
 
 # 创建FastAPI应用
 app = FastAPI(
     title="博客系统API",
-    description="基于FastAPI的博客系统，支持文章、分类和评论管理",
+    description="基于FastAPI的博客系统后端API",
     version="1.0.0",
     lifespan=lifespan
 )
 
-# 配置CORS
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
 # 注册路由
-app.include_router(categories_router, prefix="/api/v1/categories", tags=["categories"])
-app.include_router(articles_router, prefix="/api/v1/articles", tags=["articles"])
-app.include_router(comments_router, prefix="/api/v1/comments", tags=["comments"])
+app.include_router(articles_router)
+app.include_router(categories_router)
+app.include_router(comments_router)
 
+@app.get("/")
+async def root():
+    """根端点"""
+    return {
+        "message": "欢迎使用博客系统API",
+        "version": "1.0.0",
+        "docs": "/docs"
+    }
 
 @app.get("/health")
 async def health_check():
     """健康检查端点"""
-    return {"status": "healthy"}
+    return {"status": "healthy", "timestamp": "2024-12-19T10:30:00Z"}
 
-
-@app.get("/")
-async def root():
-    """根路径"""
-    return {
-        "message": "博客系统API",
-        "version": "1.0.0",
-        "docs": "/docs"
-    }
+if __name__ == "__main__":
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

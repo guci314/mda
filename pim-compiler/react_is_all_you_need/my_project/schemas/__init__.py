@@ -1,10 +1,11 @@
-# 验证模式包初始化
-from .article import ArticleCreate, ArticleUpdate, ArticleResponse, ArticleQuery
-from .category import CategoryCreate, CategoryUpdate, CategoryResponse
-from .comment import CommentCreate, CommentUpdate, CommentResponse, CommentQuery
+"""Pydantic Schema包"""
+
+from .article import ArticleBase, ArticleCreate, ArticleUpdate, ArticleResponse, ArticleQuery
+from .category import CategoryBase, CategoryCreate, CategoryUpdate, CategoryResponse
+from .comment import CommentBase, CommentCreate, CommentUpdate, CommentResponse, CommentQuery
 
 __all__ = [
-    "ArticleCreate", "ArticleUpdate", "ArticleResponse", "ArticleQuery",
-    "CategoryCreate", "CategoryUpdate", "CategoryResponse",
-    "CommentCreate", "CommentUpdate", "CommentResponse", "CommentQuery"
+    "ArticleBase", "ArticleCreate", "ArticleUpdate", "ArticleResponse", "ArticleQuery",
+    "CategoryBase", "CategoryCreate", "CategoryUpdate", "CategoryResponse",
+    "CommentBase", "CommentCreate", "CommentUpdate", "CommentResponse", "CommentQuery"
 ]
