@@ -55,7 +55,6 @@ class CreateAgentTool(Function):
         )
         self.work_dir = work_dir
         self.parent_agent = parent_agent  # 父Agent引用
-        self.created_agents = {}  # 记录创建的Agent
     
     def execute(self, **kwargs) -> str:
         """
@@ -111,13 +110,9 @@ class CreateAgentTool(Function):
                 }
             )
             
-            # 保存Agent引用
-            self.created_agents[agent_name] = agent
-            
             # 如果有父Agent，直接将新Agent添加到父Agent的工具列表
             if self.parent_agent:
-                self.parent_agent.tool_instances.append(agent)
-                self.parent_agent.tools = [tool.to_openai_function() for tool in self.parent_agent.tool_instances]
+                self.parent_agent.append_tool(agent)
                 
                 return f"""Agent创建成功并已添加到工具列表！
 - 名称：{agent_name}
@@ -135,16 +130,6 @@ class CreateAgentTool(Function):
             
         except Exception as e:
             return f"创建Agent失败: {str(e)}"
-    
-    def list_created_agents(self) -> str:
-        """列出所有创建的Agent"""
-        if not self.created_agents:
-            return "还没有创建任何Agent"
-        
-        result = ["已创建的Agent："]
-        for name, agent in self.created_agents.items():
-            result.append(f"- {name}: {agent.description} ({agent.model})")
-        return "\n".join(result)
     
     def _get_api_config(self, model: str) -> tuple:
         """根据模型获取API配置"""

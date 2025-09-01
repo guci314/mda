@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 ReactAgent Minimal - 极简版本
-使用MemoryWithNaturalDecay作为唯一的记忆系统
+Agent自己就是智能压缩器，通过写笔记实现记忆
 """
 
 import os
@@ -60,12 +60,14 @@ ensure_env_loaded()
 # 不再需要外部记忆系统 - Agent自己做笔记
 try:
     from .tool_base import Function, ReadFileTool, WriteFileTool, ExecuteCommandTool
+    from .tools.search_tool import SearchTool, NewsSearchTool
 except ImportError:
     # 支持直接运行此文件
     import sys
     from pathlib import Path
     sys.path.insert(0, str(Path(__file__).parent.parent))
     from core.tool_base import Function, ReadFileTool, WriteFileTool, ExecuteCommandTool
+    from core.tools.search_tool import SearchTool, NewsSearchTool
 
 
 class ReactAgentMinimal(Function):
@@ -73,9 +75,9 @@ class ReactAgentMinimal(Function):
     极简React Agent
     
     核心理念：
-    1. 只用一个记忆系统 - MemoryWithNaturalDecay
-    2. 压缩就是认知
-    3. 简单就是美
+    1. Agent即Function - 可以作为工具被调用
+    2. 三层记忆架构 - 工作记忆/情景记忆/语义记忆
+    3. 压缩就是认知 - 通过写笔记实现显式压缩
     """
     
     # 默认参数定义
@@ -485,14 +487,39 @@ class ReactAgentMinimal(Function):
         
         return "\n\n".join(knowledge_content) if knowledge_content else ""
     
+    def append_tool(self, tool):
+        """
+        添加工具到Agent的工具列表
+        
+        Args:
+            tool: Function实例（工具或另一个Agent）
+        """
+        # 检查是否有必要的方法（鸭子类型）
+        if not hasattr(tool, 'execute') or not hasattr(tool, 'to_openai_function'):
+            raise TypeError(f"工具必须有execute和to_openai_function方法")
+        
+        self.tool_instances.append(tool)
+        self.tools = [t.to_openai_function() for t in self.tool_instances]
+    
     def _create_tool_instances(self) -> List[Function]:
         """创建工具实例"""
-        # 使用从tool_base导入的工具类
-        return [
+        # 基础工具集
+        tools = [
             ReadFileTool(self.work_dir),
             WriteFileTool(self.work_dir),
             ExecuteCommandTool(self.work_dir)
         ]
+        
+        # 添加搜索工具（如果API密钥存在）
+        try:
+            if os.getenv("SERPER_API_KEY"):
+                tools.append(SearchTool())
+                tools.append(NewsSearchTool())
+        except Exception as e:
+            # 如果搜索工具初始化失败，继续运行但不添加搜索功能
+            print(f"  ⚠️ 搜索工具未启用: {e}")
+        
+        return tools
     
     def _execute_tool(self, tool_name: str, arguments: Dict) -> str:
         """执行工具 - 使用Tool实例"""

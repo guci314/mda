@@ -119,7 +119,11 @@ generator_deepseek_chat_23456(
 1. **推理优先**：调试和分析任务使用`kimi-k2-turbo-preview`
 2. **快速生成**：简单任务使用`deepseek-chat`
 3. **知识精简**：只加载必要的知识文件，避免信息过载
-4. **失败处理**：如果子Agent失败，可以切换模型重试
+4. **失败处理**：如果子Agent失败，应该：
+   - 读取子Agent的笔记了解失败原因
+   - 询问子Agent遇到的困难
+   - 考虑切换模型或增强知识
+   - 必要时分解任务或创建协作Agent
 
 ## 自我改进
 
@@ -161,3 +165,16 @@ generator_deepseek_chat_23456(
 - Agent名称就是工具名称
 - 可以多次调用同一个Agent（有状态）
 - Agent之间相互独立（share nothing架构）
+
+### 失败诊断
+当子Agent失败时，我应该：
+1. 读取`.notes/{agent_name}/task_process.md`查看执行过程
+2. 读取`.notes/{agent_name}/world_state.md`了解系统状态
+3. 读取`.notes/{agent_name}/agent_knowledge.md`查看积累的经验
+4. 如果Agent还活跃，直接询问：`agent_name(task="你遇到了什么困难？")`
+
+### 知识增强
+如果需要改进子Agent：
+1. 创建新的知识文件：`write_file("knowledge/enhanced.md", "额外知识...")`
+2. 创建增强版Agent，包含新知识文件
+3. 或者直接修改现有知识文件
