@@ -207,8 +207,49 @@ class ReactAgentMinimal(Function):
         task = kwargs.get("task", "")
         if not task:
             return "错误：未提供任务描述"
-        print(f"\n[极简Agent] 执行任务...")
-        print(f"📝 任务: {task[:100]}...")
+        # 重定向标准输出到output.log
+        import sys
+        output_log_path = self.notes_dir / "output.log"
+        
+        # 保存原始stdout
+        original_stdout = sys.stdout
+        
+        # 创建Tee类，同时输出到控制台和文件
+        class Tee:
+            def __init__(self, *files):
+                self.files = files
+            def write(self, obj):
+                for f in self.files:
+                    f.write(obj)
+                    f.flush()
+            def flush(self):
+                for f in self.files:
+                    f.flush()
+        
+        # 打开日志文件（追加模式）
+        log_file = open(output_log_path, 'a', encoding='utf-8')
+        
+        # 设置stdout同时输出到控制台和文件
+        sys.stdout = Tee(original_stdout, log_file)
+        
+        try:
+            print(f"\n[极简Agent] 执行任务...")
+            print(f"📝 任务: {task[:100]}...")
+            print(f"⏰ 时间: {datetime.now()}")
+            print("="*60)
+            
+            # 执行任务的主逻辑将在try块中
+            return self._execute_task_impl(task, original_stdout, log_file)
+        except Exception as e:
+            print(f"\n❌ 任务执行出错: {e}")
+            # 确保恢复stdout
+            sys.stdout = original_stdout
+            log_file.close()
+            raise
+    
+    def _execute_task_impl(self, task: str, original_stdout, log_file) -> str:
+        """实际执行任务的实现"""
+        import sys
         
         # 初始化消息列表
         messages = [
@@ -390,9 +431,15 @@ class ReactAgentMinimal(Function):
                 else:
                     print(f"  ℹ️ 未创建笔记（任务简单或无需记录）")
                 
+                # 恢复stdout并关闭日志文件
+                sys.stdout = original_stdout
+                log_file.close()
                 return message.get("content", "任务完成")
         
         print(f"\n⚠️ 达到最大轮数")
+        # 恢复stdout并关闭日志文件
+        sys.stdout = original_stdout
+        log_file.close()
         return "达到最大执行轮数"
     
     def _build_minimal_prompt(self) -> str:
