@@ -172,19 +172,26 @@ class ReactAgentMinimal(Function):
         structured_notes_path = knowledge_dir / "structured_notes.md"
         if structured_notes_path.exists() and str(structured_notes_path) not in self.knowledge_files:
             self.knowledge_files.append(str(structured_notes_path))
+        
+        # 自动添加强制协议文件（最高优先级）
+        mandatory_protocol_path = knowledge_dir / "mandatory_protocol.md"
+        if mandatory_protocol_path.exists() and str(mandatory_protocol_path) not in self.knowledge_files:
+            # 插入到最前面，确保最高优先级
+            self.knowledge_files.insert(0, str(mandatory_protocol_path))
+        
         self.knowledge_content = self._load_knowledge()
         
         # 🌟 笔记系统 - Agent自己就是智能压缩器！
         self.window_size = window_size
         # 不再需要 message_count，直接使用 len(messages) 计算压力
         # 使用agent_name创建独立的笔记目录
-        self.agent_name = agent_name or "main_agent"
+        self.agent_name = name or "main_agent"
         self.notes_dir = self.work_dir / ".notes" / self.agent_name
         self.notes_dir.mkdir(parents=True, exist_ok=True)
         # 双维度记忆理论文件
-        self.agent_knowledge_file = self.notes_dir / "agent_knowledge.md"
-        self.task_process_file = self.notes_dir / "task_process.md"
-        self.world_state_file = self.notes_dir / "world_state.md"
+        self.agent_knowledge_file = self.notes_dir / "agent_knowledge.md"  # Agent私有
+        self.task_process_file = self.notes_dir / "task_process.md"        # Agent私有
+        self.world_state_file = self.work_dir / "world_state.md"           # 全局共享
         # 保留旧命名以兼容
         self.experience_file = self.agent_knowledge_file
         self.agent_state_file = self.agent_knowledge_file

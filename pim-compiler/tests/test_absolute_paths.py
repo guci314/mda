@@ -5,6 +5,7 @@ from pathlib import Path
 import logging
 
 from src.compiler.core.pure_gemini_compiler import PureGeminiCompiler
+from src.compiler.generators.psm_generator import PSMEntity
 from src.compiler.config import CompilerConfig
 
 

@@ -8,8 +8,8 @@ import shutil
 from unittest.mock import patch, Mock
 import subprocess
 
-from compiler.core.pure_gemini_compiler import PureGeminiCompiler
-from compiler.config import CompilerConfig
+from src.compiler.core.pure_gemini_compiler import PureGeminiCompiler
+from src.compiler.config import CompilerConfig
 
 
 @pytest.fixture

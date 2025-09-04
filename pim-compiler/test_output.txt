@@ -1,0 +1,56 @@
+[1m============================= test session starts ==============================[0m
+platform linux -- Python 3.10.12, pytest-7.4.3, pluggy-1.6.0 -- /bin/python
+cachedir: .pytest_cache
+PyQt5 5.15.9 -- Qt runtime 5.15.2 -- Qt compiled 5.15.2
+benchmark: 5.1.0 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)
+rootdir: /home/guci/aiProjects/mda/pim-compiler
+configfile: pytest.ini
+plugins: qt-4.4.0, asyncio-0.21.1, benchmark-5.1.0, env-1.1.5, anyio-3.7.1, devtools-0.12.2, langsmith-0.4.8, cov-6.2.1, timeout-2.3.1
+asyncio: mode=strict
+[1mcollecting ... [0mcollected 23 items / 5 errors
+
+==================================== ERRORS ====================================
+[31m[1m________________ ERROR collecting tests/test_absolute_paths.py _________________[0m
+[1m[31mE   NameError: name 'PSMEntity' is not defined[0m
+[31m[1m_________________ ERROR collecting tests/test_feedback_loop.py _________________[0m
+[31mImportError while importing test module '/home/guci/aiProjects/mda/pim-compiler/tests/test_feedback_loop.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+[1m[31m/usr/lib/python3.10/importlib/__init__.py[0m:126: in import_module
+    [94mreturn[39;49;00m _bootstrap._gcd_import(name[level:], package, level)[90m[39;49;00m
+[1m[31mtests/test_feedback_loop.py[0m:10: in <module>
+    [94mfrom[39;49;00m[90m [39;49;00m[04m[96mcompiler[39;49;00m[04m[96m.[39;49;00m[04m[96mcore[39;49;00m[04m[96m.[39;49;00m[04m[96mpure_gemini_compiler[39;49;00m[90m [39;49;00m[94mimport[39;49;00m PureGeminiCompiler[90m[39;49;00m
+[1m[31msrc/compiler/__init__.py[0m:11: in <module>
+    [94mfrom[39;49;00m[90m [39;49;00m[04m[96m.[39;49;00m[04m[96mcompiler_factory[39;49;00m[90m [39;49;00m[94mimport[39;49;00m CompilerFactory[90m[39;49;00m
+[1m[31msrc/compiler/compiler_factory.py[0m:8: in <module>
+    [94mfrom[39;49;00m[90m [39;49;00m[04m[96m.[39;49;00m[04m[96mcore[39;49;00m[04m[96m.[39;49;00m[04m[96mpure_gemini_compiler[39;49;00m[90m [39;49;00m[94mimport[39;49;00m PureGeminiCompiler[90m[39;49;00m
+[1m[31msrc/compiler/core/pure_gemini_compiler.py[0m:19: in <module>
+    [94mfrom[39;49;00m[90m [39;49;00m[04m[96m.[39;49;00m[04m[96m.[39;49;00m[04m[96m.[39;49;00m[04m[96mutils[39;49;00m[04m[96m.[39;49;00m[04m[96mlogger[39;49;00m[90m [39;49;00m[94mimport[39;49;00m get_logger[90m[39;49;00m
+[1m[31mE   ImportError: attempted relative import beyond top-level package[0m[0m
+[31m[1m___________ ERROR collecting tests/test_feedback_loop_integration.py ___________[0m
+[1m[31mE   KeyError: 'compiler'[0m
+[31m[1m________________ ERROR collecting tests/test_hospital_system.py ________________[0m
+[1m[31mE   KeyError: 'compiler'[0m
+[31m[1m____________________ ERROR collecting tests/test_simple.py _____________________[0m
+[31mImportError while importing test module '/home/guci/aiProjects/mda/pim-compiler/tests/test_simple.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+[1m[31m/usr/lib/python3.10/importlib/__init__.py[0m:126: in import_module
+    [94mreturn[39;49;00m _bootstrap._gcd_import(name[level:], package, level)[90m[39;49;00m
+[1m[31mtests/test_simple.py[0m:13: in <module>
+    [94mfrom[39;49;00m[90m [39;49;00m[04m[96mcompiler[39;49;00m[90m [39;49;00m[94mimport[39;49;00m PureGeminiCompiler, CompilerConfig[90m[39;49;00m
+[1m[31msrc/compiler/__init__.py[0m:11: in <module>
+    [94mfrom[39;49;00m[90m [39;49;00m[04m[96m.[39;49;00m[04m[96mcompiler_factory[39;49;00m[90m [39;49;00m[94mimport[39;49;00m CompilerFactory[90m[39;49;00m
+[1m[31msrc/compiler/compiler_factory.py[0m:8: in <module>
+    [94mfrom[39;49;00m[90m [39;49;00m[04m[96m.[39;49;00m[04m[96mcore[39;49;00m[04m[96m.[39;49;00m[04m[96mpure_gemini_compiler[39;49;00m[90m [39;49;00m[94mimport[39;49;00m PureGeminiCompiler[90m[39;49;00m
+[1m[31msrc/compiler/core/pure_gemini_compiler.py[0m:19: in <module>
+    [94mfrom[39;49;00m[90m [39;49;00m[04m[96m.[39;49;00m[04m[96m.[39;49;00m[04m[96m.[39;49;00m[04m[96mutils[39;49;00m[04m[96m.[39;49;00m[04m[96mlogger[39;49;00m[90m [39;49;00m[94mimport[39;49;00m get_logger[90m[39;49;00m
+[1m[31mE   ImportError: attempted relative import beyond top-level package[0m[0m
+[36m[1m=========================== short test summary info ============================[0m
+[31mERROR[0m tests/test_absolute_paths.py - NameError: name 'PSMEntity' is not defined
+[31mERROR[0m tests/test_feedback_loop.py
+[31mERROR[0m tests/test_feedback_loop_integration.py - KeyError: 'compiler'
+[31mERROR[0m tests/test_hospital_system.py - KeyError: 'compiler'
+[31mERROR[0m tests/test_simple.py
+!!!!!!!!!!!!!!!!!!! Interrupted: 5 errors during collection !!!!!!!!!!!!!!!!!!!!
+[31m============================== [31m[1m5 errors[0m[31m in 2.06s[0m[31m ===============================[0m

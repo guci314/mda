@@ -16,7 +16,7 @@ from collections import namedtuple
 load_dotenv()
 
 from ..config import CompilerConfig
-from ...utils.logger import get_logger
+from src.utils.logger import get_logger
 from .error_pattern_cache import ErrorPatternCache
 from .incremental_fixer import IncrementalFixer
 from .prompts import (

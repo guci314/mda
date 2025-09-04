@@ -1,0 +1,10 @@
+{
+  "results": {
+    "no_learning_avg": 130.56230266666668,
+    "learning_avg": 129.22223566666668,
+    "improvement": 1.026381254489112,
+    "patterns_learned": 3
+  },
+  "quality_score": 80.0,
+  "timestamp": "2025-09-05T04:11:38.624945"
+}
