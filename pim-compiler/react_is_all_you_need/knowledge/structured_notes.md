@@ -13,9 +13,19 @@
 
 2. **task_process.md**（强制）：当前任务过程和TODO
    - 任务开始时立即创建（必须包含校验步骤）
+   - **必须记录精确的开始时间戳**：
+     ```python
+     import time
+     start_time = time.time()  # 记录时间戳，不是字符串！
+     ```
    - 持续更新进度和TODO列表
    - **智能推断成功条件并校验**（根据任务性质确定验证方法）
    - 只有满足成功条件才能标记任务完成
+   - 任务完成时必须计算并报告耗时：
+     ```python
+     elapsed = time.time() - start_time
+     print(f"任务耗时: {elapsed:.2f}秒")
+     ```
 
 3. **agent_knowledge.md**（按需）：Agent的知识库
    - 任务开始时读取（如果存在）

@@ -142,9 +142,27 @@ class ReactAgentMinimal(Function):
         self.model = model
         self.max_rounds = max_rounds
         
-        # API配置
-        self.api_key = api_key or self._detect_api_key()
-        self.base_url = base_url or self._detect_base_url_for_key(self.api_key)
+        # API配置 - 根据模型名称智能选择
+        if "kimi" in model.lower() or "moonshot" in model.lower():
+            # Kimi模型 - 使用Moonshot API
+            self.api_key = api_key or os.getenv("MOONSHOT_API_KEY") or self._detect_api_key()
+            self.base_url = base_url or "https://api.moonshot.cn/v1"
+        elif "deepseek" in model.lower():
+            # DeepSeek模型
+            self.api_key = api_key or os.getenv("DEEPSEEK_API_KEY") or self._detect_api_key()
+            self.base_url = base_url or "https://api.deepseek.com/v1"
+        elif "anthropic" in model.lower() or "claude" in model.lower():
+            # Claude模型 - 通过OpenRouter
+            self.api_key = api_key or os.getenv("OPENROUTER_API_KEY") or self._detect_api_key()
+            self.base_url = base_url or "https://openrouter.ai/api/v1"
+        elif "gemini" in model.lower():
+            # Gemini模型
+            self.api_key = api_key or os.getenv("GEMINI_API_KEY") or self._detect_api_key()
+            self.base_url = base_url or "https://generativelanguage.googleapis.com/v1beta/openai/"
+        else:
+            # 默认配置
+            self.api_key = api_key or self._detect_api_key()
+            self.base_url = base_url or self._detect_base_url_for_key(self.api_key)
         
         # 知识文件（自然语言程序）- 提前加载
         self.knowledge_files = knowledge_files or []
@@ -617,7 +635,7 @@ class ReactAgentMinimal(Function):
                         "Content-Type": "application/json"
                     },
                     json=request_data,
-                    timeout=60,  # 增加到60秒
+                    timeout=180,  # 增加到180秒，处理大型任务
                     proxies=proxies
                 )
             
@@ -685,9 +703,11 @@ class ReactAgentMinimal(Function):
         if "deepseek" in base_url_lower:
             return "DeepSeek"
         elif "moonshot" in base_url_lower:
-            return "Moonshot"
+            return "Moonshot/Kimi"
         elif "openrouter" in base_url_lower:
             return "OpenRouter"
+        elif "generativelanguage.googleapis.com" in base_url_lower:
+            return "Gemini"
         else:
             return "Custom"
     
