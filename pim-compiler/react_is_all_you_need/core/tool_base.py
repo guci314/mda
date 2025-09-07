@@ -8,6 +8,14 @@ from typing import Dict, Any, Optional, List
 from dataclasses import dataclass
 from pathlib import Path
 
+__all__ = [
+    'Function',
+    'ReadFileTool', 
+    'WriteFileTool',
+    'ExecuteCommandTool',
+    'SessionQueryTool'
+]
+
 
 class Function(ABC):
     """函数基类 - 可被调用的函数/工具"""
@@ -72,10 +80,7 @@ class Function(ABC):
                 "parameters": {
                     "type": "object",
                     "properties": self.parameters,
-                    "required": [
-                        key for key, param in self.parameters.items() 
-                        if (param.get("required", True) if isinstance(param, dict) else True)
-                    ]
+                    "required": []  # Grok可能对required字段敏感，先设为空数组
                 }
             }
         }
@@ -200,3 +205,68 @@ class ExecuteCommandTool(Function):
             timeout=10
         )
         return result.stdout[:500] if result.stdout else "命令执行完成"
+
+
+class SessionQueryTool(Function):
+    """查询历史session工具"""
+    
+    def __init__(self, work_dir):
+        super().__init__(
+            name="query_sessions",
+            description="查询历史任务记录，获取之前的解决方案和经验。可用于：查找相似问题的处理方法、追溯文件修改历史、回顾错误和修复记录",
+            parameters={
+                "pattern": {
+                    "type": "string",
+                    "description": "搜索模式（可选）"
+                },
+                "limit": {
+                    "type": "integer",
+                    "description": "返回数量限制",
+                    "default": 10
+                }
+            }
+        )
+        self.work_dir = Path(work_dir)
+        self.sessions_dir = self.work_dir / ".sessions"
+    
+    def execute(self, **kwargs) -> str:
+        pattern = kwargs.get("pattern", None)
+        limit = kwargs.get("limit", 10)
+        
+        if not self.sessions_dir.exists():
+            return "没有找到session记录"
+        
+        # 获取所有session文件，按时间倒序
+        session_files = sorted(self.sessions_dir.glob("*.md"), reverse=True)
+        
+        if pattern:
+            # 如果提供了搜索模式，过滤文件
+            import re
+            regex = re.compile(pattern, re.IGNORECASE)
+            filtered = []
+            for f in session_files:
+                try:
+                    if regex.search(f.read_text(encoding='utf-8')):
+                        filtered.append(f)
+                except:
+                    continue
+            session_files = filtered
+        
+        # 限制返回数量
+        session_files = session_files[:limit]
+        
+        if not session_files:
+            return "没有找到匹配的session"
+        
+        # 构建结果
+        results = []
+        for session_file in session_files:
+            # 读取文件前几行获取摘要
+            try:
+                lines = session_file.read_text(encoding='utf-8').split('\n')[:10]
+                summary = '\n'.join(lines)
+                results.append(f"## {session_file.name}\n{summary}\n...")
+            except:
+                continue
+        
+        return '\n\n'.join(results) if results else "无法读取session文件"

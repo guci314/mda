@@ -7,13 +7,15 @@
 ```
 core/
 ├── __init__.py                  # 模块初始化
-├── react_agent_minimal.py       # 极简Agent实现
-├── memory_with_natural_decay.py # 自然衰减记忆系统
-├── tools.py                     # 工具定义
+├── react_agent_minimal.py       # 极简Agent实现 (801行)
+├── tool_base.py                 # 函数基础类 (201行)
+├── tools/                       # 工具模块
+│   ├── create_agent_tool.py     # 创建Agent工具 (152行)
+│   └── search_tool.py           # 搜索工具 (218行)
 └── README.md                    # 本文档
 ```
 
-仅需 **4个Python文件，约600行代码**，实现完整的React Agent功能。
+总计 **5个Python文件，约1372行代码**，实现完整的React Agent功能。
 
 ## 核心模块
 
@@ -21,93 +23,86 @@ core/
 **ReactAgentMinimal** - 极简React Agent实现
 
 核心特性：
-- 单一记忆系统（MemoryWithNaturalDecay）
-- 单一参数控制（pressure_threshold）
+- 单一Agent类，自己做笔记
 - 自动API服务检测
-- 完整的工具系统支持
+- 完整的工具系统集成
+- 基于Function基类的统一接口
 
 ```python
 from core import ReactAgentMinimal
 
 # 创建Agent - 极其简单
 agent = ReactAgentMinimal(
-    work_dir="output",
-    pressure_threshold=50  # 唯一的记忆参数！
+    work_dir="output"
 )
 
 # 执行任务
 result = agent.run("创建一个Python计算器")
 ```
 
-### memory_with_natural_decay.py
-**MemoryWithNaturalDecay** - 基于压缩的自然记忆衰减
+### tool_base.py
+**Function** - 统一的函数抽象基类
 
 核心理念：
-- **压缩即认知**：压缩过程就是理解过程
-- **压力触发**：消息数超过阈值自动压缩
-- **自然分层**：压缩历史形成记忆层次
-- **模仿人类**：像人类一样自然遗忘细节，保留要点
+- 所有工具都继承自Function基类
+- 统一的参数验证和执行接口
+- 支持OpenAI函数调用格式
+- 强类型Pydantic模型验证
 
 ```python
-from core import MemoryWithNaturalDecay
+from core import Function
 
-# 创建记忆系统
-memory = MemoryWithNaturalDecay(
-    pressure_threshold=50,  # 50条消息后自动压缩
-    work_dir=".memory",     # 持久化目录
-    enable_persistence=True # 启用持久化
-)
-
-# 添加消息
-memory.add_message("user", "解释量子计算")
-memory.add_message("assistant", "量子计算是...")
-
-# 自动压缩会在压力达到阈值时触发
-if memory.should_compact():
-    compressed = memory.compact()  # 返回CompressedMemory对象
+class MyTool(Function):
+    def __init__(self):
+        super().__init__(
+            name="my_tool",
+            description="我的工具描述",
+            parameters={
+                "param1": {"type": "string", "description": "参数1"}
+            }
+        )
+    
+    def execute(self, **kwargs) -> str:
+        # 工具逻辑
+        return "执行结果"
 ```
 
-### tools.py
-**工具系统** - 定义Agent的能力边界
+### tools/create_agent_tool.py
+**CreateAgentTool** - 创建子Agent工具
 
-提供的工具：
-- **文件操作**：read_file, write_file, edit_lines
-- **搜索功能**：search_files, find_symbol, extract_code
-- **命令执行**：execute_command
-- **代码操作**：search_replace, apply_diff
-- **Web功能**：google_search, read_web_page（可选）
+功能：
+- 动态创建子Agent
+- 支持多种模型配置
+- 自动环境变量管理
+- 父子Agent协作
 
-所有工具都使用Pydantic模型进行强类型验证。
+### tools/search_tool.py
+**SearchTool & NewsSearchTool** - 搜索工具
+
+功能：
+- 网络搜索（需要Serper API）
+- 新闻搜索
+- 结果格式化和过滤
 
 ## 设计哲学
 
 ### 1. 极简主义
-- **一个Agent类**：ReactAgentMinimal
-- **一个记忆系统**：MemoryWithNaturalDecay
-- **一个核心参数**：pressure_threshold
+- **一个核心Agent类**：ReactAgentMinimal
+- **一个函数基类**：Function
 - **零复杂配置**：开箱即用
+- **自己做笔记**：Agent通过写笔记实现记忆
 
-### 2. 自然智能
-- 模仿人类记忆的自然衰减
-- 压缩即理解，解压即创造
-- 无需复杂的多层记忆架构
+### 2. 函数即工具
+- 所有工具都是Function的子类
+- 统一的参数验证和执行模型
+- 支持OpenAI函数调用格式
+- 易于扩展和维护
 
-### 3. 呼吸理论
-基于"智能即呼吸"的理论：
-- **吸入（压缩）**：理解和提取本质
-- **屏息（保持）**：在压缩空间中思考
-- **呼出（解压）**：生成和创造
-
-## 与旧版本对比
-
-| 特性 | 旧版本（已删除） | 极简版本 |
-|------|-----------------|----------|
-| 代码量 | ~3000行 | ~600行 |
-| Agent类 | 5个 | 1个 |
-| 记忆系统 | 6个 | 1个 |
-| 配置参数 | 20+ | 1个 |
-| 依赖 | 复杂 | 最小 |
-| 性能 | 一般 | 优秀 |
+### 3. 智能压缩
+Agent本身就是智能压缩器：
+- **写入笔记** = 知识压缩
+- **读取笔记** = 知识提取
+- **更新笔记** = 知识演化
 
 ## 快速开始
 
@@ -116,9 +111,7 @@ from core import ReactAgentMinimal
 
 # 1. 创建Agent
 agent = ReactAgentMinimal(
-    work_dir="my_project",
-    model="deepseek-chat",           # 可选：指定模型
-    pressure_threshold=30             # 可选：调整压缩阈值
+    work_dir="my_project"
 )
 
 # 2. 执行任务
@@ -128,7 +121,7 @@ result = agent.run("""
 """)
 
 # 3. 查看结果
-print(result["final_answer"])
+print(result)
 ```
 
 ## API支持
@@ -148,29 +141,33 @@ export OPENROUTER_API_KEY="your-key"
 export MOONSHOT_API_KEY="your-key"
 ```
 
-## 理论基础
+## 工具系统
 
-核心理论文档：
-- [呼吸：智能的本质](../docs/paper_breathing_intelligence.md)
-- [人机协同呼吸](../docs/human_ai_collaborative_breathing.md)
-- [双重呼吸：生命与智能](../docs/dual_breathing_life_intelligence.md)
-- [具身强化学习](../docs/embodied_reinforcement_learning.md)
+当前可用的工具：
+- **CreateAgentTool**: 创建子Agent
+- **SearchTool**: 网络搜索
+- **NewsSearchTool**: 新闻搜索
+
+所有工具都通过Function基类提供：
+- 统一的参数验证
+- 类型安全的执行
+- 错误处理机制
 
 ## 为什么选择极简版本？
 
 1. **更少的代码，更少的bug**
 2. **更快的执行，更低的延迟**
 3. **更易理解，更易维护**
-4. **更自然的记忆管理**
-5. **更符合智能的本质**
+4. **更自然的智能实现**
+5. **更符合函数式编程思想**
 
 ## 贡献指南
 
 保持极简：
-- 不要添加新的Agent类
-- 不要添加新的记忆系统
-- 不要增加配置参数
-- 优先删除而非添加
+- 所有新工具必须继承Function基类
+- 优先使用函数式编程风格
+- 保持代码简洁明了
+- 文档比代码更重要
 
 > "完美不是没有什么可以添加，而是没有什么可以删除。"
 > 
@@ -182,4 +179,8 @@ MIT License
 
 ---
 
-*基于"压缩即认知"的极简AI系统*
+*基于"函数即工具"的极简AI系统*
+## 架构文档
+
+详细的系统架构设计文档请参考：
+- [UML架构文档](../uml_model/architecture.md) - 包含系统架构图、类图和时序图
