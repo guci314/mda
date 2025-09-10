@@ -1,0 +1,42 @@
+[
+  {
+    "model": "DeepSeek-Chat(Baseline)",
+    "model_id": "deepseek-chat",
+    "success": true,
+    "total_time": 1438.969803571701,
+    "total_time_minutes": 23.98283005952835,
+    "debug_rounds": 0,
+    "error": null,
+    "timestamp": "2025-09-09T11:30:52.181029"
+  },
+  {
+    "model": "DeepSeek-Reasoner",
+    "model_id": "deepseek-reasoner",
+    "success": true,
+    "total_time": 1695.4054961204529,
+    "total_time_minutes": 28.256758268674215,
+    "debug_rounds": 0,
+    "error": null,
+    "timestamp": "2025-09-09T11:59:37.618301"
+  },
+  {
+    "model": "glm-4.5",
+    "model_id": "z-ai/glm-4.5",
+    "success": true,
+    "total_time": 156.13778686523438,
+    "total_time_minutes": 2.6022964477539063,
+    "debug_rounds": 0,
+    "error": null,
+    "timestamp": "2025-09-09T12:02:43.786331"
+  },
+  {
+    "model": "qwen3-coder",
+    "model_id": "qwen/qwen3-coder",
+    "success": true,
+    "total_time": 303.8555784225464,
+    "total_time_minutes": 5.064259640375773,
+    "debug_rounds": 0,
+    "error": null,
+    "timestamp": "2025-09-09T12:08:17.672461"
+  }
+]

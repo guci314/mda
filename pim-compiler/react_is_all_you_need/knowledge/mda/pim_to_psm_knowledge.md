@@ -108,26 +108,94 @@ def startup_event():
 ```
 
 ### 5. Testing Specifications（测试规范）
-**目的**：定义测试策略和测试用例
+**目的**：定义测试策略和测试用例（基于unittest框架）
 
 **必须包含**：
-- Unit Tests（单元测试）：服务层和工具函数测试
-- Integration Tests（集成测试）：API 端点测试
-- Test Fixtures（测试夹具）：测试数据和模拟对象
-- Test Configuration（测试配置）：测试数据库和环境
+- Unit Tests（单元测试）：使用unittest.TestCase和Mock对象测试服务层
+- Integration Tests（集成测试）：使用TestClient测试API端点
+- Test Fixtures（测试夹具）：setUp/tearDown方法准备测试数据
+- Test Configuration（测试配置）：测试数据库和环境配置
+- Test Utilities（测试工具）：辅助函数和测试数据生成器
 
 **代码规范**：
 ```python
 import unittest
 from fastapi.testclient import TestClient
+from unittest.mock import Mock, patch
 
 class TestUserAPI(unittest.TestCase):
+    """用户API测试类"""
+    
+    @classmethod
+    def setUpClass(cls):
+        """测试类级别的初始化"""
+        # 创建测试数据库
+        cls.test_db = "test_blog.db"
+    
     def setUp(self):
+        """每个测试方法执行前的准备"""
         self.client = TestClient(app)
+        # 清理测试数据
+    
+    def tearDown(self):
+        """每个测试方法执行后的清理"""
+        # 清理测试数据
+        pass
     
     def test_create_user(self):
-        response = self.client.post("/api/users", json={...})
+        """测试创建用户"""
+        response = self.client.post("/api/users", json={
+            "name": "Test User",
+            "email": "test@example.com"
+        })
         self.assertEqual(response.status_code, 201)
+        self.assertIn("id", response.json())
+    
+    def test_get_user(self):
+        """测试获取用户"""
+        # 先创建用户
+        create_response = self.client.post("/api/users", json={
+            "name": "Test User",
+            "email": "test@example.com"
+        })
+        user_id = create_response.json()["id"]
+        
+        # 测试获取
+        get_response = self.client.get(f"/api/users/{user_id}")
+        self.assertEqual(get_response.status_code, 200)
+        self.assertEqual(get_response.json()["name"], "Test User")
+
+# 单元测试示例
+class TestUserService(unittest.TestCase):
+    """用户服务单元测试"""
+    
+    def setUp(self):
+        """使用Mock对象进行单元测试"""
+        self.mock_repository = Mock()
+        self.service = UserService(self.mock_repository)
+    
+    def test_register_user(self):
+        """测试用户注册逻辑"""
+        # 配置Mock返回值
+        self.mock_repository.create.return_value = User(
+            id="123",
+            name="Test User",
+            email="test@example.com"
+        )
+        
+        # 执行测试
+        result = self.service.register_user(UserCreate(
+            name="Test User",
+            email="test@example.com"
+        ))
+        
+        # 断言
+        self.assertEqual(result.name, "Test User")
+        self.mock_repository.create.assert_called_once()
+
+# 运行测试
+if __name__ == '__main__':
+    unittest.main()
 ```
 
 ## FastAPI 平台特定知识
@@ -137,7 +205,7 @@ class TestUserAPI(unittest.TestCase):
 - **ORM**：SQLAlchemy 2.0 (同步模式)
 - **数据库**：SQLite（轻量级，适合开发和测试）
 - **验证**：Pydantic v2
-- **测试**：unittest（Python标准库）
+- **测试**：unittest（Python标准库，不使用pytest）
 - **同步**：使用同步模式，简化开发
 
 ### 最佳实践
@@ -197,6 +265,123 @@ v1_router.include_router(users_router)
 app.include_router(v1_router)
 ```
 
+### unittest最佳实践
+
+#### 1. 测试组织结构
+```
+tests/
+├── __init__.py
+├── test_models.py          # 模型测试
+├── test_services.py        # 服务层测试
+├── test_repositories.py    # 仓储层测试
+├── test_api/               # API测试
+│   ├── __init__.py
+│   ├── test_users.py
+│   └── test_articles.py
+├── fixtures/               # 测试数据
+│   ├── __init__.py
+│   └── test_data.py
+└── conftest.py            # 测试配置（虽然是pytest的文件名，但可用于存放共享配置）
+```
+
+#### 2. 测试基类示例
+```python
+# tests/base.py
+import unittest
+import os
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from fastapi.testclient import TestClient
+
+class BaseTestCase(unittest.TestCase):
+    """所有测试的基类"""
+    
+    @classmethod
+    def setUpClass(cls):
+        """设置测试数据库"""
+        cls.engine = create_engine("sqlite:///./test.db")
+        cls.SessionLocal = sessionmaker(bind=cls.engine)
+        # 创建所有表
+        Base.metadata.create_all(bind=cls.engine)
+    
+    @classmethod
+    def tearDownClass(cls):
+        """清理测试数据库"""
+        Base.metadata.drop_all(bind=cls.engine)
+        if os.path.exists("test.db"):
+            os.remove("test.db")
+    
+    def setUp(self):
+        """每个测试前的准备"""
+        self.session = self.SessionLocal()
+        self.client = TestClient(app)
+    
+    def tearDown(self):
+        """每个测试后的清理"""
+        self.session.rollback()
+        self.session.close()
+```
+
+#### 3. Mock使用示例
+```python
+from unittest.mock import Mock, patch, MagicMock
+
+class TestServiceWithMock(unittest.TestCase):
+    
+    @patch('module.DatabaseSession')
+    def test_with_mock_db(self, mock_db):
+        """使用patch装饰器模拟数据库"""
+        mock_db.return_value.query.return_value.all.return_value = []
+        # 测试代码
+    
+    def test_with_manual_mock(self):
+        """手动创建Mock对象"""
+        mock_repo = Mock()
+        mock_repo.find_by_id.return_value = {"id": 1, "name": "test"}
+        service = UserService(mock_repo)
+        # 测试代码
+```
+
+#### 4. 断言方法
+```python
+# unittest提供的常用断言方法
+self.assertEqual(a, b)           # a == b
+self.assertNotEqual(a, b)        # a != b
+self.assertTrue(x)                # bool(x) is True
+self.assertFalse(x)               # bool(x) is False
+self.assertIs(a, b)               # a is b
+self.assertIsNone(x)              # x is None
+self.assertIn(a, b)               # a in b
+self.assertIsInstance(a, b)       # isinstance(a, b)
+self.assertRaises(exc, fun, *args) # fun(*args) raises exc
+self.assertAlmostEqual(a, b)      # round(a-b, 7) == 0
+self.assertGreater(a, b)          # a > b
+self.assertLess(a, b)             # a < b
+self.assertListEqual(a, b)        # 列表相等
+self.assertDictEqual(a, b)        # 字典相等
+```
+
+#### 5. 运行测试的方式
+```bash
+# 运行所有测试
+python -m unittest discover tests/
+
+# 运行特定测试文件
+python -m unittest tests.test_users
+
+# 运行特定测试类
+python -m unittest tests.test_users.TestUserAPI
+
+# 运行特定测试方法
+python -m unittest tests.test_users.TestUserAPI.test_create_user
+
+# 带详细输出
+python -m unittest discover tests/ -v
+
+# 失败时停止
+python -m unittest discover tests/ -f
+```
+
 ### 代码组织结构
 ```
 src/
@@ -245,11 +430,13 @@ src/
 - 线程安全：`connect_args={"check_same_thread": False}`
 
 ### unittest测试配置
-- 使用`unittest.TestCase`处理同步测试
+- 使用`unittest.TestCase`作为所有测试类的基类
 - 使用`TestClient`来测试FastAPI应用
 - 测试数据库：使用独立的`test_blog.db`
 - 测试命令：`python -m unittest discover tests/`
 - 测试文件命名：`test_*.py`
+- 测试方法命名：`test_*`开头
+- **不使用pytest**：所有测试都基于标准库unittest
 
 ## 生成指导原则
 
@@ -264,6 +451,33 @@ src/
 
 **重要**：PSM文档包含5个章节，必须全部生成，不能中途停止！
 
+### 推荐方法：一次性生成所有章节
+```python
+# 构建完整的PSM文档内容
+psm_content = """# Platform Specific Model (PSM) - 博客系统
+
+## 1. Domain Models（领域模型）
+...第一章完整内容...
+
+## 2. Service Layer（服务层）
+...第二章完整内容...
+
+## 3. REST API Design（API设计）
+...第三章完整内容...
+
+## 4. Application Configuration（应用配置）
+...第四章完整内容...
+
+## 5. Testing Specifications（测试规范）
+...第五章完整内容...
+"""
+
+# 一次性写入完整文件
+write_file("blog_psm.md", psm_content)
+```
+
+### 备选方法：逐章追加（如果内容太大）
+
 ### 步骤1：创建文件并写入第一章
 ```bash
 write_file(file_path="blog_psm.md", content="""# Platform Specific Model (PSM) - 博客系统
@@ -276,50 +490,54 @@ write_file(file_path="blog_psm.md", content="""# Platform Specific Model (PSM) -
 ```
 
 ### 步骤2：追加第二章（必须执行）
-```bash
-execute_command('cat >> blog_psm.md << "EOF"
+```python
+# 使用append_file直接追加
+append_file("blog_psm.md", """
 
 ## 2. Service Layer（服务层）
 
 ### Business Services（业务服务）
 ...第二章完整内容...
-EOF')
+""")
 ```
 
 ### 步骤3：追加第三章（必须执行）
-```bash
-execute_command('cat >> blog_psm.md << "EOF"
+```python
+# 使用append_file直接追加
+append_file("blog_psm.md", """
 
 ## 3. REST API Design（API设计）
 
 ### API Endpoints（端点定义）
 ...第三章完整内容...
-EOF')
+""")
 ```
 
 ### 步骤4：追加第四章（必须执行）
-```bash
-execute_command('cat >> blog_psm.md << "EOF"
+```python
+# 使用append_file直接追加
+append_file("blog_psm.md", """
 
 ## 4. Application Configuration（应用配置）
 
 ### Main Application（主应用）
 ...第四章完整内容...
-EOF')
+""")
 ```
 
 ### 步骤5：追加第五章（必须执行）
-```bash
-execute_command('cat >> blog_psm.md << "EOF"
+```python
+# 使用append_file直接追加
+append_file("blog_psm.md", """
 
 ## 5. Testing Specifications（测试规范）
 
 ### Unit Tests（单元测试）
 ...第五章完整内容...
-EOF')
+""")
 ```
 
-**记住**：即使内容很长，也必须完成所有5个章节！使用cat的HERE文档语法可以安全地追加多行内容。
+**记住**：即使内容很长，也必须完成所有5个章节！使用append_file工具可以简单安全地追加内容。
 
 ## 章节依赖关系
 

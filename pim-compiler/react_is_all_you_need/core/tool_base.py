@@ -101,15 +101,15 @@ class ReadFileTool(Function):
             parameters={
                 "file_path": {
                     "type": "string",
-                    "description": "要读取的文件路径"
+                    "description": "相对于工作目录的文件路径，如'src/main.py'、'data/config.json'。不要使用绝对路径"
                 },
                 "offset": {
                     "type": "integer",
-                    "description": "起始字符位置，默认0"
+                    "description": "起始字符位置（0表示文件开头，负数表示从文件末尾倒数）。用于分段读取大文件，默认0"
                 },
                 "limit": {
                     "type": "integer",
-                    "description": "读取字符数限制，默认2000"
+                    "description": "最多读取的字符数。默认2000字符，足够显示代码的关键部分。读取大文件时可分多次读取"
                 }
             }
         )
@@ -160,11 +160,11 @@ class WriteFileTool(Function):
             parameters={
                 "file_path": {
                     "type": "string",
-                    "description": "要写入的文件路径"
+                    "description": "相对于工作目录的文件路径，如'app/main.py'。如果目录不存在会自动创建"
                 },
                 "content": {
                     "type": "string",
-                    "description": "要写入的文件内容"
+                    "description": "完整的文件内容。注意：会完全覆盖原文件。如要追加请用append_file"
                 }
             }
         )
@@ -178,6 +178,34 @@ class WriteFileTool(Function):
         return f"文件已写入: {kwargs['file_path']}"
 
 
+class AppendFileTool(Function):
+    """追加文件工具"""
+    
+    def __init__(self, work_dir):
+        super().__init__(
+            name="append_file",
+            description="追加内容到文件末尾（如果文件不存在则创建）",
+            parameters={
+                "file_path": {
+                    "type": "string",
+                    "description": "相对于工作目录的文件路径，如'log.txt'、'data/output.md'。文件不存在会自动创建"
+                },
+                "content": {
+                    "type": "string",
+                    "description": "要追加到文件末尾的内容。不会覆盖原有内容，适合增量写入日志或文档"
+                }
+            }
+        )
+        self.work_dir = Path(work_dir)
+    
+    def execute(self, **kwargs) -> str:
+        file_path = self.work_dir / kwargs["file_path"]
+        file_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(file_path, 'a', encoding='utf-8') as f:
+            f.write(kwargs["content"])
+        return f"内容已追加到: {kwargs['file_path']}"
+
+
 class ExecuteCommandTool(Function):
     """执行命令工具"""
     
@@ -188,7 +216,7 @@ class ExecuteCommandTool(Function):
             parameters={
                 "command": {
                     "type": "string",
-                    "description": "要执行的命令"
+                    "description": "Shell命令，如'ls -la'、'python test.py'、'npm install'。在工作目录执行，超时10秒"
                 }
             }
         )

@@ -9,11 +9,11 @@ reportMissingTypeStubs = false
 extraPaths = ["pim-compiler/src", "pim-engine/src"]
 
 [tool.pytest.ini_options]
-testpaths = ["pim-compiler/tests", "pim-engine/tests"]
+testpaths = ["pim-compiler/tests", "pim-engine/tests", "pim-compiler/react_is_all_you_need/output/blog/tests"]
 python_files = "test_*.py"
 python_classes = "Test*"
 python_functions = "test_*"
-addopts = "-v --tb=short"
+addopts = "-v --tb=short --benchmark-skip"
 
 [tool.black]
 line-length = 100

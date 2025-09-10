@@ -53,11 +53,12 @@ def on_event(event, context):
         continue_in_memory()
 ```
 
-### 跳过的文件
+### 跳过的文件和目录
 - ❌ 不写session记录
 - ❌ 不写agent_knowledge.md  
 - ❌ 不写world_state.md
 - ❌ 不创建.sessions目录
+- ❌ 不创建.notes目录（除非需要写task_process.md）
 
 ## task_process.md模板（仅在需要时）
 

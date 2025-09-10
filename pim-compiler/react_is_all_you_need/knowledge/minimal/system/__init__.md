@@ -4,15 +4,13 @@
 极简模式专属的系统级知识，定义了一个不同的计算哲学。
 
 ## 核心理念：简单即智能
-- **没有外部文件系统**：一切都在记忆中
 - **没有三元分离**：只有Compact统一记忆
 - **没有Event Sourcing**：不写session文件
-- **但仍是图灵完备**：通过Compact实现无限存储
+
 
 ## 导出模块
 - `system_prompt_minimal.md` - 极简系统提示词
-- `task_process_only.md` - 唯一的外部化要求
-- `compact_philosophy.md` - Compact即注意力的哲学
+- `execution_context_guide.md` - ExecutionContext使用指南
 
 ## 与完整模式的根本区别
 

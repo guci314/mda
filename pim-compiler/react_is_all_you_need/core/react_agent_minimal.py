@@ -60,14 +60,14 @@ ensure_env_loaded()
 
 # 不再需要外部记忆系统 - Agent自己做笔记
 try:
-    from .tool_base import Function, ReadFileTool, WriteFileTool, ExecuteCommandTool, SessionQueryTool
+    from .tool_base import Function, ReadFileTool, WriteFileTool, AppendFileTool, ExecuteCommandTool
     from .tools.search_tool import SearchTool, NewsSearchTool
 except ImportError:
     # 支持直接运行此文件
     import sys
     from pathlib import Path
     sys.path.insert(0, str(Path(__file__).parent.parent))
-    from core.tool_base import Function, ReadFileTool, WriteFileTool, ExecuteCommandTool, SessionQueryTool
+    from core.tool_base import Function, ReadFileTool, WriteFileTool, AppendFileTool, ExecuteCommandTool
     from core.tools.search_tool import SearchTool, NewsSearchTool
 
 
@@ -100,7 +100,7 @@ class ReactAgentMinimal(Function):
                  base_url: Optional[str] = None,
                  max_rounds: int = 100,
                  knowledge_files: Optional[List[str]] = None,
-                 minimal_mode: bool = True):
+):
         """
         初始化极简Agent
         
@@ -115,8 +115,6 @@ class ReactAgentMinimal(Function):
             base_url: API基础URL
             max_rounds: 最大执行轮数
             knowledge_files: 知识文件列表（自然语言程序）
-            agent_name: Agent唯一名称，用于创建独立的笔记目录，默认为"main_agent"
-            minimal_mode: 启用极简版，默认为True（只要求task_process.md，跳过其他记忆文件）
         """
         # 使用类变量作为默认值
         if parameters is None:
@@ -140,6 +138,8 @@ class ReactAgentMinimal(Function):
         
         self.model = model
         self.max_rounds = max_rounds
+        
+        # 移除LLM策略，保持简洁
         
         # API配置 - 根据模型名称智能选择
         if "kimi" in model.lower() or "moonshot" in model.lower():
@@ -168,11 +168,10 @@ class ReactAgentMinimal(Function):
             self.base_url = base_url or self._detect_base_url_for_key(self.api_key)
         
         # 保存极简模式开关（必须先设置，后面会用到）
-        self.minimal_mode = minimal_mode
         
         # Compact记忆配置
         self.compress_config = {
-            "model": "google/gemini-2.0-flash-001",
+            "model": "x-ai/grok-code-fast-1",  # 聪明、快速、便宜的模型
             "base_url": "https://openrouter.ai/api/v1",
             "api_key": os.getenv("OPENROUTER_API_KEY"),
             "threshold": 70000,  # 触发压缩的token数
@@ -185,87 +184,71 @@ class ReactAgentMinimal(Function):
         # 知识文件（自然语言程序）- 支持包和单独文件
         self.knowledge_files = self._resolve_knowledge_files(knowledge_files or [])
         
-        # 根据minimal_mode加载对应的system包
+        # 加载极简system包
         knowledge_dir = Path(__file__).parent.parent / "knowledge"
-        
-        if self.minimal_mode:
-            # 极简模式：使用极简的system包（贝克莱式世界观）
-            self._load_knowledge_package(knowledge_dir / "minimal" / "system")
-        else:
-            # 完整模式：使用标准的system包（柏拉图式世界观）
-            self._load_knowledge_package(knowledge_dir / "system")
+        self._load_knowledge_package(knowledge_dir / "minimal" / "system")
         
         self.knowledge_content = self._load_knowledge()
         
         # 🌟 Compact记忆系统 - Agent自己就是智能压缩器！
         # 不再需要滑动窗口，使用智能压缩
-        # 使用agent_name创建独立的笔记目录
-        self.agent_name = name or "main_agent"
-        self.notes_dir = self.work_dir / ".notes" / self.agent_name
-        self.notes_dir.mkdir(parents=True, exist_ok=True)
-        # 双维度记忆理论文件
-        self.agent_knowledge_file = self.notes_dir / "agent_knowledge.md"  # Agent私有
-        self.task_process_file = self.notes_dir / "task_process.md"        # Agent私有
-        self.world_state_file = self.work_dir / "world_state.md"           # 全局共享
-        # 保留旧命名以兼容
-        self.experience_file = self.agent_knowledge_file
-        self.agent_state_file = self.agent_knowledge_file
-        self.task_state_file = self.task_process_file
-        self.environment_file = self.world_state_file
-        # 保留旧的notes_file以兼容（但不再使用）
-        self.notes_file = self.notes_dir / "session_notes.md"
+        # 使用name创建独立的笔记目录
+        self.agent_name = name  # 保留agent_name字段以兼容
         
-        # 创建工具实例
-        self.tool_instances = self._create_tool_instances()
-        # 生成工具定义（用于API调用）
-        self.tools = [tool.to_openai_function() for tool in self.tool_instances]
+        # Agent的大脑放在用户home目录，而不是工作目录
+        # 这样清空工作目录不会影响Agent的记忆
+        home_dir = Path.home()
+        self.agent_home = home_dir / ".agent" / name
+        self.notes_dir = self.agent_home  # 兼容旧代码
         
-        # Session目录
-        self.sessions_dir = self.work_dir / ".sessions"
+        # 总是创建agent_home目录（即使在minimal模式下也需要）
+        # 因为TodoTool需要在这里保存task_process文件
+        self.agent_home.mkdir(parents=True, exist_ok=True)
+            
+        # Compact模式不使用这些记忆文件
+        # 只保留变量名以保持兼容性
+        self.agent_knowledge_file = self.agent_home / "agent_knowledge.md"
+        self.task_process_file = self.agent_home / f"task_process_{self.work_dir.name}.md"
+        self.world_state_file = self.agent_home / "world_state.md"
+        self.notes_file = self.notes_dir / "session_notes.md"  # 兼容性
+        
+        # 创建Function实例（包括工具和Agent）
+        self.function_instances = self._create_function_instances()
+        # 生成函数定义（用于API调用）
+        self.functions = [func.to_openai_function() for func in self.function_instances]
+        
+        # Session目录（也放在Agent home，不污染工作目录）
+        self.sessions_dir = self.agent_home / "sessions"
+        # 总是创建sessions目录（用于记录执行历史）
         self.sessions_dir.mkdir(parents=True, exist_ok=True)
         
         # 自动加载记忆文件（基础设施保证）
         self._auto_load_memory()
         
+        # 初始化消息列表（在Agent初始化时，而不是任务执行时）
+        self.messages = [
+            {"role": "system", "content": self._build_minimal_prompt()}
+        ]
+        
+        # 尝试加载compact.md（如果存在）
+        if self._load_compact_memory():
+            print(f"  ✨ 已加载Compact记忆")
+        
         # 显示初始化信息
-        mode_str = "极简模式" if self.minimal_mode else "完整模式"
-        print(f"🚀 极简Agent已初始化 [{self.agent_name}] - {mode_str}")
+        print(f"🚀 极简Agent已初始化 [{self.agent_name}]")
         print(f"  📍 API: {self._detect_service()}")
         print(f"  🤖 模型: {self.model}")
         print(f"  🧠 Compact记忆: 70k tokens触发压缩")
-        if self.minimal_mode:
-            print(f"  ⚡ 极简模式: Compact记忆替代文件系统")
-        else:
-            print(f"  📓 笔记目录: .notes/{self.agent_name}")
-            print(f"     - agent_knowledge.md (Agent知识库)")
-            print(f"     - task_process.md (任务过程)")
-            print(f"     - world_state.md (世界状态)")
+        print(f"  ⚡ Compact记忆替代文件系统")
         if self.knowledge_files:
             print(f"  📚 知识文件: {len(self.knowledge_files)}个")
         print(f"  ✨ Compact即注意力机制")
     
     def _auto_load_memory(self) -> None:
-        """自动加载记忆文件（基础设施保证）"""
-        memory_loaded = []
-        
-        # 加载agent_knowledge.md（如果存在）
-        if self.agent_knowledge_file.exists():
-            content = self.agent_knowledge_file.read_text(encoding='utf-8')
-            if content.strip():
-                # 将内容追加到知识内容中
-                self.knowledge_content += f"\n\n# Agent Knowledge (自动加载)\n{content}"
-                memory_loaded.append("agent_knowledge.md")
-        
-        # 加载world_state.md（如果存在）
-        if self.world_state_file.exists():
-            content = self.world_state_file.read_text(encoding='utf-8')
-            if content.strip():
-                # 将内容追加到知识内容中
-                self.knowledge_content += f"\n\n# World State (自动加载)\n{content}"
-                memory_loaded.append("world_state.md")
-        
-        if memory_loaded:
-            print(f"  📂 自动加载记忆: {', '.join(memory_loaded)}")
+        """自动加载记忆文件"""
+        # Compact哲学："遗忘即优化"、"当下即永恒"
+        # 不加载任何历史记忆文件
+        pass
     
     def execute(self, **kwargs) -> str:
         """
@@ -284,6 +267,9 @@ class ReactAgentMinimal(Function):
         # 重定向标准输出到output.log
         import sys
         output_log_path = self.notes_dir / "output.log"
+        
+        # 确保目录存在（用于output.log）
+        self.notes_dir.mkdir(parents=True, exist_ok=True)
         
         # 保存原始stdout
         original_stdout = sys.stdout
@@ -311,7 +297,7 @@ class ReactAgentMinimal(Function):
                         except ValueError:
                             pass
         
-        # 打开日志文件（追加模式）
+        # 打开日志文件（追加模式）- 两种模式都需要（用于debug）
         log_file = open(output_log_path, 'a', encoding='utf-8')
         
         # 设置stdout同时输出到控制台和文件
@@ -330,48 +316,55 @@ class ReactAgentMinimal(Function):
             # 执行任务的主逻辑将在try块中
             result = self._execute_task_impl(task, original_stdout, log_file)
             
-            # 任务成功完成，保存session（强制执行）
-            self._save_session(task, result, "completed")
+            # Compact模式不保存session
             
             return result
         except Exception as e:
             print(f"\n❌ 任务执行出错: {e}")
             
-            # 任务失败也要保存session（强制执行）
-            self._save_session(task, str(e), "failed")
+            # Compact模式不保存session
             
-            # 确保恢复stdout
-            sys.stdout = original_stdout
-            log_file.close()
             raise
+        finally:
+            # 始终恢复stdout并关闭日志文件（包括Jupyter中断的情况）
+            try:
+                sys.stdout = original_stdout
+            except:
+                pass
+            try:
+                if log_file and not log_file.closed:
+                    log_file.close()
+            except:
+                pass
     
     def _execute_task_impl(self, task: str, original_stdout, log_file) -> str:
         """实际执行任务的实现"""
         import sys
         
-        # 初始化消息列表
-        messages = [
-            {"role": "system", "content": self._build_minimal_prompt()},
-            {"role": "user", "content": task}
-        ]
+        # 处理斜杠命令
+        if task.strip().startswith("/"):
+            return self._handle_slash_command(task.strip())
+        
+        # 添加用户任务到消息列表（消息列表已在__init__中初始化）
+        self.messages.append({"role": "user", "content": task})
         
         # 执行循环
         for round_num in range(self.max_rounds):
             print(f"\n🤔 思考第{round_num + 1}轮...")
             
-            # 调用LLM
-            response = self._call_api(messages)
+            # 调用LLM（使用实例的消息列表）
+            response = self._call_api(self.messages)
             if response is None:
                 return "API调用失败"
             
             # 处理响应
             message = response["choices"][0]["message"]
-            messages.append(message)  # 添加assistant消息到对话历史
+            self.messages.append(message)  # 添加assistant消息到对话历史
             
             # Compact记忆管理 - 智能压缩替代滑动窗口
-            token_count = self._count_tokens(messages)
+            token_count = self._count_tokens(self.messages)
             if token_count > self.compress_config["threshold"]:
-                messages = self._compact_messages(messages)
+                self.messages = self._compact_messages(self.messages)
             
             # 显示LLM的思考内容（如果有）
             if message.get("content"):
@@ -408,9 +401,9 @@ class ReactAgentMinimal(Function):
                             "tool_call_id": tool_call_id,
                             "content": tool_result
                         }
-                        messages.append(tool_message)
+                        self.messages.append(tool_message)
                         
-                        # 消息会被添加到messages列表，自动影响窗口大小
+                        # 消息会被添加到self.messages列表，自动影响窗口大小
                         
                     except Exception as e:
                         tool_error = f"工具执行错误: {e}"
@@ -419,22 +412,15 @@ class ReactAgentMinimal(Function):
                             "tool_call_id": tool_call_id,
                             "content": tool_error
                         }
-                        messages.append(tool_message)
-                        # 错误消息也会被添加到messages列表
+                        self.messages.append(tool_message)
+                        # 错误消息也会被添加到self.messages列表
             
             # 检查是否完成
             if response["choices"][0].get("finish_reason") == "stop" and not message.get("tool_calls"):
                 print(f"\n✅ 任务完成（第{round_num + 1}轮）")
-                
-                # 恢复stdout并关闭日志文件
-                sys.stdout = original_stdout
-                log_file.close()
                 return message.get("content", "任务完成")
         
         print(f"\n⚠️ 达到最大轮数")
-        # 恢复stdout并关闭日志文件
-        sys.stdout = original_stdout
-        log_file.close()
         return "达到最大执行轮数"
     
     def _resolve_knowledge_files(self, knowledge_files: List[str]) -> List[str]:
@@ -453,7 +439,11 @@ class ReactAgentMinimal(Function):
             
             # 如果是相对路径，基于knowledge目录
             if not path.is_absolute():
-                path = knowledge_dir / path
+                # 如果路径已经包含"knowledge/"前缀，去掉它
+                if str(path).startswith("knowledge/"):
+                    path = knowledge_dir / str(path).replace("knowledge/", "", 1)
+                else:
+                    path = knowledge_dir / path
             
             if path.is_dir():
                 # 如果是目录，加载其中所有.md文件
@@ -490,12 +480,39 @@ class ReactAgentMinimal(Function):
         init_file = package_path / "__init__.md"
         
         if init_file.exists():
-            # 读取__init__.md，解析exports
-            # 简化实现：直接加载包内所有.md文件
-            # 未来可以实现更复杂的export逻辑
-            pass
+            # 读取__init__.md，解析导出模块
+            init_content = init_file.read_text(encoding='utf-8')
+            
+            # 解析导出模块部分
+            if "## 导出模块" in init_content or "## 导出模块（默认加载）" in init_content:
+                # 提取导出模块列表
+                lines = init_content.split('\n')
+                in_export_section = False
+                for line in lines:
+                    if "## 导出模块" in line:
+                        in_export_section = True
+                        continue
+                    elif in_export_section:
+                        if line.startswith("## ") and "导出模块" not in line:
+                            # 遇到下一个section，停止解析
+                            break
+                        elif line.strip().startswith("- `") and ".md`" in line.strip():
+                            # 提取文件名，格式：- `filename.md` - 描述
+                            # 注意：描述可能包含其他内容，所以不能用endswith
+                            start = line.find("`") + 1
+                            end = line.find(".md`") + 3
+                            if end > start:
+                                filename = line[start:end]
+                                md_file = package_path / filename
+                                if md_file.exists() and str(md_file) not in self.knowledge_files:
+                                    # 系统包的文件优先级最高，插入到最前面
+                                    if "system" in str(package_path):
+                                        self.knowledge_files.insert(0, str(md_file))
+                                    else:
+                                        self.knowledge_files.append(str(md_file))
+                return  # 如果有导出定义，只加载导出的文件
         
-        # 加载包内所有.md文件（除了__init__.md）
+        # 如果没有__init__.md或没有导出定义，加载包内所有.md文件（除了__init__.md）
         for md_file in sorted(package_path.glob("*.md")):
             if md_file.name != "__init__.md":
                 if str(md_file) not in self.knowledge_files:
@@ -507,36 +524,23 @@ class ReactAgentMinimal(Function):
     
     def _build_minimal_prompt(self) -> str:
         """构建极简系统提示"""
-        # 根据minimal_mode选择不同的提示词模板
-        if self.minimal_mode:
-            prompt_template_path = Path(__file__).parent.parent / "knowledge" / "minimal" / "system" / "system_prompt_minimal.md"
-        else:
-            prompt_template_path = Path(__file__).parent.parent / "knowledge" / "system" / "system_prompt.md"
+        # 使用极简提示词模板
+        prompt_template_path = Path(__file__).parent.parent / "knowledge" / "minimal" / "system" / "system_prompt_minimal.md"
         
         if prompt_template_path.exists():
             # 使用外部模板
             template = prompt_template_path.read_text(encoding='utf-8')
             
-            # 检查是否有现存笔记（元记忆）
+            # Compact模式不需要元记忆
             meta_memory = ""
-            existing_notes = []
-            if self.agent_knowledge_file.exists():
-                existing_notes.append("agent_knowledge.md")
-            if self.task_process_file.exists():
-                existing_notes.append("task_process.md")
-            if self.world_state_file.exists():
-                existing_notes.append("world_state.md")
-            
-            if existing_notes:
-                meta_memory = f"\n[元记忆] 发现之前的笔记文件：{', '.join(existing_notes)}\n首次需要时使用read_file查看。"
             
             # 准备知识内容部分
             knowledge_section = ""
             if self.knowledge_content:
                 knowledge_section = f"\n## 知识库（可参考的自然语言程序）\n**说明**：以下是已加载的知识文件内容，直接参考使用，无需再去文件系统查找。\n\n{self.knowledge_content}"
             
-            # 注入Compact记忆（极简模式）
-            if self.minimal_mode and self.compact_memory:
+            # 注入Compact记忆
+            if self.compact_memory:
                 knowledge_section += f"\n\n## 压缩记忆\n{self.compact_memory}"
             
             # 替换模板中的占位符
@@ -557,7 +561,8 @@ class ReactAgentMinimal(Function):
                 meta_memory = f"\n[元记忆] 发现之前的笔记: {self.notes_file}\n首次需要时，使用read_file查看。\n"
             
             prompt = f"""你是一个编程助手，像数学家一样使用笔记扩展认知。
-
+你只能写工作目录和笔记目录下的文件，别的地方可以读，但不能写。
+            
 工作目录：{self.work_dir}
 笔记目录：{self.notes_dir}
 {meta_memory}
@@ -608,17 +613,17 @@ class ReactAgentMinimal(Function):
     
     def append_tool(self, tool):
         """
-        添加工具到Agent的工具列表
+        添加Function到Agent的function列表（保留方法名以兼容）
         
         Args:
             tool: Function实例（工具或另一个Agent）
         """
         # 检查是否有必要的方法（鸭子类型）
         if not hasattr(tool, 'execute') or not hasattr(tool, 'to_openai_function'):
-            raise TypeError(f"工具必须有execute和to_openai_function方法")
+            raise TypeError(f"Function必须有execute和to_openai_function方法")
         
-        self.tool_instances.append(tool)
-        self.tools = [t.to_openai_function() for t in self.tool_instances]
+        self.function_instances.append(tool)
+        self.functions = [f.to_openai_function() for f in self.function_instances]
         
         # 显示添加的工具信息
         tool_name = tool.name if hasattr(tool, 'name') else str(tool)
@@ -634,32 +639,57 @@ class ReactAgentMinimal(Function):
         """
         return self.append_tool(function)
     
-    def _create_tool_instances(self) -> List[Function]:
-        """创建工具实例"""
+    def _create_function_instances(self) -> List[Function]:
+        """创建Function实例（包括工具和Agent）"""
+        # 导入ExecutionContext（原TodoTool）
+        from tools.execution_context import ExecutionContext
+        
         # 基础工具集
         tools = [
+            ExecutionContext(),  # 内存中的任务记录本
             ReadFileTool(self.work_dir),
             WriteFileTool(self.work_dir),
+            AppendFileTool(self.work_dir),  # 追加文件工具
             ExecuteCommandTool(self.work_dir),
-            SessionQueryTool(self.work_dir)  # 添加session查询工具
+            SearchTool()  # 搜索工具作为默认工具
         ]
         
-        # 添加搜索工具（如果API密钥存在）
+        # 添加新闻搜索工具（如果API密钥存在）
         try:
             if os.getenv("SERPER_API_KEY"):
-                tools.append(SearchTool())
                 tools.append(NewsSearchTool())
         except Exception as e:
-            # 如果搜索工具初始化失败，继续运行但不添加搜索功能
-            print(f"  ⚠️ 搜索工具未启用: {e}")
+            # 如果新闻搜索工具初始化失败，继续运行但不添加新闻搜索功能
+            pass
         
         return tools
+    
+    def _switch_model(self, new_model: str) -> None:
+        """切换模型并更新API配置"""
+        self.model = new_model
+        
+        # 根据新模型更新API配置
+        if "kimi" in new_model.lower() or "moonshot" in new_model.lower():
+            self.api_key = os.getenv("MOONSHOT_API_KEY")
+            self.base_url = "https://api.moonshot.cn/v1"
+        elif "deepseek" in new_model.lower():
+            self.api_key = os.getenv("DEEPSEEK_API_KEY")
+            self.base_url = "https://api.deepseek.com/v1"
+        elif "x-ai/grok" in new_model.lower():  # Grok模型通过OpenRouter
+            self.api_key = os.getenv("OPENROUTER_API_KEY")
+            self.base_url = "https://openrouter.ai/api/v1"
+        elif "/" in new_model:  # 其他OpenRouter模型格式
+            self.api_key = os.getenv("OPENROUTER_API_KEY")
+            self.base_url = "https://openrouter.ai/api/v1"
+        else:
+            # 保持现有配置
+            pass
     
     def _execute_tool(self, tool_name: str, arguments: Dict) -> str:
         """执行工具 - 使用Tool实例"""
         try:
             # 查找对应的工具实例
-            for tool in self.tool_instances:
+            for tool in self.function_instances:  # 查找对应的function实例
                 if tool.name == tool_name:
                     return tool.execute(**arguments)
             
@@ -672,6 +702,8 @@ class ReactAgentMinimal(Function):
         """调用API - 极简版本（带重试）"""
         import time
         
+        # 保持单一模型，不做切换
+        
         max_retries = 3
         retry_delay = 2  # 秒
         
@@ -681,7 +713,7 @@ class ReactAgentMinimal(Function):
                 request_data = {
                     "model": self.model,
                     "messages": messages,
-                    "tools": self.tools,
+                    "tools": self.functions,  # OpenAI API仍然使用"tools"参数名
                     "tool_choice": "auto",
                     "temperature": 0.3,
                     "max_tokens": 4096
@@ -809,36 +841,160 @@ class ReactAgentMinimal(Function):
         total_chars = sum(len(str(msg)) for msg in messages)
         return int(total_chars * 0.3)  # 保守估计
     
-    def _compact_messages(self, messages: List[Dict]) -> List[Dict]:
-        """智能压缩对话历史 - 两种模式共用"""
-        print(f"\n🧠 触发Compact压缩（超过70k tokens）...")
+    def _save_compact_memory(self):
+        """保存压缩后的记忆到compact.md"""
+        compact_file = self.notes_dir / "compact.md"
         
-        # 准备压缩提示词
-        compress_prompt = """
-压缩以下对话历史，应用注意力机制选择重要信息。
+        # 确保目录存在
+        self.notes_dir.mkdir(parents=True, exist_ok=True)
+        
+        # 准备内容
+        content = [f"""# Compact Memory - {self.name}
 
-## 重要性评分（优先保留）
-- 错误修复和解决方案：极其重要（10分）
-- 文件创建/修改操作：非常重要（8分）  
-- 测试结果和验证：重要（7分）
-- 关键决策和发现：重要（6分）
-- 状态变化：中等重要（5分）
-- 普通思考过程：不重要（2分）
+生成时间: {datetime.now().isoformat()}
+消息数量: {len(self.messages)}
+预估tokens: {self._count_tokens(self.messages)}
 
-## 时间敏感性
-- 最近的操作：保留更多细节
-- 早期的讨论：只保留结论
-- 重复的内容：只保留最新版本
+## 压缩的对话历史
 
-## 压缩原则
-1. 保留所有高分（>6分）事件
-2. 删除重复思考和冗余解释
-3. 保留因果链：问题→解决→结果
-4. 忽略中间调试信息，只保留最终状态
-5. 保持时间顺序和逻辑连贯性
+"""]
+        
+        # 添加消息内容
+        for i, msg in enumerate(self.messages, 1):
+            role = msg.get("role", "unknown")
+            content_text = msg.get("content", "")
+            
+            if role == "system":
+                content.append(f"### 系统消息 {i}\n{content_text[:500]}...\n\n")
+            elif role == "user":
+                content.append(f"### 用户消息 {i}\n{content_text}\n\n")
+            elif role == "assistant":
+                content.append(f"### Assistant消息 {i}\n{content_text[:1000]}...\n\n")
+            elif role == "tool":
+                content.append(f"### 工具响应 {i}\n{content_text[:500]}...\n\n")
+        
+        # 写入文件
+        compact_file.write_text(''.join(content), encoding='utf-8')
+    
+    def _load_compact_memory(self):
+        """从compact.md加载压缩的记忆"""
+        compact_file = self.notes_dir / "compact.md"
+        
+        if not compact_file.exists():
+            return False
+        
+        print(f"  📚 加载Compact记忆: compact.md")
+        
+        # 读取文件但不直接解析成消息
+        # 而是作为一个系统消息添加到对话开始
+        compact_content = compact_file.read_text(encoding='utf-8')
+        
+        # 提取关键信息作为系统上下文
+        compact_summary = f"""
+[之前的Compact记忆已加载]
+该记忆包含了之前对话的压缩版本。
+请基于这些记忆继续对话。
 
-输出紧凑的结构化记忆，包含状态和关键事件。
+{compact_content[:2000]}...
 """
+        
+        # 在系统消息后插入compact记忆
+        if len(self.messages) > 0 and self.messages[0]["role"] == "system":
+            self.messages.insert(1, {"role": "system", "content": compact_summary})
+        else:
+            self.messages.insert(0, {"role": "system", "content": compact_summary})
+        
+        return True
+    
+    def _handle_slash_command(self, command: str) -> str:
+        """处理斜杠命令"""
+        cmd = command.lower().strip()
+        
+        if cmd == "/compact":
+            # 手动触发compact压缩（不检查阈值）
+            print("\n🧠 手动触发Compact压缩...")
+            
+            if len(self.messages) <= 1:
+                return "📝 当前对话历史为空，无需压缩"
+            
+            # 显示压缩前的信息
+            original_count = len(self.messages)
+            original_tokens = self._count_tokens(self.messages)
+            print(f"  压缩前: {original_count} 条消息, 约 {original_tokens} tokens")
+            
+            # 执行压缩（传入manual=True参数表示手动触发）
+            self.messages = self._compact_messages(self.messages, manual=True)
+            
+            # 显示压缩后的信息
+            new_count = len(self.messages)
+            new_tokens = self._count_tokens(self.messages)
+            print(f"  压缩后: {new_count} 条消息, 约 {new_tokens} tokens")
+            print(f"  压缩率: {(1 - new_tokens/original_tokens)*100:.1f}%")
+            
+            # 保存压缩结果到compact.md
+            self._save_compact_memory()
+            print(f"  💾 已保存到: {self.notes_dir}/compact.md")
+            
+            return f"✨ Compact压缩完成！{original_count}条消息 → {new_count}条消息"
+        
+        elif cmd == "/help":
+            return """
+📚 可用的斜杠命令：
+  /compact - 手动触发Compact压缩
+  /help    - 显示此帮助信息
+"""
+        
+        else:
+            return f"❌ 未知命令: {command}\n💡 输入 /help 查看可用命令"
+    
+    
+    def _compact_messages(self, messages: List[Dict], manual: bool = False) -> List[Dict]:
+        """智能压缩对话历史 - 使用description作为注意力先验
+        
+        Args:
+            messages: 消息列表
+            manual: 是否手动触发（手动触发时不显示阈值信息）
+        """
+        if not manual:
+            print(f"\n🧠 触发Compact压缩（超过70k tokens）...")
+        else:
+            print(f"\n🧠 执行Compact压缩...")
+        
+        # 构建压缩提示词 - 将description作为注意力框架
+        if self.description:
+            compress_prompt = f"""你是一个对话历史压缩专家。
+
+Agent描述（注意力框架）：
+{self.description}
+
+基于上述Agent的专业身份和职责，压缩对话历史时请重点关注与其相关的内容。
+
+压缩原则：
+1. 保留关键决策和重要结论
+2. 保留错误和解决方案
+3. 去除重复和冗余信息
+4. 保持时间顺序和因果关系
+5. 重点关注与Agent职责相关的核心内容
+
+输出格式：
+- 使用Markdown格式
+- 按主题分组相关内容
+- 突出重要的代码变更和设计决策"""
+        else:
+            # 无description时使用通用压缩
+            compress_prompt = """你是一个对话历史压缩专家。请将冗长的对话历史压缩成精炼的摘要。
+
+压缩原则：
+1. 保留关键决策和重要结论
+2. 保留错误和解决方案
+3. 去除重复和冗余信息
+4. 保持时间顺序和因果关系
+5. 重点关注与任务相关的核心内容
+
+输出格式：
+- 使用Markdown格式
+- 按主题分组相关内容
+- 突出重要的代码变更和设计决策"""
         
         # 分离系统消息和对话消息
         system_msgs = [m for m in messages if m["role"] == "system"]
@@ -867,27 +1023,44 @@ class ReactAgentMinimal(Function):
             if compress_response.status_code == 200:
                 compressed_content = compress_response.json()["choices"][0]["message"]["content"]
                 
-                # 保存压缩记忆（极简模式需要）
-                if self.minimal_mode:
-                    self.compact_memory = compressed_content
+                # 保存压缩记忆
+                self.compact_memory = compressed_content
                 
                 print(f"  ✅ 压缩完成，保留关键信息")
                 
-                # 返回新的消息列表：系统消息 + 压缩摘要
-                return system_msgs + [
-                    {"role": "assistant", "content": f"[压缩的历史记忆]\n{compressed_content}"}
+                # 创建压缩后的消息对
+                # 使用user/assistant对来保持消息交替格式
+                compressed_messages = [
+                    {"role": "user", "content": "[请基于以下压缩的历史记忆继续对话]"},
+                    {"role": "assistant", "content": f"[已加载压缩的历史记忆]\n{compressed_content}"}
                 ]
+                
+                # 返回新的消息列表：系统消息 + 压缩的消息对
+                return system_msgs + compressed_messages
             else:
                 print(f"  ⚠️ 压缩失败，保留最近消息")
                 # 压缩失败时的降级策略：保留最近的1/3消息
-                keep_count = len(dialogue_msgs) // 3
-                return system_msgs + dialogue_msgs[-keep_count:]
+                keep_count = max(2, len(dialogue_msgs) // 3)
+                # 确保从user消息开始，保持交替格式
+                kept_msgs = dialogue_msgs[-keep_count:]
+                if kept_msgs and kept_msgs[0]["role"] == "assistant":
+                    # 如果第一条是assistant消息，去掉它
+                    kept_msgs = kept_msgs[1:]
+                # 确保消息数量是偶数（user/assistant成对）
+                if len(kept_msgs) % 2 != 0:
+                    kept_msgs = kept_msgs[1:]
+                return system_msgs + kept_msgs
                 
         except Exception as e:
             print(f"  ⚠️ 压缩出错: {e}，保留最近消息")
-            # 出错时的降级策略
-            keep_count = len(dialogue_msgs) // 3
-            return system_msgs + dialogue_msgs[-keep_count:]
+            # 出错时的降级策略（与压缩失败时相同）
+            keep_count = max(2, len(dialogue_msgs) // 3)
+            kept_msgs = dialogue_msgs[-keep_count:]
+            if kept_msgs and kept_msgs[0]["role"] == "assistant":
+                kept_msgs = kept_msgs[1:]
+            if len(kept_msgs) % 2 != 0:
+                kept_msgs = kept_msgs[1:]
+            return system_msgs + kept_msgs
     
     def save_template(self, filepath: str = "agent_template.json") -> str:
         """
@@ -906,7 +1079,6 @@ class ReactAgentMinimal(Function):
             "config": {
                 "model": self.model,
                 "base_url": self.base_url,
-                "minimal_mode": self.minimal_mode,
                 "max_rounds": self.max_rounds,
                 "knowledge_files": self.knowledge_files,
                 "compress_config": self.compress_config
@@ -1000,7 +1172,6 @@ class ReactAgentMinimal(Function):
             "config": {
                 "model": self.model,
                 "base_url": self.base_url,
-                "minimal_mode": self.minimal_mode,
                 "max_rounds": self.max_rounds,
                 "compress_config": self.compress_config,
                 "knowledge_files": self.knowledge_files
@@ -1137,7 +1308,11 @@ class ReactAgentMinimal(Function):
     
     def _save_session(self, task: str, result: str, status: str) -> None:
         """
-        强制保存session记录（基础设施保证）
+        保存session记录（仅在完整模式下）
+        
+        注意：minimal模式下不保存session，符合Compact哲学：
+        - "当下即永恒"：不需要历史记录
+        - "遗忘即优化"：没有审计追踪
         
         Args:
             task: 执行的任务

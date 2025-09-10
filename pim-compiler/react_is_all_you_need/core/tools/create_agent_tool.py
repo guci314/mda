@@ -99,8 +99,7 @@ class CreateAgentTool(Function):
                 api_key=api_key,
                 knowledge_files=processed_knowledge_files,
                 max_rounds=max_iterations,
-                agent_name=f"agent_{agent_name}",
-                name=agent_name,  # Function的name，用于工具调用
+                name=f"agent_{agent_name}",  # 使用name参数，会创建.notes/agent_{agent_name}/目录
                 description=description,  # Function的description
                 parameters={
                     "task": {
