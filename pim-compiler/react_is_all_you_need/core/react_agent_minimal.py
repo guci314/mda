@@ -25,7 +25,7 @@ def load_env_file():
     for env_path in possible_paths:
         if env_path.exists():
             loaded_count = 0
-            with open(env_path) as f:
+            with open(env_path,encoding="utf-8") as f:
                 for line in f:
                     line = line.strip()
                     if line and not line.startswith('#') and '=' in line:
@@ -232,7 +232,14 @@ class ReactAgentMinimal(Function):
         
         # 尝试加载compact.md（如果存在）
         if self._load_compact_memory():
-            print(f"  ✨ 已加载Compact记忆")
+            # 将compact记忆作为assistant消息添加到消息列表
+            # 这样它会在对话中累积和演化
+            if self.compact_memory:
+                self.messages.append({
+                    "role": "assistant", 
+                    "content": f"[已加载历史压缩记忆]\n{self.compact_memory}"
+                })
+                print(f"  ✨ 已加载Compact记忆到消息列表")
         
         # 显示初始化信息
         print(f"🚀 极简Agent已初始化 [{self.agent_name}]")
@@ -264,6 +271,21 @@ class ReactAgentMinimal(Function):
         task = kwargs.get("task", "")
         if not task:
             return "错误：未提供任务描述"
+        
+        # 动态加载并注入语义记忆（基于当前工作目录）
+        semantic_contexts = self._load_semantic_memory(self.work_dir)
+        if semantic_contexts:
+            # 将语义记忆作为用户消息注入（位置感知的知识）
+            semantic_content = "\n\n".join(semantic_contexts)
+            self.messages.append({
+                "role": "user",
+                "content": f"[当前位置的语义记忆]\n{semantic_content}\n\n请基于以上知识处理任务。"
+            })
+            self.messages.append({
+                "role": "assistant",
+                "content": "已加载当前位置的语义记忆，我会基于这些知识来处理任务。"
+            })
+        
         # 重定向标准输出到output.log
         import sys
         output_log_path = self.notes_dir / "output.log"
@@ -539,9 +561,8 @@ class ReactAgentMinimal(Function):
             if self.knowledge_content:
                 knowledge_section = f"\n## 知识库（可参考的自然语言程序）\n**说明**：以下是已加载的知识文件内容，直接参考使用，无需再去文件系统查找。\n\n{self.knowledge_content}"
             
-            # 注入Compact记忆
-            if self.compact_memory:
-                knowledge_section += f"\n\n## 压缩记忆\n{self.compact_memory}"
+            # 不在系统提示词中包含Compact记忆
+            # Compact记忆应该在消息列表中，这样才能累积和演化
             
             # 替换模板中的占位符
             # 注意：system_prompt.md中的{{agent_name}}是转义的，会变成{agent_name}
@@ -653,6 +674,14 @@ class ReactAgentMinimal(Function):
             ExecuteCommandTool(self.work_dir),
             SearchTool()  # 搜索工具作为默认工具
         ]
+        
+        # 添加语义记忆工具
+        from tools.semantic_memory_tool import WriteSemanticMemoryTool, ReadSemanticMemoryTool
+        tools.append(WriteSemanticMemoryTool(self.work_dir))
+        tools.append(ReadSemanticMemoryTool(self.work_dir))
+        
+        # Claude Code工具已移除 - 使用知识文件方式更灵活
+        # 如需Claude Code功能，请加载knowledge/tools/claude_code_cli.md
         
         # 添加新闻搜索工具（如果API密钥存在）
         try:
@@ -842,36 +871,45 @@ class ReactAgentMinimal(Function):
         return int(total_chars * 0.3)  # 保守估计
     
     def _save_compact_memory(self):
-        """保存压缩后的记忆到compact.md"""
+        """保存压缩后的记忆到compact.md（不包含系统提示词）"""
         compact_file = self.notes_dir / "compact.md"
         
         # 确保目录存在
         self.notes_dir.mkdir(parents=True, exist_ok=True)
         
+        # 过滤掉系统消息，只保存对话消息
+        dialogue_msgs = [m for m in self.messages if m.get("role") != "system"]
+        
         # 准备内容
         content = [f"""# Compact Memory - {self.name}
 
 生成时间: {datetime.now().isoformat()}
-消息数量: {len(self.messages)}
-预估tokens: {self._count_tokens(self.messages)}
+消息数量: {len(dialogue_msgs)}
+预估tokens: {self._count_tokens(dialogue_msgs)}
 
 ## 压缩的对话历史
 
 """]
         
-        # 添加消息内容
-        for i, msg in enumerate(self.messages, 1):
+        # 添加消息内容（不包含系统消息）
+        msg_counter = 1
+        for msg in dialogue_msgs:
             role = msg.get("role", "unknown")
             content_text = msg.get("content", "")
             
-            if role == "system":
-                content.append(f"### 系统消息 {i}\n{content_text[:500]}...\n\n")
-            elif role == "user":
-                content.append(f"### 用户消息 {i}\n{content_text}\n\n")
+            if role == "user":
+                content.append(f"### 用户消息 {msg_counter}\n{content_text}\n\n")
             elif role == "assistant":
-                content.append(f"### Assistant消息 {i}\n{content_text[:1000]}...\n\n")
+                # 不截断Assistant消息，保留完整内容
+                content.append(f"### Assistant消息 {msg_counter}\n{content_text}\n\n")
             elif role == "tool":
-                content.append(f"### 工具响应 {i}\n{content_text[:500]}...\n\n")
+                # 工具响应可能很长，适度截断
+                if len(content_text) > 2000:
+                    content.append(f"### 工具响应 {msg_counter}\n{content_text[:2000]}...\n\n")
+                else:
+                    content.append(f"### 工具响应 {msg_counter}\n{content_text}\n\n")
+            
+            msg_counter += 1
         
         # 写入文件
         compact_file.write_text(''.join(content), encoding='utf-8')
@@ -885,26 +923,128 @@ class ReactAgentMinimal(Function):
         
         print(f"  📚 加载Compact记忆: compact.md")
         
-        # 读取文件但不直接解析成消息
-        # 而是作为一个系统消息添加到对话开始
+        # 读取compact.md的内容
         compact_content = compact_file.read_text(encoding='utf-8')
         
-        # 提取关键信息作为系统上下文
-        compact_summary = f"""
-[之前的Compact记忆已加载]
-该记忆包含了之前对话的压缩版本。
-请基于这些记忆继续对话。
-
-{compact_content[:2000]}...
-"""
-        
-        # 在系统消息后插入compact记忆
-        if len(self.messages) > 0 and self.messages[0]["role"] == "system":
-            self.messages.insert(1, {"role": "system", "content": compact_summary})
+        # 从compact.md中提取实际的压缩内容
+        # 查找 "### Assistant消息" 后的内容
+        import re
+        match = re.search(r'### Assistant消息 \d+\n(.*)', compact_content, re.DOTALL)
+        if match:
+            compressed_history = match.group(1).strip()
         else:
-            self.messages.insert(0, {"role": "system", "content": compact_summary})
+            # 如果格式不对，使用整个内容
+            compressed_history = compact_content
+        
+        # 创建user/assistant消息对，这样压缩时能看到历史
+        compact_messages = [
+            {"role": "user", "content": "[请基于以下压缩的历史记忆继续对话]"},
+            {"role": "assistant", "content": compressed_history}
+        ]
+        
+        # 在系统消息后插入压缩记忆（作为对话消息，不是系统消息）
+        if len(self.messages) > 0 and self.messages[0]["role"] == "system":
+            # 在系统消息后插入
+            self.messages[1:1] = compact_messages
+        else:
+            # 在开头插入
+            self.messages[0:0] = compact_messages
+        
+        self.compact_memory = compressed_history  # 保存以便后续使用
         
         return True
+    
+    def _load_semantic_memory(self, current_path: Optional[Path] = None) -> List[str]:
+        """加载语义记忆（agent.md）- 两级级联加载
+        
+        Args:
+            current_path: 当前工作路径，如果为None则使用work_dir
+            
+        Returns:
+            加载的语义记忆内容列表
+        """
+        if current_path is None:
+            current_path = self.work_dir
+        
+        contexts = []
+        
+        # 1. 当前目录的 agent.md
+        current_agent_md = current_path / "agent.md"
+        if current_agent_md.exists():
+            content = current_agent_md.read_text(encoding='utf-8')
+            contexts.append(f"[当前目录知识 - {current_path.name}]\n{content}")
+            print(f"  📖 加载语义记忆: {current_agent_md}")
+        
+        # 2. 上级目录的 agent.md
+        parent_path = current_path.parent
+        if parent_path != current_path:  # 避免根目录无限循环
+            parent_agent_md = parent_path / "agent.md"
+            if parent_agent_md.exists():
+                content = parent_agent_md.read_text(encoding='utf-8')
+                contexts.append(f"[上级目录知识 - {parent_path.name}]\n{content}")
+                print(f"  📖 加载语义记忆: {parent_agent_md}")
+        
+        return contexts
+    
+    def write_semantic_memory(self, path: Optional[Path] = None, content: Optional[str] = None) -> str:
+        """写入语义记忆（agent.md）
+        
+        Args:
+            path: 写入路径，如果为None则使用当前work_dir
+            content: 要写入的内容，如果为None则自动生成
+            
+        Returns:
+            操作结果消息
+        """
+        if path is None:
+            path = self.work_dir
+        
+        agent_md_path = path / "agent.md"
+        
+        # 如果没有提供内容，生成默认模板
+        if content is None:
+            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            content = f"""# 模块知识 - {path.name}
+
+## 核心概念
+<!-- Agent 学到的关键概念 -->
+
+## 重要模式
+<!-- 发现的设计模式或解决方案 -->
+
+## 注意事项
+<!-- 踩过的坑或特殊约定 -->
+
+## 相关文件
+<!-- 重要的相关文件列表 -->
+
+---
+更新时间：{timestamp}
+更新原因：[待填写]
+"""
+        
+        # 写入文件
+        agent_md_path.write_text(content, encoding='utf-8')
+        
+        return f"✅ 已保存语义记忆到: {agent_md_path}"
+    
+    def _suggest_semantic_memory(self, task_complexity: Dict) -> None:
+        """在复杂任务完成后建议保存语义记忆
+        
+        Args:
+            task_complexity: 任务复杂度指标
+        """
+        # 判断是否为复杂任务
+        is_complex = (
+            task_complexity.get('rounds', 0) > 20 or
+            task_complexity.get('files_modified', 0) > 5 or
+            task_complexity.get('is_architecture_change', False) or
+            task_complexity.get('is_new_feature', False)
+        )
+        
+        if is_complex:
+            print("\n💡 建议：此次任务涉及重要知识，是否保存到 agent.md？")
+            print("   使用 'write_semantic_memory()' 工具来保存")
     
     def _handle_slash_command(self, command: str) -> str:
         """处理斜杠命令"""
@@ -970,35 +1110,54 @@ Agent描述（注意力框架）：
 基于上述Agent的专业身份和职责，压缩对话历史时请重点关注与其相关的内容。
 
 压缩原则：
-1. 保留关键决策和重要结论
-2. 保留错误和解决方案
-3. 去除重复和冗余信息
-4. 保持时间顺序和因果关系
-5. 重点关注与Agent职责相关的核心内容
+1. 如果遇到"[已加载压缩的历史记忆]"，适度压缩为关键要点（保留200-500字）
+2. 保留最新对话的关键事实和重要细节（包括关键过程）
+3. 旧记忆简洁总结，新记忆充分保留（可以包含重要代码片段）
+4. 去除所有重复和冗余
+5. 确保时间顺序：旧记忆→新记忆
 
-输出格式：
-- 使用Markdown格式
-- 按主题分组相关内容
-- 突出重要的代码变更和设计决策"""
+输出要求：
+- 旧记忆：简洁总结（500-1000字）
+- 新记忆：详细要点（10-20点）
+- 总长度不超过10000字
+- 不要嵌套结构"""
         else:
             # 无description时使用通用压缩
             compress_prompt = """你是一个对话历史压缩专家。请将冗长的对话历史压缩成精炼的摘要。
 
 压缩原则：
-1. 保留关键决策和重要结论
-2. 保留错误和解决方案
-3. 去除重复和冗余信息
-4. 保持时间顺序和因果关系
-5. 重点关注与任务相关的核心内容
+1. 如果遇到"[已加载压缩的历史记忆]"，适度压缩为关键要点（保留200-500字）
+2. 保留最新对话的关键事实和重要细节（包括关键过程）
+3. 旧记忆简洁总结，新记忆充分保留（可以包含重要代码片段）
+4. 去除所有重复和冗余
+5. 确保时间顺序：旧记忆→新记忆
 
-输出格式：
-- 使用Markdown格式
-- 按主题分组相关内容
-- 突出重要的代码变更和设计决策"""
+输出要求：
+- 旧记忆：简洁总结（500-1000字）
+- 新记忆：详细要点（10-20点）
+- 总长度不超过10000字
+- 不要嵌套结构"""
         
         # 分离系统消息和对话消息
-        system_msgs = [m for m in messages if m["role"] == "system"]
+        # 只保留第一个系统消息（原始系统提示词），忽略后续可能添加的系统消息
+        original_system_msg = None
+        for m in messages:
+            if m["role"] == "system":
+                original_system_msg = m
+                break
+        
+        # 对话消息不包含任何系统消息
         dialogue_msgs = [m for m in messages if m["role"] != "system"]
+        
+        # 统计Compact记忆的压缩次数，避免过度嵌套
+        compact_count = 0
+        for m in dialogue_msgs:
+            if m.get("role") == "assistant" and "[已加载压缩的历史记忆]" in m.get("content", ""):
+                compact_count += 1
+        
+        # 如果压缩次数过多，提取核心记忆进行深度压缩
+        if compact_count >= 3:
+            print(f"  🔄 深度压缩模式（已压缩{compact_count}次）")
         
         # 调用压缩模型
         try:
@@ -1023,20 +1182,24 @@ Agent描述（注意力框架）：
             if compress_response.status_code == 200:
                 compressed_content = compress_response.json()["choices"][0]["message"]["content"]
                 
-                # 保存压缩记忆
-                self.compact_memory = compressed_content
-                
                 print(f"  ✅ 压缩完成，保留关键信息")
                 
                 # 创建压缩后的消息对
+                # 直接使用新的压缩内容（已包含旧记忆的精简版）
+                self.compact_memory = compressed_content
+                
                 # 使用user/assistant对来保持消息交替格式
                 compressed_messages = [
                     {"role": "user", "content": "[请基于以下压缩的历史记忆继续对话]"},
-                    {"role": "assistant", "content": f"[已加载压缩的历史记忆]\n{compressed_content}"}
+                    {"role": "assistant", "content": f"[已加载压缩的历史记忆]\n{self.compact_memory}"}
                 ]
                 
-                # 返回新的消息列表：系统消息 + 压缩的消息对
-                return system_msgs + compressed_messages
+                # 返回新的消息列表：只包含原始系统提示词 + 压缩的消息对
+                result_messages = []
+                if original_system_msg:
+                    result_messages.append(original_system_msg)
+                result_messages.extend(compressed_messages)
+                return result_messages
             else:
                 print(f"  ⚠️ 压缩失败，保留最近消息")
                 # 压缩失败时的降级策略：保留最近的1/3消息
@@ -1049,7 +1212,13 @@ Agent描述（注意力框架）：
                 # 确保消息数量是偶数（user/assistant成对）
                 if len(kept_msgs) % 2 != 0:
                     kept_msgs = kept_msgs[1:]
-                return system_msgs + kept_msgs
+                
+                # 只返回原始系统提示词 + 保留的对话消息
+                result_messages = []
+                if original_system_msg:
+                    result_messages.append(original_system_msg)
+                result_messages.extend(kept_msgs)
+                return result_messages
                 
         except Exception as e:
             print(f"  ⚠️ 压缩出错: {e}，保留最近消息")
@@ -1060,7 +1229,13 @@ Agent描述（注意力框架）：
                 kept_msgs = kept_msgs[1:]
             if len(kept_msgs) % 2 != 0:
                 kept_msgs = kept_msgs[1:]
-            return system_msgs + kept_msgs
+            
+            # 只返回原始系统提示词 + 保留的对话消息
+            result_messages = []
+            if original_system_msg:
+                result_messages.append(original_system_msg)
+            result_messages.extend(kept_msgs)
+            return result_messages
     
     def save_template(self, filepath: str = "agent_template.json") -> str:
         """

@@ -1,0 +1,50 @@
+{
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "write_semantic_memory",
+        "description": "写入或更新语义记忆（agent.md）文件，用于存储模块的核心知识、设计模式和注意事项",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "path": {
+              "type": "string",
+              "description": "目录路径，如果为None则使用当前目录",
+              "nullable": true
+            },
+            "content": {
+              "type": "string",
+              "description": "要写入的内容，如果为None则生成默认模板",
+              "nullable": true
+            },
+            "append": {
+              "type": "boolean",
+              "description": "是否追加模式（默认为覆盖模式）",
+              "default": false
+            }
+          },
+          "required": []
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "read_semantic_memory",
+        "description": "读取语义记忆（agent.md）文件，支持级联读取当前目录和父目录的agent.md",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "path": {
+              "type": "string",
+              "description": "目录路径，如果为None则使用当前目录",
+              "nullable": true
+            }
+          },
+          "required": []
+        }
+      }
+    }
+  ]
+}
