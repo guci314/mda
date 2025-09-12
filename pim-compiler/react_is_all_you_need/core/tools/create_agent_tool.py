@@ -50,6 +50,11 @@ class CreateAgentTool(Function):
                     "type": "string",
                     "description": "Agent的功能描述",
                     "default": ""
+                },
+                "knowledge_str": {
+                    "type": "string",
+                    "description": "动态知识内容（直接传入的知识字符串）",
+                    "default": ""
                 }
             }
         )
@@ -69,6 +74,7 @@ class CreateAgentTool(Function):
         max_iterations = kwargs.get('max_iterations', 100)
         agent_type = kwargs.get('agent_type', 'worker')
         description = kwargs.get('description', '')
+        knowledge_str = kwargs.get('knowledge_str', '')
         
         try:
             # 根据模型获取API配置
@@ -108,6 +114,10 @@ class CreateAgentTool(Function):
                     }
                 }
             )
+            
+            # 如果提供了知识字符串，动态加载
+            if knowledge_str:
+                agent.load_knowledge_str(knowledge_str, f"{agent_type}_dynamic_knowledge")
             
             # 如果有父Agent，直接将新Agent添加到父Agent的工具列表
             if self.parent_agent:

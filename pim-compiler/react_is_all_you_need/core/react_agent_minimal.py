@@ -319,17 +319,17 @@ class ReactAgentMinimal(Function):
                         except ValueError:
                             pass
         
-        # 打开日志文件（追加模式）- 两种模式都需要（用于debug）
-        log_file = open(output_log_path, 'a', encoding='utf-8')
+        # 打开日志文件（写入模式）- 每次运行清空重新开始
+        log_file = open(output_log_path, 'w', encoding='utf-8')
         
         # 设置stdout同时输出到控制台和文件
         sys.stdout = Tee(original_stdout, log_file)
         
         try:
-            print(f"\n[极简Agent] 执行任务...")
-            print(f"📝 任务: {task[:100]}...")
-            print(f"⏰ 时间: {datetime.now()}")
-            print("="*60)
+            print(f"\n[{self.name}] 执行任务...")
+            print(f"[{self.name}] 📝 任务: {task[:100]}...")
+            print(f"[{self.name}] ⏰ 时间: {datetime.now()}")
+            print(f"[{self.name}] " + "="*60)
             
             # 记录任务开始时间
             self.task_start_time = datetime.now()
@@ -372,7 +372,7 @@ class ReactAgentMinimal(Function):
         
         # 执行循环
         for round_num in range(self.max_rounds):
-            print(f"\n🤔 思考第{round_num + 1}轮...")
+            print(f"\n[{self.name}] 🤔 思考第{round_num + 1}轮...")
             
             # 调用LLM（使用实例的消息列表）
             response = self._call_api(self.messages)
@@ -392,7 +392,7 @@ class ReactAgentMinimal(Function):
             if message.get("content"):
                 content_preview = message["content"][:200]
                 if len(content_preview) > 0:
-                    print(f"💭 思考: {content_preview}...")
+                    print(f"[{self.name}] 💭 思考: {content_preview}...")
             
             # 处理工具调用
             if "tool_calls" in message and message["tool_calls"]:
@@ -402,19 +402,19 @@ class ReactAgentMinimal(Function):
                     
                     try:
                         arguments = json.loads(tool_call["function"]["arguments"])
-                        print(f"\n🔧 调用工具: {tool_name}")
+                        print(f"\n[{self.name}] 🔧 调用工具: {tool_name}")
                         # 显示工具参数
                         for key, value in arguments.items():
                             if isinstance(value, str) and len(value) > 100:
-                                print(f"   📝 {key}: {value[:100]}...")
+                                print(f"   [{self.name}] 📝 {key}: {value[:100]}...")
                             else:
-                                print(f"   📝 {key}: {value}")
+                                print(f"   [{self.name}] 📝 {key}: {value}")
                         
                         tool_result = self._execute_tool(tool_name, arguments)
                         
                         # 显示工具执行结果
                         result_preview = tool_result[:150] if len(tool_result) > 150 else tool_result
-                        print(f"   ✅ 结果: {result_preview}")
+                        print(f"   [{self.name}] ✅ 结果: {result_preview}")
                         
                         
                         # 添加工具结果到消息（正确的格式）
@@ -439,10 +439,10 @@ class ReactAgentMinimal(Function):
             
             # 检查是否完成
             if response["choices"][0].get("finish_reason") == "stop" and not message.get("tool_calls"):
-                print(f"\n✅ 任务完成（第{round_num + 1}轮）")
+                print(f"\n[{self.name}] ✅ 任务完成（第{round_num + 1}轮）")
                 return message.get("content", "任务完成")
         
-        print(f"\n⚠️ 达到最大轮数")
+        print(f"\n[{self.name}] ⚠️ 达到最大轮数")
         return "达到最大执行轮数"
     
     def _resolve_knowledge_files(self, knowledge_files: List[str]) -> List[str]:
@@ -631,6 +631,26 @@ class ReactAgentMinimal(Function):
                 print(f"  ❌ 加载知识文件失败 {file_path}: {e}")
         
         return "\n\n".join(knowledge_content) if knowledge_content else ""
+    
+    def load_knowledge_str(self, knowledge_str: str, knowledge_name: str = "dynamic_knowledge") -> None:
+        """
+        动态加载知识字符串到Agent
+        
+        Args:
+            knowledge_str: 知识内容字符串
+            knowledge_name: 知识名称（用于显示）
+        """
+        if knowledge_str:
+            # 将新知识添加到现有知识内容
+            if self.knowledge_content:
+                self.knowledge_content += f"\n\n=== {knowledge_name} ===\n{knowledge_str}"
+            else:
+                self.knowledge_content = f"=== {knowledge_name} ===\n{knowledge_str}"
+            
+            # 重新构建系统提示词以包含新知识
+            self.messages[0] = {"role": "system", "content": self._build_minimal_prompt()}
+            
+            print(f"  ✅ 动态加载知识: {knowledge_name}")
     
     def append_tool(self, tool):
         """
@@ -1194,11 +1214,29 @@ Agent描述（注意力框架）：
                     {"role": "assistant", "content": f"[已加载压缩的历史记忆]\n{self.compact_memory}"}
                 ]
                 
-                # 返回新的消息列表：只包含原始系统提示词 + 压缩的消息对
+                # 检查是否有未完成的tool调用
+                # 找到最后一个assistant消息看是否有tool_calls
+                pending_tool_messages = []
+                for i in range(len(messages) - 1, -1, -1):
+                    msg = messages[i]
+                    if msg["role"] == "tool":
+                        # 继续向前查找对应的tool_calls
+                        pending_tool_messages.insert(0, msg)
+                    elif msg["role"] == "assistant" and msg.get("tool_calls"):
+                        # 找到了tool_calls，添加到pending列表
+                        pending_tool_messages.insert(0, msg)
+                        break
+                    elif msg["role"] in ["user", "assistant"] and not msg.get("tool_calls"):
+                        # 遇到普通消息，停止查找
+                        pending_tool_messages = []
+                        break
+                
+                # 返回新的消息列表：系统提示词 + 压缩的消息对 + 未完成的tool调用
                 result_messages = []
                 if original_system_msg:
                     result_messages.append(original_system_msg)
                 result_messages.extend(compressed_messages)
+                result_messages.extend(pending_tool_messages)
                 return result_messages
             else:
                 print(f"  ⚠️ 压缩失败，保留最近消息")
@@ -1448,7 +1486,7 @@ Agent描述（注意力框架）：
                 # 检查完成
                 if response["choices"][0].get("finish_reason") == "stop" and not message.get("tool_calls"):
                     result = message.get("content", "任务完成")
-                    print(f"\n✅ 任务完成（第{round_num + 1}轮）")
+                    print(f"\n[{self.name}] ✅ 任务完成（第{round_num + 1}轮）")
                     return result
                 
                 # 处理工具调用
