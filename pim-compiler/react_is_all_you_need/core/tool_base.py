@@ -101,7 +101,7 @@ class ReadFileTool(Function):
             parameters={
                 "file_path": {
                     "type": "string",
-                    "description": "相对于工作目录的文件路径，如'src/main.py'、'data/config.json'。不要使用绝对路径"
+                    "description": "文件路径。可以是相对路径（如'src/main.py'）或绝对路径（如'/home/user/file.txt'或'~/.agent/xxx/output.log'）"
                 },
                 "offset": {
                     "type": "integer",
@@ -116,7 +116,16 @@ class ReadFileTool(Function):
         self.work_dir = Path(work_dir)
     
     def execute(self, **kwargs) -> str:
-        file_path = self.work_dir / kwargs["file_path"]
+        path_str = kwargs["file_path"]
+        
+        # 处理绝对路径和~路径
+        if path_str.startswith('~') or path_str.startswith('/'):
+            # 绝对路径或用户目录路径
+            file_path = Path(path_str).expanduser()
+        else:
+            # 相对路径
+            file_path = self.work_dir / path_str
+        
         if file_path.exists():
             # 确保offset和limit是整数
             offset = int(kwargs.get("offset", 0))
@@ -147,7 +156,7 @@ class ReadFileTool(Function):
                 return f"[读取范围: {offset}-{end_pos}/{content_length}字符]\n{result}"
             
             return result
-        return f"文件不存在: {kwargs['file_path']}"
+        return f"文件不存在: {path_str}"
 
 
 class WriteFileTool(Function):

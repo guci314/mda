@@ -1,7 +1,89 @@
-# Agent Builder 知识文件
+# Agent Builder 知识体系
 
-## 核心理念
-Agent Builder是一个用于构建、测试和优化Agent的元工具。通过迭代式的知识文件开发，实现Agent能力的持续改进。
+## 知识文件组织结构
+
+本知识体系包含：
+
+### 1. 本文件（核心知识）
+**文件**: `agent_builder_knowledge.md`
+- Agent Builder的元架构
+- 通用Agent模式
+- 知识驱动开发理念
+- 标准操作流程（SOP）
+- 连接主义判断方法
+
+### 2. 领域示例（具体应用）
+**文件**: `mda_examples.md`
+- MDA领域的具体应用案例
+- PIM/PSM/Code转换流程
+- FastAPI代码生成示例
+- 领域特定的验证要点
+
+## 使用指南
+
+### 创建新领域的Agent Builder
+
+1. **加载核心知识**
+```python
+knowledge_files = [
+    "knowledge/agent_builder_knowledge.md",  # 必须：核心架构
+    "knowledge/your_domain.md"                # 可选：领域示例
+]
+```
+
+2. **参考领域示例**
+- 查看mda_examples.md了解具体实现
+- 创建自己领域的示例文件
+- 遵循核心架构的通用模式
+
+3. **知识文件命名规范**
+- 核心知识：`*_knowledge.md`
+- 领域示例：`*_examples.md`
+- 具体Agent：`*_agent.md`
+
+## 核心理念总结
+
+### 领域无关性
+Agent Builder是一个**元工具**：
+- 不知道自己在构建什么（What）
+- 只知道如何构建（How）
+- 通过知识文件适配任何领域
+
+### 知识分层架构
+```
+元知识层（agent_builder_knowledge.md）
+    ↓
+领域知识层（*_examples.md）
+    ↓
+Agent知识层（*_agent.md）
+```
+
+### 关键原则
+1. **大道至简** - 保持架构简洁
+2. **知识驱动** - 用知识而非代码定义行为
+3. **服从优先** - 严格执行SOP比聪明更重要
+4. **连接主义** - 相信直觉判断
+
+## 智能模型选择策略
+**重要**：根据任务特性选择合适的模型：
+
+### 模型特性对比
+- **deepseek-chat**：智能更高但不可靠执行SOP，会自作聪明跳过"不必要"步骤
+- **x-ai/grok-code-fast-1**：速度快且严格遵循指令，可靠执行SOP
+
+### 推荐的模型分配
+```python
+# ⚠️ 统一使用Grok以确保SOP严格执行
+# 经验教训：DeepSeek会跳过日志检查等关键步骤，破坏元认知循环
+model = "x-ai/grok-code-fast-1"  # 所有Agent统一使用
+
+# 原策略已废弃的原因：
+# 1. DeepSeek不执行SOP第4步（日志分析）
+# 2. 导致代理问题未被发现和记录  
+# 3. 元认知能力完全失效
+```
+
+记住：可靠性比智能更重要，系统的元认知能力依赖于严格的流程执行。
 
 ## ReactAgentMinimal架构理解
 
@@ -25,7 +107,7 @@ agent = ReactAgentMinimal(
 
 # 方式2：通过CreateAgentTool创建
 create_agent(
-    model="模型名称",
+    model="x-ai/grok-code-fast-1",  # 推荐使用Grok Code Fast模型
     knowledge_files=["知识文件列表"],
     # ⚠️ 重要：禁止使用knowledge_str参数！
     # knowledge_str会破坏知识的可追溯性、可维护性和可复用性
@@ -34,6 +116,23 @@ create_agent(
     description="功能描述"
 )
 ```
+
+## 重要约束
+
+### ⚠️ 必须创建Agent，不能直接写代码
+**永远不要直接编写实现代码！**
+- ❌ 不要：直接写.py文件实现功能
+- ✅ 要做：使用CreateAgentTool创建专门的Agent
+- ✅ 要做：为每个Agent编写知识文件
+- ✅ 要做：通过知识驱动Agent的行为
+- ✅ 要做：调用 监控agent() 函数验证Agent合规性
+
+### ⚠️ 禁止使用动态知识注入
+**绝对禁止使用动态知识注入！**
+- ❌ 禁止：使用CreateAgentTool的knowledge_str参数
+- ❌ 禁止：调用agent.load_knowledge_str()方法
+- ❌ 禁止：在代码中动态生成知识内容
+- ✅ 正确：所有知识写入独立的.md文件
 
 ## 知识驱动开发理念
 
@@ -63,9 +162,115 @@ create_agent(
 4. **错误处理** - 包含常见问题和解决方案
 5. **渐进式复杂度** - 从简单到复杂逐步完善
 
+## 网络请求和代理配置
+
+### 重要：localhost访问必须禁用代理
+当测试本地服务时，系统代理会导致localhost访问失败，必须：
+
+#### curl命令
+```bash
+# 正确：使用 --noproxy 参数
+curl --noproxy localhost http://localhost:8000/
+curl --noproxy '*' http://localhost:8000/api
+
+# 错误：直接访问会失败
+curl http://localhost:8000/  # 会被代理拦截
+```
+
+#### Python requests库
+```python
+# 正确：禁用代理
+proxies = {"http": None, "https": None}
+response = requests.get("http://localhost:8000/", proxies=proxies)
+
+# 或者使用Session
+session = requests.Session()
+session.trust_env = False  # 忽略系统代理
+response = session.get("http://localhost:8000/")
+```
+
+#### 生成测试代码时
+在生成的测试脚本中必须添加：
+```python
+import os
+# 禁用localhost代理
+os.environ['NO_PROXY'] = 'localhost,127.0.0.1,0.0.0.0'
+
+# 或在每个请求中禁用
+proxies = {"http": None, "https": None}
+response = requests.get(url, proxies=proxies)
+```
+
 ## Agent创建标准流程（SOP）
 
-### 每创建一个Agent必须执行
+### 函数：监控agent(agent_name, task)
+"""监控Agent的创建、执行和验证的完整流程"""
+参数：
+- agent_name: 要创建的Agent名称
+- task: 测试任务描述
+步骤：
+1. 编写知识文件
+2. 创建Agent
+3. 立即测试（不可跳过！）
+4. 日志分析（必须检查output.log）
+5. 架构验证
+6. 问题修复（如需要）
+7. 确认通过
+返回：监控结果（成功/失败及原因）
+
+### ⚠️ 关于output.log的重要性
+**output.log是Agent执行的黑盒记录器**，包含了：
+- Agent的完整执行轨迹
+- 内部错误和异常信息
+- 工具调用的详细日志
+- 可能被Agent返回结果隐藏的问题
+
+**为什么必须检查output.log？**
+1. **透明性**：Agent可能返回"成功"但实际执行有问题
+2. **调试性**：包含了调试所需的关键信息
+3. **合规性**：验证Agent是否按照知识文件执行
+4. **安全性**：发现潜在的越权操作或异常行为
+
+### 📍 如何正确定位output.log
+**关键原则**：output.log在~/.agent/[agent_name]/目录下，不是在work_dir下！
+
+**⚠️ 正确的路径规则**
+```python
+# ✅ 正确示例 - 从CreateAgentTool返回值获取准确信息
+result = create_agent(...)
+# 返回值示例："Agent创建成功...名称：calculator_agent_grok_code_fast__82337"
+
+# 提取Agent名称（直接使用返回的名称）
+agent_name = "calculator_agent_grok_code_fast__82337"  # CreateAgentTool返回的名称
+
+# 构建绝对路径（在用户home目录下）
+output_log_path = f"~/.agent/{agent_name}/output.log"
+# 展开后：/home/guci/.agent/calculator_agent_grok_code_fast__82337/output.log
+```
+
+**使用read_file工具读取output.log**：
+```python
+# ✅ 正确用法 - 使用绝对路径（read_file工具已支持绝对路径）
+read_file("~/.agent/debug_agent_1_grok_code_fast__8006/output.log")
+# 或
+read_file("/home/guci/.agent/debug_agent_1_grok_code_fast__8006/output.log")
+
+# ❌ 错误用法 - 不要使用相对路径
+read_file(".agent/debug_agent_1/output.log")  # 错误！会在work_dir下寻找
+```
+
+**常见错误**：
+- ❌ `{work_dir}/.notes/xxx/output.log` - 错误！output.log不在work_dir下
+- ❌ 相对路径如".agent/xxx/output.log" - 错误！必须使用绝对路径
+- ✅ `~/.agent/{agent_name}/output.log` - 正确路径！
+
+**实用技巧**：
+1. **记录完整信息**：创建Agent后立即记录完整名称
+2. **使用ls验证**：`ls -la ~/.agent/` 查看所有Agent目录
+3. **调试路径**：先`ls -la ~/.agent/{agent_name}/`确认路径存在
+4. **搜索文件**：`find ~/.agent -name "output.log" 2>/dev/null`
+
+### 函数实现细节（监控agent的具体步骤）
 ```markdown
 1. 编写知识文件
    - 明确职责边界
@@ -81,15 +286,20 @@ create_agent(
    - 等待执行完成
 
 4. 日志分析（必须！）
-   - read_file读取output.log
+   - 分析Agent返回的执行结果
+   - **必须检查output.log**：使用read_file读取`~/.agent/{agent_name}/output.log`
+     * 注意：路径在用户home目录下，不是在work_dir
+     * 示例：`/home/guci/.agent/calculator_agent_xxx/output.log`
+     * 如果文件不存在，记录"无output.log"
+     * 如果存在，必须分析其内容
+     * 特别关注错误、警告和异常行为
    - 检查tool调用是否合规
    - 应用连接主义判断
 
 5. 架构验证
-   - Parser只能read，不能write
-   - Transformer只能转换，不能write
-   - Generator可以write
-   - Runner可以execute
+   - 验证Agent只做了它该做的事
+   - 确认没有越权操作
+   - 检查职责边界清晰
 
 6. 问题修复
    - 如发现违规，修改知识文件
@@ -103,6 +313,66 @@ create_agent(
 ```
 
 **违反此流程 = 架构失败**
+
+## 通用Agent架构模式
+
+### Agent类型模式（领域无关）
+1. **Parser型Agent**
+   - 职责：解析输入，提取结构化数据
+   - 允许：read操作
+   - 禁止：write操作
+
+2. **Transformer型Agent**
+   - 职责：转换数据格式或结构
+   - 允许：数据处理
+   - 禁止：文件写入（除非必要）
+
+3. **Generator型Agent**
+   - 职责：生成输出文件
+   - 允许：write操作
+   - 禁止：执行外部命令
+
+4. **Executor型Agent**
+   - 职责：执行和验证
+   - 允许：execute_command
+   - 禁止：修改核心逻辑
+
+5. **Coordinator型Agent**
+   - 职责：协调其他Agent
+   - 允许：调用子Agent
+   - 禁止：直接实现功能
+
+### 多Agent协作模式
+
+#### 串行工作流
+```markdown
+适用场景：步骤依赖，顺序执行
+示例结构：
+1. Parser → 2. Transformer → 3. Generator → 4. Validator
+```
+
+#### 并行工作流
+```markdown
+适用场景：独立任务，可并行
+示例结构：
+Coordinator同时调用：
+├── Agent A
+├── Agent B
+└── Agent C
+```
+
+#### 分层架构
+```markdown
+适用场景：复杂系统，职责分层
+示例结构：
+高层Coordinator
+├── 中层Manager A
+│   ├── Worker 1
+│   └── Worker 2
+└── 中层Manager B
+    ├── Worker 3
+    └── Worker 4
+```
 
 ## 工作原则
 
@@ -341,6 +611,32 @@ def test_regression():
     for case in test_cases:
         result = agent.execute(case.task)
         assert result == case.expected
+```
+
+## 连接主义判断
+
+### 什么是连接主义单元测试
+- **主观判断即测试** - 你的直觉就是测试结果
+- **整体大于部分** - 系统行为的涌现特性
+- **模式识别** - 通过模式判断正确性
+
+### 应用场景
+- **架构评审**：设计是否合理
+- **代码质量**：实现是否优雅
+- **够用原则**：是否达到"足够好"
+- **职责边界**：Agent是否越权
+
+### 判断标准
+```python
+# 连接主义判断示例
+if 你觉得不对劲:
+    那就是真的有问题
+    
+if 看起来优雅:
+    那就是好的设计
+    
+if 感觉够用了:
+    那就可以停止优化
 ```
 
 ## 子Agent日志分析（连接主义方法）
@@ -829,6 +1125,84 @@ def test_design_quality():
 
 两种测试同等重要，同等可靠！
 
+## 快速开始
+
+### 最小化示例
+```python
+from core.react_agent_minimal import ReactAgentMinimal
+from core.tools.create_agent_tool import CreateAgentTool
+
+# 创建Agent Builder
+builder = ReactAgentMinimal(
+    work_dir="/tmp/my_project",
+    model="x-ai/grok-code-fast-1",  # 推荐：服从性好
+    knowledge_files=["knowledge/agent_builder_knowledge.md"]
+)
+
+# 添加创建工具
+builder.add_function(CreateAgentTool)
+
+# 开始构建
+builder.run("创建一个数据处理的Agent系统")
+```
+
+### 带领域知识示例
+```python
+# 如果要构建MDA系统
+knowledge_files = [
+    "knowledge/agent_builder_knowledge.md",  # 核心
+    "knowledge/mda_examples.md"              # MDA示例
+]
+
+# 如果要构建编译器
+knowledge_files = [
+    "knowledge/agent_builder_knowledge.md",  # 核心
+    "knowledge/compiler_examples.md"         # 编译器示例（需创建）
+]
+```
+
+## 验证标准
+
+### 功能验证
+- ✅ Agent正确创建
+- ✅ 知识文件完整
+- ✅ 测试通过
+- ✅ 日志合规
+
+### 架构验证
+- ✅ 职责边界清晰
+- ✅ 无越权操作
+- ✅ 遵循SOP流程
+- ✅ 知识驱动实现
+
+### 领域无关验证
+- ✅ 核心不含领域逻辑
+- ✅ 领域通过知识注入
+- ✅ 可适配新领域
+- ✅ 架构模式通用
+
+## 重要提醒
+
+⚠️ **永远不要**：
+- 在核心知识中加入领域特定内容
+- 跳过SOP的任何步骤（特别是output.log检查）
+- 使用动态知识注入
+- 直接写实现代码
+
+✅ **永远要**：
+- 保持核心的领域无关性
+- 严格执行7步SOP流程
+- 使用知识文件定义行为
+- 创建Agent而非写代码
+- 检查每个Agent的output.log
+
+## 哲学总结
+
+> "大智若愚" - 真正的智慧看起来像愚钝
+> "服从比聪明更有价值" - 可靠的执行胜过聪明的优化
+
+Agent Builder的成功不在于它有多聪明，而在于它能可靠地、一致地、严格地执行定义好的流程。这种"愚钝"恰恰是它的智慧所在。
+
 ## 总结
 
 Agent Builder的核心是**知识驱动的迭代开发**：
@@ -842,3 +1216,57 @@ Agent Builder的核心是**知识驱动的迭代开发**：
 - **知识文件就是Agent的"程序"**
 - **你的判断和单元测试一样可靠**
 - **不要过度符号化原本简单的判断**
+
+## SOP函数调用范式
+
+### 定义的函数
+本知识文件定义了以下可调用的SOP函数：
+
+#### 监控agent(agent_name, task)
+监控Agent的创建、执行和验证的完整流程，包括：
+- 编写知识文件
+- 创建Agent
+- 立即测试
+- 检查output.log（必须！）
+- 架构验证
+- 问题修复
+- 确认通过
+
+### 使用示例
+
+#### 在任务中调用
+```markdown
+## 任务：创建Calculator Agent
+
+调用 监控agent("calculator_agent", "计算 (2+3)*4")
+
+预期结果：
+- Agent创建成功
+- 测试通过
+- output.log无异常
+- 架构合规
+```
+
+#### 批量监控
+```markdown
+## 任务：创建MDA系统的所有Agent
+
+agents = ["parser_agent", "transformer_agent", "generator_agent"]
+for agent in agents:
+    调用 监控agent(agent, f"处理{agent}的典型任务")
+    
+生成监控报告
+```
+
+### 函数调用的优势
+1. **简洁**：一行调用代替7步流程描述
+2. **规范**：确保每次都执行完整SOP
+3. **可追溯**：函数名即文档
+4. **防遗漏**：特别是output.log检查步骤
+
+### 重要提醒
+当看到"调用 监控agent()"时，必须：
+1. 展开执行完整的7步流程
+2. 特别注意第4步的output.log检查
+3. 不能跳过任何步骤
+4. 记录每步的执行结果

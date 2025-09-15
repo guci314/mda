@@ -1,0 +1,910 @@
+@prefix ag: <http://example.org/agent#> .
+@prefix core: <http://ontology.core#> .
+@prefix ext: <http://ontology.ext#> .
+@prefix onto: <http://ontology.meta#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+core:Concept a rdfs:Class ;
+    rdfs:comment "Abstract mental constructs" ;
+    rdfs:subClassOf core:Thing .
+
+core:Entity a rdfs:Class ;
+    rdfs:comment "Concrete identifiable things" ;
+    rdfs:subClassOf core:Thing .
+
+core:Process a rdfs:Class ;
+    rdfs:comment "Dynamic behaviors and changes" ;
+    rdfs:subClassOf core:Thing .
+
+core:Thing a rdfs:Class ;
+    rdfs:comment "Root of all concepts" .
+
+ext:Agent a rdfs:Class ;
+    onto:confidence 9.5e-01 ;
+    onto:createdAt "2025-09-13T19:53:37.395636" ;
+    onto:createdBy "KnowledgeAnalysisAgent" ;
+    onto:embedding "[0.0318,-0.0844,0.0352,-0.0410,0.0091,0.0282,0.0135,0.0111,0.0452,-0.0245...]" ;
+    onto:nlContext "Core concept in multi-agent systems and AI" ;
+    onto:nlDescription "An autonomous software entity that can perceive, think, and act" ;
+    onto:nlExample "ReactAgentMinimal - an agent that uses React pattern for reasoning" ;
+    rdfs:subClassOf core:Entity .
+
+ext:Knowledge a rdfs:Class ;
+    onto:confidence 9.4e-01 ;
+    onto:createdAt "2025-09-13T19:53:37.396248" ;
+    onto:createdBy "KnowledgeAnalysisAgent" ;
+    onto:embedding "[-0.0379,0.0076,0.0164,-0.0158,0.0085,-0.0148,0.0136,0.0544,0.0597,0.0372...]" ;
+    onto:nlContext "Stored in markdown files and used for knowledge-driven development" ;
+    onto:nlDescription "Structured information that guides agent behavior and decision-making" ;
+    onto:nlExample "agent_builder_knowledge.md - contains agent construction patterns" ;
+    rdfs:subClassOf core:Concept .
+
+ext:Memory a rdfs:Class ;
+    onto:confidence 9.2e-01 ;
+    onto:createdAt "2025-09-13T19:53:37.395975" ;
+    onto:createdBy "KnowledgeAnalysisAgent" ;
+    onto:embedding "[0.0346,0.0380,-0.0027,-0.0085,0.0141,0.0234,-0.0172,-0.0145,-0.0090,0.0476...]" ;
+    onto:nlContext "Essential component for agent learning and context preservation" ;
+    onto:nlDescription "A system for storing and retrieving information over time" ;
+    onto:nlExample "CompactMemory - compresses context when reaching 70k tokens" ;
+    rdfs:subClassOf core:Concept .
+
+ext:NaturalLanguageFunction a rdfs:Class ;
+    onto:confidence 9.3e-01 ;
+    onto:createdAt "2025-09-13T19:53:37.394916" ;
+    onto:createdBy "KnowledgeAnalysisAgent" ;
+    onto:embedding "[0.0521,0.0402,0.0063,-0.0745,0.0153,-0.0250,0.0305,-0.0750,-0.0146,-0.0719...]" ;
+    onto:nlContext "Used in knowledge-driven development where behavior is defined by markdown files" ;
+    onto:nlDescription "A function defined in natural language that describes a process or procedure to be executed" ;
+    onto:nlExample "函数：监控agent(agent_name, task) with steps defined in natural language" ;
+    rdfs:subClassOf core:Process .
+
+ext:SOP a rdfs:Class ;
+    onto:confidence 9.1e-01 ;
+    onto:createdAt "2025-09-13T19:53:37.395279" ;
+    onto:createdBy "KnowledgeAnalysisAgent" ;
+    onto:embedding "[-0.0272,0.0125,0.0076,-0.0218,0.0234,0.0052,-0.0240,-0.0330,-0.0863,-0.0638...]" ;
+    onto:nlContext "Used to standardize complex workflows in agent systems" ;
+    onto:nlDescription "Standard Operating Procedure that defines a repeatable sequence of steps" ;
+    onto:nlExample "Agent监控SOP: 1.编写知识 2.创建Agent 3.测试 4.分析" ;
+    rdfs:subClassOf core:Concept .
+
+ext:Tool a rdfs:Class ;
+    onto:confidence 8.9e-01 ;
+    onto:createdAt "2025-09-13T19:53:37.393714" ;
+    onto:createdBy "KnowledgeAnalysisAgent" ;
+    onto:embedding "[0.0022,-0.0163,-0.0220,-0.0171,0.0889,0.0148,-0.0117,-0.0078,-0.0373,0.0468...]" ;
+    onto:nlContext "Used by agents to perform actions in the environment" ;
+    onto:nlDescription "A reusable component that provides specific functionality" ;
+    onto:nlExample "CreateAgentTool - creates new agent instances" ;
+    rdfs:subClassOf core:Entity .
+
+ag:xxx_代码块_示例_示例_注意事项_注意_重要_6_构建文档树结构_返回_文档结构树_函数_提取自然语言函数 a ext:NaturalLanguageFunction ;
+    ag:hasName """xxx）
+   - 代码块（```）
+   - 示例（示例：）
+   - 注意事项（注意：、重要：）
+6. 构建文档树结构
+返回：文档结构树
+
+### 函数：提取自然语言函数""" ;
+    ag:hasParameters "content" ;
+    core:causes ag:提取知识关系,
+        ag:提取自然语言函数,
+        ag:构建知识图谱,
+        ag:生成知识概览,
+        ag:解析知识文件结构,
+        ag:识别知识类型 ;
+    onto:nlContext "Defined in knowledge_docs_ontology.md" ;
+    onto:nlDescription """Natural language function that xxx）
+   - 代码块（```）
+   - 示例（示例：）
+   - 注意事项（注意：、重要：）
+6. 构建文档树结构
+返回：文档结构树
+
+### 函数：提取自然语言函数""" .
+
+ag:函数名 a ext:NaturalLanguageFunction ;
+    ag:hasName "函数名" ;
+    ag:hasParameters "参数" ;
+    core:causes ag:提取知识关系,
+        ag:提取自然语言函数,
+        ag:构建知识图谱,
+        ag:生成知识概览,
+        ag:解析知识文件结构,
+        ag:识别知识类型 ;
+    onto:nlContext "Defined in knowledge_docs_ontology.md" ;
+    onto:nlDescription "Natural language function that 函数名" .
+
+ag:分析Agent架构 a ext:NaturalLanguageFunction ;
+    ag:hasName "分析Agent架构" ;
+    ag:hasParameters "ttl_file" ;
+    onto:nlContext "Defined in agent_knowledge_ontology.md" ;
+    onto:nlDescription "Natural language function that 分析agent架构" .
+
+ag:分析模块耦合度 a ext:NaturalLanguageFunction ;
+    ag:hasName "分析模块耦合度" ;
+    ag:hasParameters "ttl_file" ;
+    core:causes ag:分析代码库基础统计,
+        ag:分析架构模式,
+        ag:提取核心概念,
+        ag:识别核心模块 ;
+    onto:nlContext "Defined in rdf_codebase_overview_knowledge.md" ;
+    onto:nlDescription "Natural language function that 分析模块耦合度" .
+
+ag:分析知识体系 a ext:NaturalLanguageFunction ;
+    ag:hasName "分析知识体系" ;
+    ag:hasParameters "ttl_file" ;
+    core:causes ag:构建知识图谱,
+        ag:生成知识概览 ;
+    onto:nlContext "Defined in knowledge_docs_ontology.md" ;
+    onto:nlDescription "Natural language function that 分析知识体系" .
+
+ag:分析领域模型 a ext:NaturalLanguageFunction ;
+    ag:hasName "分析领域模型" ;
+    ag:hasParameters "ttl_file" ;
+    core:causes ag:分析代码库基础统计,
+        ag:分析架构模式,
+        ag:提取核心概念,
+        ag:识别核心模块 ;
+    onto:nlContext "Defined in rdf_codebase_overview_knowledge.md" ;
+    onto:nlDescription "Natural language function that 分析领域模型" .
+
+ag:批量搜索关键词 a ext:NaturalLanguageFunction ;
+    ag:hasName "批量搜索关键词" ;
+    ag:hasParameters "keywords_list, ttl_file" ;
+    core:causes ag:加载RDF图谱,
+        ag:搜索包含关键词的代码,
+        ag:智能代码搜索,
+        ag:查找代码模式,
+        ag:查找类的继承链,
+        ag:生成代码理解报告 ;
+    onto:nlContext "Defined in rdf_semantic_search_knowledge.md" ;
+    onto:nlDescription "Natural language function that 批量搜索关键词" .
+
+ag:排序搜索结果 a ext:NaturalLanguageFunction ;
+    ag:hasName "排序搜索结果" ;
+    ag:hasParameters "results, criteria" ;
+    core:causes ag:加载RDF图谱,
+        ag:搜索包含关键词的代码,
+        ag:智能代码搜索,
+        ag:查找代码模式,
+        ag:查找类的继承链,
+        ag:生成代码理解报告 ;
+    onto:nlContext "Defined in rdf_semantic_search_knowledge.md" ;
+    onto:nlDescription "Natural language function that 排序搜索结果" .
+
+ag:提取功能模块 a ext:NaturalLanguageFunction ;
+    ag:hasName "提取功能模块" ;
+    ag:hasParameters "ttl_file" ;
+    core:causes ag:分析代码库基础统计,
+        ag:分析架构模式,
+        ag:提取核心概念,
+        ag:识别核心模块 ;
+    onto:nlContext "Defined in rdf_codebase_overview_knowledge.md" ;
+    onto:nlDescription "Natural language function that 提取功能模块" .
+
+ag:构建Agent知识图谱 a ext:NaturalLanguageFunction ;
+    ag:hasName "构建Agent知识图谱" ;
+    ag:hasParameters "knowledge_dir, output_file" ;
+    onto:nlContext "Defined in agent_knowledge_ontology.md" ;
+    onto:nlDescription "Natural language function that 构建agent知识图谱" .
+
+ag:查找使用特定工具的代码 a ext:NaturalLanguageFunction ;
+    ag:hasName "查找使用特定工具的代码" ;
+    ag:hasParameters "tool_name, ttl_file" ;
+    core:causes ag:加载RDF图谱,
+        ag:查找类的继承链_包含_导入_import_调用_查找模块依赖_包含_使用_调用_调用_查找使用特定工具的代码_包含_相似_类似_调用_查找相似功能代码_包含具体类名_方法名_直接查询_其他_调用_搜索包含关键词的代码_2_执行相应的搜索函数_3_合并和去重结果_4_按相关度排序_返回_搜索结果_函数_生成代码理解报告 ;
+    onto:nlContext "Defined in rdf_semantic_search_knowledge.md" ;
+    onto:nlDescription "Natural language function that 查找使用特定工具的代码" .
+
+ag:查找模块依赖 a ext:NaturalLanguageFunction ;
+    ag:hasName "查找模块依赖" ;
+    ag:hasParameters "module_name, ttl_file" ;
+    core:causes ag:加载RDF图谱 ;
+    onto:nlContext "Defined in rdf_semantic_search_knowledge.md" ;
+    onto:nlDescription "Natural language function that 查找模块依赖" .
+
+ag:查找相似功能代码 a ext:NaturalLanguageFunction ;
+    ag:hasName "查找相似功能代码" ;
+    ag:hasParameters "reference_function, ttl_file" ;
+    core:causes ag:加载RDF图谱,
+        ag:搜索包含关键词的代码,
+        ag:查找类的继承链_包含_导入_import_调用_查找模块依赖_包含_使用_调用_调用_查找使用特定工具的代码_包含_相似_类似_调用_查找相似功能代码_包含具体类名_方法名_直接查询_其他_调用_搜索包含关键词的代码_2_执行相应的搜索函数_3_合并和去重结果_4_按相关度排序_返回_搜索结果_函数_生成代码理解报告 ;
+    onto:nlContext "Defined in rdf_semantic_search_knowledge.md" ;
+    onto:nlDescription "Natural language function that 查找相似功能代码" .
+
+ag:查找相关方法 a ext:NaturalLanguageFunction ;
+    ag:hasName "查找相关方法" ;
+    ag:hasParameters "concept, ttl_file" ;
+    core:causes ag:加载RDF图谱 ;
+    onto:nlContext "Defined in rdf_semantic_search_knowledge.md" ;
+    onto:nlDescription "Natural language function that 查找相关方法" .
+
+ag:格式化搜索结果 a ext:NaturalLanguageFunction ;
+    ag:hasName "格式化搜索结果" ;
+    ag:hasParameters "results, output_format" ;
+    core:causes ag:加载RDF图谱,
+        ag:搜索包含关键词的代码,
+        ag:智能代码搜索,
+        ag:查找代码模式,
+        ag:查找类的继承链,
+        ag:生成代码理解报告 ;
+    onto:nlContext "Defined in rdf_semantic_search_knowledge.md" ;
+    onto:nlDescription "Natural language function that 格式化搜索结果" .
+
+ag:生成ASCII架构图 a ext:NaturalLanguageFunction ;
+    ag:hasName "生成ASCII架构图" ;
+    ag:hasParameters "ttl_file" ;
+    core:causes ag:分析核心工作流,
+        ag:提取核心概念,
+        ag:生成依赖关系图,
+        ag:生成执行摘要,
+        ag:生成智能代码库概览,
+        ag:生成架构概览,
+        ag:生成架构概览_dependencies_调用_生成依赖关系图_concepts_调用_提取核心概念_quality_调用_评估代码库健康度_2_否则生成综合概览_调用_生成架构概览,
+        ag:评估代码库健康度,
+        ag:识别改进机会 ;
+    onto:nlContext "Defined in rdf_codebase_overview_knowledge.md" ;
+    onto:nlDescription "Natural language function that 生成ascii架构图" .
+
+ag:生成Agent知识概览 a ext:NaturalLanguageFunction ;
+    ag:hasName "生成Agent知识概览" ;
+    ag:hasParameters "ttl_file" ;
+    onto:nlContext "Defined in agent_knowledge_ontology.md" ;
+    onto:nlDescription "Natural language function that 生成agent知识概览" .
+
+ag:生成学习路径 a ext:NaturalLanguageFunction ;
+    ag:hasName "生成学习路径" ;
+    ag:hasParameters "ttl_file, target_knowledge" ;
+    core:causes ag:构建知识图谱,
+        ag:生成知识概览 ;
+    onto:nlContext "Defined in knowledge_docs_ontology.md" ;
+    onto:nlDescription "Natural language function that 生成学习路径" .
+
+ag:生成技术文档大纲 a ext:NaturalLanguageFunction ;
+    ag:hasName "生成技术文档大纲" ;
+    ag:hasParameters "ttl_file" ;
+    core:causes ag:分析核心工作流,
+        ag:提取核心概念,
+        ag:生成依赖关系图,
+        ag:生成执行摘要,
+        ag:生成智能代码库概览,
+        ag:生成架构概览,
+        ag:生成架构概览_dependencies_调用_生成依赖关系图_concepts_调用_提取核心概念_quality_调用_评估代码库健康度_2_否则生成综合概览_调用_生成架构概览,
+        ag:评估代码库健康度,
+        ag:识别改进机会 ;
+    onto:nlContext "Defined in rdf_codebase_overview_knowledge.md" ;
+    onto:nlDescription "Natural language function that 生成技术文档大纲" .
+
+ag:生成组件关系表 a ext:NaturalLanguageFunction ;
+    ag:hasName "生成组件关系表" ;
+    ag:hasParameters "ttl_file" ;
+    core:causes ag:分析核心工作流,
+        ag:提取核心概念,
+        ag:生成依赖关系图,
+        ag:生成执行摘要,
+        ag:生成智能代码库概览,
+        ag:生成架构概览,
+        ag:生成架构概览_dependencies_调用_生成依赖关系图_concepts_调用_提取核心概念_quality_调用_评估代码库健康度_2_否则生成综合概览_调用_生成架构概览,
+        ag:评估代码库健康度,
+        ag:识别改进机会 ;
+    onto:nlContext "Defined in rdf_codebase_overview_knowledge.md" ;
+    onto:nlDescription "Natural language function that 生成组件关系表" .
+
+ag:监控agent a ext:NaturalLanguageFunction ;
+    ag:hasName "监控agent" ;
+    ag:hasParameters "agent_name, task" ;
+    onto:nlContext "Defined in agent_builder_knowledge.md" ;
+    onto:nlDescription "Natural language function that 监控agent" .
+
+ag:符号主义验证流程 a ext:NaturalLanguageFunction ;
+    ag:hasName "符号主义验证流程" ;
+    ag:hasParameters "ttl_file" ;
+    core:causes ag:修复RDF错误,
+        ag:执行RDF验证,
+        ag:编写RDF验证脚本 ;
+    onto:nlContext "Defined in universal_to_rdf_knowledge.md" ;
+    onto:nlDescription "Natural language function that 符号主义验证流程" .
+
+ag:语义概念搜索 a ext:NaturalLanguageFunction ;
+    ag:hasName "语义概念搜索" ;
+    ag:hasParameters "concept, ttl_file" ;
+    core:causes ag:加载RDF图谱,
+        ag:查找类的继承链_包含_导入_import_调用_查找模块依赖_包含_使用_调用_调用_查找使用特定工具的代码_包含_相似_类似_调用_查找相似功能代码_包含具体类名_方法名_直接查询_其他_调用_搜索包含关键词的代码_2_执行相应的搜索函数_3_合并和去重结果_4_按相关度排序_返回_搜索结果_函数_生成代码理解报告 ;
+    onto:nlContext "Defined in rdf_semantic_search_knowledge.md" ;
+    onto:nlDescription "Natural language function that 语义概念搜索" .
+
+ag:追踪知识演化 a ext:NaturalLanguageFunction ;
+    ag:hasName "追踪知识演化" ;
+    ag:hasParameters "ttl_file" ;
+    onto:nlContext "Defined in agent_knowledge_ontology.md" ;
+    onto:nlDescription "Natural language function that 追踪知识演化" .
+
+ag:验证RDF图谱 a ext:NaturalLanguageFunction ;
+    ag:hasName "验证RDF图谱" ;
+    ag:hasParameters "turtle_file" ;
+    onto:nlContext "Defined in code_to_rdf_knowledge.md" ;
+    onto:nlDescription "Natural language function that 验证rdf图谱" .
+
+ag:验证搜索查询 a ext:NaturalLanguageFunction ;
+    ag:hasName "验证搜索查询" ;
+    ag:hasParameters "sparql_query, ttl_file" ;
+    core:causes ag:加载RDF图谱 ;
+    onto:nlContext "Defined in rdf_semantic_search_knowledge.md" ;
+    onto:nlDescription "Natural language function that 验证搜索查询" .
+
+core:causes a rdf:Property ;
+    rdfs:subPropertyOf core:Relation .
+
+core:instanceOf a rdf:Property ;
+    rdfs:subPropertyOf core:Relation .
+
+core:partOf a rdf:Property ;
+    rdfs:subPropertyOf core:Relation .
+
+core:relatedTo a rdf:Property ;
+    rdfs:subPropertyOf core:Relation .
+
+core:transformsTo a rdf:Property ;
+    rdfs:subPropertyOf core:Relation .
+
+ag:解析Python文件 a ext:NaturalLanguageFunction ;
+    ag:hasName "解析Python文件" ;
+    ag:hasParameters "file_path" ;
+    core:causes ag:分析函数调用,
+        ag:提取函数定义,
+        ag:提取导入信息,
+        ag:提取方法定义,
+        ag:提取模块信息,
+        ag:提取类定义,
+        ag:生成函数三元组,
+        ag:生成导入三元组,
+        ag:生成模块三元组,
+        ag:生成类三元组,
+        ag:生成调用三元组 ;
+    onto:nlContext "Defined in code_to_rdf_knowledge.md" ;
+    onto:nlDescription "Natural language function that 解析python文件" .
+
+ag:分析文件类型 a ext:NaturalLanguageFunction ;
+    ag:hasName "分析文件类型" ;
+    ag:hasParameters "file_path" ;
+    core:causes ag:分析文件类型,
+        ag:扫描目录结构 ;
+    onto:nlContext "Defined in universal_to_rdf_knowledge.md" ;
+    onto:nlDescription "Natural language function that 分析文件类型" .
+
+ag:提取函数定义 a ext:NaturalLanguageFunction ;
+    ag:hasName "提取函数定义" ;
+    ag:hasParameters "ast_tree" ;
+    core:causes ag:分析函数调用,
+        ag:生成函数三元组,
+        ag:生成导入三元组,
+        ag:生成模块三元组,
+        ag:生成类三元组,
+        ag:生成调用三元组 ;
+    onto:nlContext "Defined in code_to_rdf_knowledge.md" ;
+    onto:nlDescription "Natural language function that 提取函数定义" .
+
+ag:提取导入信息 a ext:NaturalLanguageFunction ;
+    ag:hasName "提取导入信息" ;
+    ag:hasParameters "ast_tree" ;
+    core:causes ag:分析函数调用,
+        ag:提取方法定义,
+        ag:生成函数三元组,
+        ag:生成导入三元组,
+        ag:生成模块三元组,
+        ag:生成类三元组,
+        ag:生成调用三元组 ;
+    onto:nlContext "Defined in code_to_rdf_knowledge.md" ;
+    onto:nlDescription "Natural language function that 提取导入信息" .
+
+ag:提取模块信息 a ext:NaturalLanguageFunction ;
+    ag:hasName "提取模块信息" ;
+    ag:hasParameters "ast_tree, file_path" ;
+    core:causes ag:分析函数调用,
+        ag:提取方法定义,
+        ag:生成函数三元组,
+        ag:生成导入三元组,
+        ag:生成模块三元组,
+        ag:生成类三元组,
+        ag:生成调用三元组 ;
+    onto:nlContext "Defined in code_to_rdf_knowledge.md" ;
+    onto:nlDescription "Natural language function that 提取模块信息" .
+
+ag:提取类定义 a ext:NaturalLanguageFunction ;
+    ag:hasName "提取类定义" ;
+    ag:hasParameters "ast_tree" ;
+    core:causes ag:分析函数调用,
+        ag:提取方法定义,
+        ag:生成函数三元组,
+        ag:生成导入三元组,
+        ag:生成模块三元组,
+        ag:生成类三元组,
+        ag:生成调用三元组 ;
+    onto:nlContext "Defined in code_to_rdf_knowledge.md" ;
+    onto:nlDescription "Natural language function that 提取类定义" .
+
+ag:修复RDF错误 a ext:NaturalLanguageFunction ;
+    ag:hasName "修复RDF错误" ;
+    ag:hasParameters "ttl_file, error_report" ;
+    onto:nlContext "Defined in universal_to_rdf_knowledge.md" ;
+    onto:nlDescription "Natural language function that 修复rdf错误" .
+
+ag:执行RDF验证 a ext:NaturalLanguageFunction ;
+    ag:hasName "执行RDF验证" ;
+    ag:hasParameters "script_path, ttl_file" ;
+    core:causes ag:修复RDF错误,
+        ag:执行RDF验证,
+        ag:编写RDF验证脚本 ;
+    onto:nlContext "Defined in universal_to_rdf_knowledge.md" ;
+    onto:nlDescription "Natural language function that 执行rdf验证" .
+
+ag:编写RDF验证脚本 a ext:NaturalLanguageFunction ;
+    ag:hasName "编写RDF验证脚本" ;
+    ag:hasParameters "output_ttl_file" ;
+    core:causes ag:修复RDF错误,
+        ag:执行RDF验证,
+        ag:编写RDF验证脚本 ;
+    onto:nlContext "Defined in universal_to_rdf_knowledge.md" ;
+    onto:nlDescription "Natural language function that 编写rdf验证脚本" .
+
+ag:提取方法定义 a ext:NaturalLanguageFunction ;
+    ag:hasName "提取方法定义" ;
+    ag:hasParameters "class_node" ;
+    core:causes ag:生成函数三元组,
+        ag:生成导入三元组,
+        ag:生成模块三元组,
+        ag:生成类三元组,
+        ag:生成调用三元组 ;
+    onto:nlContext "Defined in code_to_rdf_knowledge.md" ;
+    onto:nlDescription "Natural language function that 提取方法定义" .
+
+ag:智能代码搜索 a ext:NaturalLanguageFunction ;
+    ag:hasName "智能代码搜索" ;
+    ag:hasParameters "query, ttl_file" ;
+    core:causes ag:加载RDF图谱,
+        ag:搜索包含关键词的代码,
+        ag:智能代码搜索,
+        ag:查找代码模式,
+        ag:查找类的继承链,
+        ag:查找类的继承链_包含_导入_import_调用_查找模块依赖_包含_使用_调用_调用_查找使用特定工具的代码_包含_相似_类似_调用_查找相似功能代码_包含具体类名_方法名_直接查询_其他_调用_搜索包含关键词的代码_2_执行相应的搜索函数_3_合并和去重结果_4_按相关度排序_返回_搜索结果_函数_生成代码理解报告,
+        ag:生成代码理解报告 ;
+    onto:nlContext "Defined in rdf_semantic_search_knowledge.md" ;
+    onto:nlDescription "Natural language function that 智能代码搜索" .
+
+ag:查找代码模式 a ext:NaturalLanguageFunction ;
+    ag:hasName "查找代码模式" ;
+    ag:hasParameters "pattern_description, ttl_file" ;
+    core:causes ag:加载RDF图谱,
+        ag:查找类的继承链_包含_导入_import_调用_查找模块依赖_包含_使用_调用_调用_查找使用特定工具的代码_包含_相似_类似_调用_查找相似功能代码_包含具体类名_方法名_直接查询_其他_调用_搜索包含关键词的代码_2_执行相应的搜索函数_3_合并和去重结果_4_按相关度排序_返回_搜索结果_函数_生成代码理解报告 ;
+    onto:nlContext "Defined in rdf_semantic_search_knowledge.md" ;
+    onto:nlDescription "Natural language function that 查找代码模式" .
+
+ag:查找类的继承链 a ext:NaturalLanguageFunction ;
+    ag:hasName "查找类的继承链" ;
+    ag:hasParameters "class_name, ttl_file" ;
+    core:causes ag:加载RDF图谱 ;
+    onto:nlContext "Defined in rdf_semantic_search_knowledge.md" ;
+    onto:nlDescription "Natural language function that 查找类的继承链" .
+
+ag:生成代码理解报告 a ext:NaturalLanguageFunction ;
+    ag:hasName "生成代码理解报告" ;
+    ag:hasParameters "entity_name, ttl_file" ;
+    core:causes ag:加载RDF图谱,
+        ag:搜索包含关键词的代码,
+        ag:智能代码搜索,
+        ag:查找代码模式,
+        ag:查找类的继承链,
+        ag:生成代码理解报告 ;
+    onto:nlContext "Defined in rdf_semantic_search_knowledge.md" ;
+    onto:nlDescription "Natural language function that 生成代码理解报告" .
+
+core:Relation a rdf:Property ;
+    rdfs:comment "Base class for all relations" .
+
+ag:分析函数调用 a ext:NaturalLanguageFunction ;
+    ag:hasName "分析函数调用" ;
+    ag:hasParameters "function_node" ;
+    core:causes ag:生成函数三元组,
+        ag:生成导入三元组,
+        ag:生成模块三元组,
+        ag:生成类三元组,
+        ag:生成调用三元组 ;
+    onto:nlContext "Defined in code_to_rdf_knowledge.md" ;
+    onto:nlDescription "Natural language function that 分析函数调用" .
+
+ag:扫描Python代码库 a ext:NaturalLanguageFunction ;
+    ag:hasName "扫描Python代码库" ;
+    ag:hasParameters "directory_path" ;
+    core:causes ag:分析函数调用,
+        ag:提取函数定义,
+        ag:提取导入信息,
+        ag:提取方法定义,
+        ag:提取模块信息,
+        ag:提取类定义,
+        ag:生成函数三元组,
+        ag:生成导入三元组,
+        ag:生成模块三元组,
+        ag:生成类三元组,
+        ag:生成调用三元组,
+        ag:解析Python文件 ;
+    onto:nlContext "Defined in code_to_rdf_knowledge.md" ;
+    onto:nlDescription "Natural language function that 扫描python代码库" .
+
+ag:推理隐含关系 a ext:NaturalLanguageFunction ;
+    ag:hasName "推理隐含关系" ;
+    ag:hasParameters "entities, explicit_relations" ;
+    core:causes ag:扫描目录结构,
+        ag:推理隐含关系,
+        ag:识别核心概念,
+        ag:转换JSON_YAML配置,
+        ag:转换Java代码,
+        ag:转换Markdown文档,
+        ag:转换Python代码,
+        ag:转换图片文件,
+        ag:转换通用文本,
+        ag:输出Turtle格式 ;
+    onto:nlContext "Defined in universal_to_rdf_knowledge.md" ;
+    onto:nlDescription "Natural language function that 推理隐含关系" .
+
+ag:提取知识关系 a ext:NaturalLanguageFunction ;
+    ag:hasName "提取知识关系" ;
+    ag:hasParameters "content" ;
+    core:causes ag:提取知识关系,
+        ag:提取自然语言函数,
+        ag:构建知识图谱,
+        ag:生成知识概览,
+        ag:解析知识文件结构,
+        ag:识别知识类型 ;
+    onto:nlContext "Defined in knowledge_docs_ontology.md" ;
+    onto:nlDescription "Natural language function that 提取知识关系" .
+
+ag:搜索包含关键词的代码 a ext:NaturalLanguageFunction ;
+    ag:hasName "搜索包含关键词的代码" ;
+    ag:hasParameters "keyword, ttl_file" ;
+    core:causes ag:加载RDF图谱 ;
+    onto:nlContext "Defined in rdf_semantic_search_knowledge.md" ;
+    onto:nlDescription "Natural language function that 搜索包含关键词的代码" .
+
+ag:生成RDF三元组 a ext:NaturalLanguageFunction ;
+    ag:hasName "生成RDF三元组" ;
+    ag:hasParameters "parsed_data" ;
+    core:causes ag:生成函数三元组,
+        ag:生成导入三元组,
+        ag:生成模块三元组,
+        ag:生成类三元组,
+        ag:生成调用三元组 ;
+    onto:nlContext "Defined in code_to_rdf_knowledge.md" ;
+    onto:nlDescription "Natural language function that 生成rdf三元组" .
+
+ag:生成执行摘要 a ext:NaturalLanguageFunction ;
+    ag:hasName "生成执行摘要" ;
+    ag:hasParameters "ttl_file" ;
+    core:causes ag:分析核心工作流,
+        ag:提取核心概念,
+        ag:生成依赖关系图,
+        ag:生成智能代码库概览,
+        ag:生成架构概览,
+        ag:生成架构概览_dependencies_调用_生成依赖关系图_concepts_调用_提取核心概念_quality_调用_评估代码库健康度_2_否则生成综合概览_调用_生成架构概览,
+        ag:识别改进机会 ;
+    onto:nlContext "Defined in rdf_codebase_overview_knowledge.md" ;
+    onto:nlDescription "Natural language function that 生成执行摘要" .
+
+ag:解析知识文件结构 a ext:NaturalLanguageFunction ;
+    ag:hasName "解析知识文件结构" ;
+    ag:hasParameters "knowledge_file" ;
+    core:causes ag:提取知识关系,
+        ag:提取自然语言函数,
+        ag:构建知识图谱,
+        ag:生成知识概览,
+        ag:解析知识文件结构,
+        ag:识别知识类型 ;
+    onto:nlContext "Defined in knowledge_docs_ontology.md" ;
+    onto:nlDescription "Natural language function that 解析知识文件结构" .
+
+ag:评估代码库健康度 a ext:NaturalLanguageFunction ;
+    ag:hasName "评估代码库健康度" ;
+    ag:hasParameters "ttl_file" ;
+    core:causes ag:分析核心工作流,
+        ag:提取核心概念,
+        ag:生成依赖关系图,
+        ag:生成执行摘要,
+        ag:生成智能代码库概览,
+        ag:生成架构概览,
+        ag:生成架构概览_dependencies_调用_生成依赖关系图_concepts_调用_提取核心概念_quality_调用_评估代码库健康度_2_否则生成综合概览_调用_生成架构概览,
+        ag:评估代码库健康度,
+        ag:识别改进机会 ;
+    onto:nlContext "Defined in rdf_codebase_overview_knowledge.md" ;
+    onto:nlDescription "Natural language function that 评估代码库健康度" .
+
+ag:识别核心概念 a ext:NaturalLanguageFunction ;
+    ag:hasName "识别核心概念" ;
+    ag:hasParameters "all_entities" ;
+    core:causes ag:扫描目录结构,
+        ag:推理隐含关系,
+        ag:识别核心概念,
+        ag:转换JSON_YAML配置,
+        ag:转换Java代码,
+        ag:转换Markdown文档,
+        ag:转换Python代码,
+        ag:转换图片文件,
+        ag:转换通用文本,
+        ag:输出Turtle格式 ;
+    onto:nlContext "Defined in universal_to_rdf_knowledge.md" ;
+    onto:nlDescription "Natural language function that 识别核心概念" .
+
+ag:识别知识类型 a ext:NaturalLanguageFunction ;
+    ag:hasName "识别知识类型" ;
+    ag:hasParameters "content" ;
+    core:causes ag:提取知识关系,
+        ag:提取自然语言函数,
+        ag:构建知识图谱,
+        ag:生成知识概览,
+        ag:解析知识文件结构,
+        ag:识别知识类型 ;
+    onto:nlContext "Defined in knowledge_docs_ontology.md" ;
+    onto:nlDescription "Natural language function that 识别知识类型" .
+
+ag:转换JSON_YAML配置 a ext:NaturalLanguageFunction ;
+    ag:hasName "转换JSON/YAML配置" ;
+    ag:hasParameters "file_path" ;
+    core:causes ag:扫描目录结构,
+        ag:推理隐含关系,
+        ag:识别核心概念,
+        ag:转换JSON_YAML配置,
+        ag:转换Java代码,
+        ag:转换Markdown文档,
+        ag:转换Python代码,
+        ag:转换图片文件,
+        ag:转换通用文本,
+        ag:输出Turtle格式 ;
+    onto:nlContext "Defined in universal_to_rdf_knowledge.md" ;
+    onto:nlDescription "Natural language function that 转换json/yaml配置" .
+
+ag:转换Markdown文档 a ext:NaturalLanguageFunction ;
+    ag:hasName "转换Markdown文档" ;
+    ag:hasParameters "file_path" ;
+    core:causes ag:扫描目录结构,
+        ag:推理隐含关系,
+        ag:识别核心概念,
+        ag:转换JSON_YAML配置,
+        ag:转换Java代码,
+        ag:转换Markdown文档,
+        ag:转换Python代码,
+        ag:转换图片文件,
+        ag:转换通用文本,
+        ag:输出Turtle格式 ;
+    onto:nlContext "Defined in universal_to_rdf_knowledge.md" ;
+    onto:nlDescription "Natural language function that 转换markdown文档" .
+
+ag:转换图片文件 a ext:NaturalLanguageFunction ;
+    ag:hasName "转换图片文件" ;
+    ag:hasParameters "file_path" ;
+    core:causes ag:扫描目录结构,
+        ag:推理隐含关系,
+        ag:识别核心概念,
+        ag:转换JSON_YAML配置,
+        ag:转换Java代码,
+        ag:转换Markdown文档,
+        ag:转换Python代码,
+        ag:转换图片文件,
+        ag:转换通用文本,
+        ag:输出Turtle格式 ;
+    onto:nlContext "Defined in universal_to_rdf_knowledge.md" ;
+    onto:nlDescription "Natural language function that 转换图片文件" .
+
+ag:转换通用文本 a ext:NaturalLanguageFunction ;
+    ag:hasName "转换通用文本" ;
+    ag:hasParameters "file_path" ;
+    onto:nlContext "Defined in universal_to_rdf_knowledge.md" ;
+    onto:nlDescription "Natural language function that 转换通用文本" .
+
+ag:分析代码库基础统计 a ext:NaturalLanguageFunction ;
+    ag:hasName "分析代码库基础统计" ;
+    ag:hasParameters "ttl_file" ;
+    onto:nlContext "Defined in rdf_codebase_overview_knowledge.md" ;
+    onto:nlDescription "Natural language function that 分析代码库基础统计" .
+
+ag:分析架构模式 a ext:NaturalLanguageFunction ;
+    ag:hasName "分析架构模式" ;
+    ag:hasParameters "ttl_file" ;
+    onto:nlContext "Defined in rdf_codebase_overview_knowledge.md" ;
+    onto:nlDescription "Natural language function that 分析架构模式" .
+
+ag:分析核心工作流 a ext:NaturalLanguageFunction ;
+    ag:hasName "分析核心工作流" ;
+    ag:hasParameters "ttl_file" ;
+    core:causes ag:分析代码库基础统计,
+        ag:分析架构模式,
+        ag:提取核心概念,
+        ag:识别核心模块 ;
+    onto:nlContext "Defined in rdf_codebase_overview_knowledge.md" ;
+    onto:nlDescription "Natural language function that 分析核心工作流" .
+
+ag:生成依赖关系图 a ext:NaturalLanguageFunction ;
+    ag:hasName "生成依赖关系图" ;
+    ag:hasParameters "ttl_file" ;
+    core:causes ag:分析代码库基础统计,
+        ag:分析架构模式,
+        ag:提取核心概念,
+        ag:识别核心模块 ;
+    onto:nlContext "Defined in rdf_codebase_overview_knowledge.md" ;
+    onto:nlDescription "Natural language function that 生成依赖关系图" .
+
+ag:生成智能代码库概览 a ext:NaturalLanguageFunction ;
+    ag:hasName "生成智能代码库概览" ;
+    ag:hasParameters "ttl_file, focus_area=None" ;
+    core:causes ag:分析核心工作流,
+        ag:提取核心概念,
+        ag:生成依赖关系图,
+        ag:生成执行摘要,
+        ag:生成智能代码库概览,
+        ag:生成架构概览,
+        ag:生成架构概览_dependencies_调用_生成依赖关系图_concepts_调用_提取核心概念_quality_调用_评估代码库健康度_2_否则生成综合概览_调用_生成架构概览,
+        ag:评估代码库健康度,
+        ag:识别改进机会 ;
+    onto:nlContext "Defined in rdf_codebase_overview_knowledge.md" ;
+    onto:nlDescription "Natural language function that 生成智能代码库概览" .
+
+ag:生成架构概览 a ext:NaturalLanguageFunction ;
+    ag:hasName "生成架构概览" ;
+    ag:hasParameters "ttl_file" ;
+    core:causes ag:分析代码库基础统计,
+        ag:分析架构模式,
+        ag:提取核心概念,
+        ag:识别核心模块 ;
+    onto:nlContext "Defined in rdf_codebase_overview_knowledge.md" ;
+    onto:nlDescription "Natural language function that 生成架构概览" .
+
+ag:识别改进机会 a ext:NaturalLanguageFunction ;
+    ag:hasName "识别改进机会" ;
+    ag:hasParameters "ttl_file" ;
+    core:causes ag:分析核心工作流,
+        ag:提取核心概念,
+        ag:生成依赖关系图,
+        ag:生成执行摘要,
+        ag:生成智能代码库概览,
+        ag:生成架构概览,
+        ag:生成架构概览_dependencies_调用_生成依赖关系图_concepts_调用_提取核心概念_quality_调用_评估代码库健康度_2_否则生成综合概览_调用_生成架构概览,
+        ag:评估代码库健康度,
+        ag:识别改进机会 ;
+    onto:nlContext "Defined in rdf_codebase_overview_knowledge.md" ;
+    onto:nlDescription "Natural language function that 识别改进机会" .
+
+ag:识别核心模块 a ext:NaturalLanguageFunction ;
+    ag:hasName "识别核心模块" ;
+    ag:hasParameters "ttl_file" ;
+    onto:nlContext "Defined in rdf_codebase_overview_knowledge.md" ;
+    onto:nlDescription "Natural language function that 识别核心模块" .
+
+ag:转换Java代码 a ext:NaturalLanguageFunction ;
+    ag:hasName "转换Java代码" ;
+    ag:hasParameters "file_path" ;
+    core:causes ag:扫描目录结构,
+        ag:转换Java代码,
+        ag:转换Python代码 ;
+    onto:nlContext "Defined in universal_to_rdf_knowledge.md" ;
+    onto:nlDescription "Natural language function that 转换java代码" .
+
+ag:转换Python代码 a ext:NaturalLanguageFunction ;
+    ag:hasName "转换Python代码" ;
+    ag:hasParameters "file_path" ;
+    onto:nlContext "Defined in universal_to_rdf_knowledge.md" ;
+    onto:nlDescription "Natural language function that 转换python代码" .
+
+ag:扫描目录结构 a ext:NaturalLanguageFunction ;
+    ag:hasName "扫描目录结构" ;
+    ag:hasParameters "directory_path" ;
+    core:causes ag:分析文件类型,
+        ag:扫描目录结构 ;
+    onto:nlContext "Defined in universal_to_rdf_knowledge.md" ;
+    onto:nlDescription "Natural language function that 扫描目录结构" .
+
+ag:构建知识图谱 a ext:NaturalLanguageFunction ;
+    ag:hasName "构建知识图谱" ;
+    ag:hasParameters "directory_path, output_file",
+        "knowledge_dir, output_file" ;
+    core:causes ag:扫描目录结构,
+        ag:推理隐含关系,
+        ag:提取知识关系,
+        ag:提取自然语言函数,
+        ag:构建知识图谱,
+        ag:生成知识概览,
+        ag:解析知识文件结构,
+        ag:识别核心概念,
+        ag:识别知识类型,
+        ag:转换JSON_YAML配置,
+        ag:转换Java代码,
+        ag:转换Markdown文档,
+        ag:转换Python代码,
+        ag:转换图片文件,
+        ag:转换通用文本,
+        ag:输出Turtle格式 ;
+    onto:nlContext "Defined in knowledge_docs_ontology.md",
+        "Defined in universal_to_rdf_knowledge.md" ;
+    onto:nlDescription "Natural language function that 构建知识图谱" .
+
+ag:生成函数三元组 a ext:NaturalLanguageFunction ;
+    ag:hasName "生成函数三元组" ;
+    ag:hasParameters "function_data" ;
+    core:causes ag:扫描Python代码库,
+        ag:生成RDF三元组,
+        ag:输出Turtle格式 ;
+    onto:nlContext "Defined in code_to_rdf_knowledge.md" ;
+    onto:nlDescription "Natural language function that 生成函数三元组" .
+
+ag:生成导入三元组 a ext:NaturalLanguageFunction ;
+    ag:hasName "生成导入三元组" ;
+    ag:hasParameters "import_data" ;
+    core:causes ag:扫描Python代码库,
+        ag:生成RDF三元组,
+        ag:输出Turtle格式 ;
+    onto:nlContext "Defined in code_to_rdf_knowledge.md" ;
+    onto:nlDescription "Natural language function that 生成导入三元组" .
+
+ag:生成模块三元组 a ext:NaturalLanguageFunction ;
+    ag:hasName "生成模块三元组" ;
+    ag:hasParameters "module_data" ;
+    core:causes ag:扫描Python代码库,
+        ag:生成RDF三元组,
+        ag:输出Turtle格式 ;
+    onto:nlContext "Defined in code_to_rdf_knowledge.md" ;
+    onto:nlDescription "Natural language function that 生成模块三元组" .
+
+ag:生成知识概览 a ext:NaturalLanguageFunction ;
+    ag:hasName "生成知识概览" ;
+    ag:hasParameters "ttl_file" ;
+    core:causes ag:构建知识图谱,
+        ag:生成知识概览 ;
+    onto:nlContext "Defined in knowledge_docs_ontology.md" ;
+    onto:nlDescription "Natural language function that 生成知识概览" .
+
+ag:生成类三元组 a ext:NaturalLanguageFunction ;
+    ag:hasName "生成类三元组" ;
+    ag:hasParameters "class_data" ;
+    core:causes ag:扫描Python代码库,
+        ag:生成RDF三元组,
+        ag:输出Turtle格式 ;
+    onto:nlContext "Defined in code_to_rdf_knowledge.md" ;
+    onto:nlDescription "Natural language function that 生成类三元组" .
+
+ag:生成调用三元组 a ext:NaturalLanguageFunction ;
+    ag:hasName "生成调用三元组" ;
+    ag:hasParameters "call_data" ;
+    core:causes ag:扫描Python代码库,
+        ag:生成RDF三元组,
+        ag:输出Turtle格式 ;
+    onto:nlContext "Defined in code_to_rdf_knowledge.md" ;
+    onto:nlDescription "Natural language function that 生成调用三元组" .
+
+ag:输出Turtle格式 a ext:NaturalLanguageFunction ;
+    ag:hasName "输出Turtle格式" ;
+    ag:hasParameters "triplets, output_file" ;
+    core:causes ag:扫描Python代码库,
+        ag:生成RDF三元组,
+        ag:输出Turtle格式 ;
+    onto:nlContext "Defined in code_to_rdf_knowledge.md",
+        "Defined in universal_to_rdf_knowledge.md" ;
+    onto:nlDescription "Natural language function that 输出turtle格式" .
+
+ag:提取核心概念 a ext:NaturalLanguageFunction ;
+    ag:hasName "提取核心概念" ;
+    ag:hasParameters "ttl_file" ;
+    core:causes ag:分析代码库基础统计,
+        ag:分析架构模式,
+        ag:提取核心概念,
+        ag:识别核心模块 ;
+    onto:nlContext "Defined in rdf_codebase_overview_knowledge.md" ;
+    onto:nlDescription "Natural language function that 提取核心概念" .
+
+ag:加载RDF图谱 a ext:NaturalLanguageFunction ;
+    ag:hasName "加载RDF图谱" ;
+    ag:hasParameters "ttl_file" ;
+    core:causes ag:加载RDF图谱 ;
+    onto:nlContext "Defined in rdf_semantic_search_knowledge.md" ;
+    onto:nlDescription "Natural language function that 加载rdf图谱" .
+

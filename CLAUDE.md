@@ -1,3 +1,54 @@
+## Semantic Memory Layout 🧠
+
+### 知识体系架构
+Agent系统使用分层的知识管理体系，包括配置、知识和语义记忆：
+
+```
+项目根目录/
+├── CLAUDE.md                                    # 项目配置（Claude Code知道）
+├── pim-compiler/react_is_all_you_need/
+│   ├── agent.md                                # 语义记忆（所有Agent共享）
+│   ├── knowledge/                              # 领域知识文件
+│   │   ├── agent_builder_knowledge.md          # Agent Builder专用知识
+│   │   ├── mda_concepts.md                     # MDA概念知识
+│   │   └── ...                                 # 其他知识文件
+│   └── .notes/                                 # Agent运行时笔记
+│       └── agent_xxx/                          # 各个Agent的工作目录
+│           └── output.log                      # Agent执行日志
+~/.claude/CLAUDE.md                             # 全局配置（Claude Code知道）
+~/.agent/                                       # Agent全局语义记忆（废弃）
+```
+
+### 知识传递链
+1. **Claude Code** 知道：
+   - `~/.claude/CLAUDE.md` - 全局配置
+   - `./CLAUDE.md` - 项目配置
+   - `./agent.md` - 语义记忆
+   - `./knowledge/*.md` - 领域知识
+
+2. **Agent Builder** 知道：
+   - `./agent.md` - 语义记忆（包含重要配置）
+   - `./knowledge/*.md` - 领域知识
+   - ❌ 不知道 CLAUDE.md
+
+3. **子Agent** 继承：
+   - 父Agent传递的知识文件
+   - `./agent.md` - 如果被包含在knowledge_files中
+
+### 语义记忆内容（agent.md）
+语义记忆文件包含所有Agent需要共享的重要信息：
+- **系统环境配置**：代理服务器设置、网络配置等
+- **领域概念理解**：如MDA概念、术语定义等
+- **经验教训**：历史问题和解决方案
+- **工具使用方法**：特殊工具的使用说明
+- **协作知识**：多Agent协作模式
+
+### 重要原则
+1. **配置继承**：重要配置必须写入agent.md，确保所有Agent能访问
+2. **知识隔离**：CLAUDE.md是用户私有配置，Agent不应直接访问
+3. **经验积累**：运行中发现的问题和解决方案应更新到agent.md
+4. **版本管理**：agent.md应纳入版本控制，便于团队共享
+
 ## API and Secret Management
 
 ### Secrets and API Keys
@@ -94,7 +145,39 @@ llm_api_key_env="GEMINI_API_KEY",
 http_client=http_client,
 llm_temperature=0
 ```
+
+#### Grok (X.AI - 最新代码模型) ⭐
+- **Models**: 
+  - `x-ai/grok-code-fast-1` (推荐 - 专为代码优化，速度快，默认grok指这个)
+  - `x-ai/grok-beta` (通用版本)
+  - `x-ai/grok-2-1212` (最新版本)
+  - `x-ai/grok-2-vision-1212` (支持视觉)
+- **Base URL**: `https://openrouter.ai/api/v1`
+- **API Key Environment Variable**: `OPENROUTER_API_KEY`
+- **Temperature**: 0 (for deterministic outputs)
+- **Special Features**:
+  - 专门为代码任务优化的快速模型
+  - 支持function calling和tool use
+  - 低延迟，高吞吐量
+  - 适合Agent创建和代码生成任务
+  - 通过OpenRouter访问
+
+Example configuration:
+```python
+from core.react_agent_minimal import ReactAgentMinimal
+
+# 使用Grok代码模型
+agent = ReactAgentMinimal(
+    work_dir="my_project",
+    model="x-ai/grok-code-fast-1",  # 注意：说"grok"默认指这个模型
+    base_url="https://openrouter.ai/api/v1",
+    api_key=os.getenv("OPENROUTER_API_KEY"),
+    knowledge_files=["knowledge/my_knowledge.md"]
+)
+```
+
 - 我说使用kimi，默认使用kimi-k2-turbo-preview
+- 我说使用grok，默认使用x-ai/grok-code-fast-1
 
 ## 核心理论
 

@@ -110,29 +110,71 @@ context(action="get_context")
 4. **灵活存储** - 通用KV存储提供自由空间
 5. **动态调整** - 随时添加/删除任务
 
-## 最佳实践
+## 最佳实践：粗粒度使用
 
-### 完整工作流示例
+### ⚠️ 重要原则：粗粒度任务划分
+**不要过度分解任务！** 将相关的操作合并为一个TODO级任务。
+
+### ❌ 错误示例：过度细分（导致15轮）
 ```python
-# 1. 开始时捕获用户意图
-context(action="init_project", goal=user_request)
-
-# 2. 制定执行计划
-context(action="add_tasks", tasks=["步骤1", "步骤2", "步骤3"])
-
-# 3. 按Agent决定的顺序执行任务
-for task in ["步骤1", "步骤2", "步骤3"]:  # Agent自主决定顺序
-    context(action="start_task", task=task)
-    context(action="set_state", state=f"正在执行{task}...")
-    # ... 执行具体工作 ...
-    context(action="complete_task", task=task, result="...")
-
-# 4. 存储重要数据
-context(action="set_data", key="final_result", value=result)
-
-# 5. 查看完整上下文
-context(action="get_context")
+# 不好：7个小任务，每个都记录状态
+context(action="add_tasks", tasks=[
+    "读取输入数据",    # 太细
+    "验证数据格式",    # 太细  
+    "检查前置条件",    # 太细
+    "执行计算步骤1",   # 太细
+    "执行计算步骤2",   # 太细
+    "更新状态",        # 太细
+    "保存结果"         # 太细
+])
 ```
+
+### ✅ 正确示例：粗粒度划分（7-8轮完成）
+```python
+# 好：2-3个TODO级任务，合并相关操作
+context(action="init_project", goal="处理用户请求")
+context(action="add_tasks", tasks=["准备和验证", "执行和完成"])
+
+# 执行第一个TODO（包含多个子步骤）
+context(action="start_task", task="准备和验证")
+# 内部执行：读取数据、验证格式、检查条件、准备资源
+# 这些子步骤直接执行，不单独记录
+data = read_file("input.json")           # 子步骤1
+validated = validate_format(data)        # 子步骤2
+resources = prepare_resources(...)       # 子步骤3
+context(action="complete_task", task="准备和验证", result="数据准备完成")
+
+# 执行第二个TODO
+context(action="start_task", task="执行和完成")
+# 内部执行：核心处理、更新记录、保存结果
+result = process_core_logic(...)         # 子步骤1
+update_records(...)                      # 子步骤2  
+save_output(...)                          # 子步骤3
+context(action="complete_task", task="执行和完成", result="处理成功")
+```
+
+### 📊 粒度参考标准
+
+| 任务类型 | TODO数量 | 示例 |
+|---------|---------|------|
+| 简单任务 | 0（不用context） | 读文件、简单计算、单步操作 |
+| 中等任务 | 2-3个TODO | 多步处理、数据转换、业务流程 |
+| 复杂任务 | 4-6个TODO | 项目重构、系统调试、迁移任务 |
+| 大型任务 | 7-10个TODO | 完整系统构建、全面分析 |
+
+### 🎯 判断标准：什么构成一个TODO？
+
+**一个TODO应该是**：
+- 有明确业务意义的里程碑
+- 包含多个相关的子操作
+- 完成后产生可验证的结果
+- 用户能理解的进度节点
+
+**不应该是**：
+- 单个文件操作
+- 单个函数调用
+- 技术细节步骤
+- 内部实现步骤
 
 ## 注意事项
 

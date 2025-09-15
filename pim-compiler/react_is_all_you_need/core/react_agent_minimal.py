@@ -100,6 +100,7 @@ class ReactAgentMinimal(Function):
                  base_url: Optional[str] = None,
                  max_rounds: int = 100,
                  knowledge_files: Optional[List[str]] = None,
+                 stateful: bool = True,  # 新增：是否保持状态
 ):
         """
         初始化极简Agent
@@ -138,6 +139,7 @@ class ReactAgentMinimal(Function):
         
         self.model = model
         self.max_rounds = max_rounds
+        self.stateful = stateful  # 保存状态标志
         
         # 移除LLM策略，保持简洁
         
@@ -271,6 +273,19 @@ class ReactAgentMinimal(Function):
         task = kwargs.get("task", "")
         if not task:
             return "错误：未提供任务描述"
+        
+        # 如果是无状态模式，清空消息历史（保留系统提示）
+        if not self.stateful:
+            # 重新初始化消息列表，只保留系统提示
+            self.messages = [
+                {"role": "system", "content": self._build_minimal_prompt()}
+            ]
+            # 如果有compact记忆，重新加载
+            if hasattr(self, 'compact_memory') and self.compact_memory:
+                self.messages.append({
+                    "role": "assistant", 
+                    "content": f"[已加载历史压缩记忆]\n{self.compact_memory}"
+                })
         
         # 动态加载并注入语义记忆（基于当前工作目录）
         semantic_contexts = self._load_semantic_memory(self.work_dir)
@@ -695,6 +710,24 @@ class ReactAgentMinimal(Function):
             SearchTool()  # 搜索工具作为默认工具
         ]
         
+        # 添加ExecuteCommandExtended工具（支持自定义超时和后台执行）
+        try:
+            from tools.execute_command_extended import ExecuteCommandExtended
+            tools.append(ExecuteCommandExtended(self.work_dir))
+        except ImportError:
+            # 如果导入失败，继续使用基础版本
+            pass
+        
+        # 添加EditFile工具（安全的文件编辑）
+        try:
+            from tools.edit_file_tool import EditFileTool, InsertLineTool, DeleteLinesTool
+            tools.append(EditFileTool(self.work_dir))
+            tools.append(InsertLineTool(self.work_dir))
+            tools.append(DeleteLinesTool(self.work_dir))
+        except ImportError:
+            # 如果导入失败，继续运行
+            pass
+        
         # 添加语义记忆工具
         from tools.semantic_memory_tool import WriteSemanticMemoryTool, ReadSemanticMemoryTool
         tools.append(WriteSemanticMemoryTool(self.work_dir))
@@ -974,8 +1007,59 @@ class ReactAgentMinimal(Function):
         
         return True
     
+    def _find_project_root(self, start_path: Path) -> Optional[Path]:
+        """查找项目根目录
+        
+        判断标准（按优先级）：
+        1. 包含 .git 目录
+        2. 包含 pyproject.toml 或 setup.py
+        3. 包含 package.json
+        4. 包含 README.md 或 README.rst
+        5. 包含 requirements.txt 或 Pipfile
+        
+        Args:
+            start_path: 开始查找的路径
+            
+        Returns:
+            项目根目录Path，如果找不到返回None
+        """
+        current = start_path.resolve()
+        
+        # 项目根目录标志文件（按优先级排序）
+        root_markers = [
+            '.git',                    # Git仓库
+            'pyproject.toml',          # Python项目
+            'setup.py',                # Python项目
+            'package.json',            # Node.js项目
+            'Cargo.toml',              # Rust项目
+            'go.mod',                  # Go项目
+            'pom.xml',                 # Java Maven项目
+            'build.gradle',            # Java Gradle项目
+            'README.md',               # 通用项目
+            'README.rst',              # 通用项目
+            'requirements.txt',        # Python项目
+            'Pipfile',                 # Python Pipenv项目
+            'Makefile',                # 有Makefile的项目
+        ]
+        
+        # 向上查找，最多到根目录
+        while current != current.parent:
+            # 检查是否包含任何根目录标志
+            for marker in root_markers:
+                if (current / marker).exists():
+                    return current
+            current = current.parent
+        
+        # 如果找不到，返回None
+        return None
+    
     def _load_semantic_memory(self, current_path: Optional[Path] = None) -> List[str]:
-        """加载语义记忆（agent.md）- 两级级联加载
+        """加载语义记忆（agent.md）- 只从项目根目录加载
+        
+        策略：
+        1. 查找项目根目录
+        2. 只加载根目录的 agent.md
+        3. 不再加载子目录的 agent.md
         
         Args:
             current_path: 当前工作路径，如果为None则使用work_dir
@@ -988,38 +1072,54 @@ class ReactAgentMinimal(Function):
         
         contexts = []
         
-        # 1. 当前目录的 agent.md
-        current_agent_md = current_path / "agent.md"
-        if current_agent_md.exists():
-            content = current_agent_md.read_text(encoding='utf-8')
-            contexts.append(f"[当前目录知识 - {current_path.name}]\n{content}")
-            print(f"  📖 加载语义记忆: {current_agent_md}")
+        # 查找项目根目录
+        project_root = self._find_project_root(current_path)
         
-        # 2. 上级目录的 agent.md
-        parent_path = current_path.parent
-        if parent_path != current_path:  # 避免根目录无限循环
-            parent_agent_md = parent_path / "agent.md"
-            if parent_agent_md.exists():
-                content = parent_agent_md.read_text(encoding='utf-8')
-                contexts.append(f"[上级目录知识 - {parent_path.name}]\n{content}")
-                print(f"  📖 加载语义记忆: {parent_agent_md}")
+        if project_root:
+            # 只加载项目根目录的 agent.md
+            root_agent_md = project_root / "agent.md"
+            if root_agent_md.exists():
+                content = root_agent_md.read_text(encoding='utf-8')
+                contexts.append(f"[项目语义记忆 - {project_root.name}]\n{content}")
+                print(f"  📖 加载语义记忆: {root_agent_md}")
+            else:
+                print(f"  ℹ️ 项目根目录未找到agent.md: {project_root}")
+        else:
+            # 如果找不到项目根目录，尝试当前目录的 agent.md（向后兼容）
+            current_agent_md = current_path / "agent.md"
+            if current_agent_md.exists():
+                content = current_agent_md.read_text(encoding='utf-8')
+                contexts.append(f"[当前目录语义记忆 - {current_path.name}]\n{content}")
+                print(f"  📖 加载语义记忆（后备）: {current_agent_md}")
         
         return contexts
     
     def write_semantic_memory(self, path: Optional[Path] = None, content: Optional[str] = None) -> str:
-        """写入语义记忆（agent.md）
+        """写入语义记忆（agent.md）- 只写入项目根目录
+        
+        策略：
+        1. 查找项目根目录
+        2. 只在根目录创建/更新 agent.md
+        3. 如果找不到根目录，才在当前目录创建（向后兼容）
         
         Args:
-            path: 写入路径，如果为None则使用当前work_dir
+            path: 写入路径（已废弃，保留接口兼容性）
             content: 要写入的内容，如果为None则自动生成
             
         Returns:
             操作结果消息
         """
-        if path is None:
-            path = self.work_dir
+        # 查找项目根目录
+        project_root = self._find_project_root(self.work_dir)
         
-        agent_md_path = path / "agent.md"
+        if project_root:
+            # 使用项目根目录
+            agent_md_path = project_root / "agent.md"
+            location_desc = f"项目根目录"
+        else:
+            # 向后兼容：如果找不到项目根，使用当前工作目录
+            agent_md_path = self.work_dir / "agent.md"
+            location_desc = f"当前目录（未找到项目根）"
         
         # 如果没有提供内容，生成默认模板
         if content is None:
@@ -1046,7 +1146,7 @@ class ReactAgentMinimal(Function):
         # 写入文件
         agent_md_path.write_text(content, encoding='utf-8')
         
-        return f"✅ 已保存语义记忆到: {agent_md_path}"
+        return f"✅ 已保存语义记忆到{location_desc}: {agent_md_path}"
     
     def _suggest_semantic_memory(self, task_complexity: Dict) -> None:
         """在复杂任务完成后建议保存语义记忆
@@ -1624,6 +1724,46 @@ Agent描述（注意力框架）：
     def cleanup(self) -> None:
         """清理资源"""
         print(f"🧹 清理完成，笔记已保存在: {self.notes_file}")
+    
+    def get_template(self) -> str:
+        """
+        获取Agent的模板字符串，用于元认知包装
+        
+        Returns:
+            JSON格式的Agent配置模板
+        """
+        import json
+        
+        template = {
+            "name": self.name,
+            "description": self.description,
+            "model": self.model,
+            "base_url": self.base_url,
+            "knowledge_files": self.knowledge_files,
+            "max_rounds": self.max_rounds,
+            "work_dir": str(self.work_dir)
+        }
+        
+        return json.dumps(template, indent=2, ensure_ascii=False)
+    
+    def get_instance(self) -> dict:
+        """
+        获取Agent的实例配置字典
+        
+        Returns:
+            包含Agent完整配置的字典
+        """
+        return {
+            "name": self.name,
+            "description": self.description,
+            "model": self.model,
+            "base_url": self.base_url,
+            "api_key": self.api_key,  # 注意：敏感信息
+            "knowledge_files": self.knowledge_files,
+            "max_rounds": self.max_rounds,
+            "work_dir": str(self.work_dir),
+            "function_instances": [f.name for f in self.function_instances]  # 工具列表
+        }
 
 
 
