@@ -51,11 +51,6 @@ class CreateAgentTool(Function):
                     "description": "Agent的功能描述",
                     "default": ""
                 },
-                "knowledge_str": {
-                    "type": "string",
-                    "description": "动态知识内容（直接传入的知识字符串）",
-                    "default": ""
-                },
                 "inherit_tools": {
                     "type": "array",
                     "items": {"type": "string"},
@@ -80,7 +75,6 @@ class CreateAgentTool(Function):
         max_iterations = kwargs.get('max_iterations', 100)
         agent_type = kwargs.get('agent_type', 'worker')
         description = kwargs.get('description', '')
-        knowledge_str = kwargs.get('knowledge_str', '')
         inherit_tools = kwargs.get('inherit_tools', [])
         
         try:
@@ -122,10 +116,6 @@ class CreateAgentTool(Function):
                     }
                 }
             )
-            
-            # 如果提供了知识字符串，动态加载
-            if knowledge_str:
-                agent.load_knowledge_str(knowledge_str, f"{agent_type}_dynamic_knowledge")
             
             # 继承指定的工具（其他Agent）
             inherited_count = 0

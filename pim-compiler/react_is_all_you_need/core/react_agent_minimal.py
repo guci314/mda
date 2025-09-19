@@ -665,26 +665,6 @@ class ReactAgentMinimal(Function):
         
         return "\n\n".join(knowledge_content) if knowledge_content else ""
     
-    def load_knowledge_str(self, knowledge_str: str, knowledge_name: str = "dynamic_knowledge") -> None:
-        """
-        动态加载知识字符串到Agent
-        
-        Args:
-            knowledge_str: 知识内容字符串
-            knowledge_name: 知识名称（用于显示）
-        """
-        if knowledge_str:
-            # 将新知识添加到现有知识内容
-            if self.knowledge_content:
-                self.knowledge_content += f"\n\n=== {knowledge_name} ===\n{knowledge_str}"
-            else:
-                self.knowledge_content = f"=== {knowledge_name} ===\n{knowledge_str}"
-            
-            # 重新构建系统提示词以包含新知识
-            self.messages[0] = {"role": "system", "content": self._build_minimal_prompt()}
-            
-            print(f"  ✅ 动态加载知识: {knowledge_name}")
-    
     def append_tool(self, tool):
         """
         添加Function到Agent的function列表（保留方法名以兼容）
