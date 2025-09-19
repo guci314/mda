@@ -148,6 +148,28 @@ coordinator = create_agent(
 - `mda_research.ipynb` - MDA研究笔记本
 - `core/code_graph_rag_integration_design.md` - 代码图RAG集成设计
 
+## 文件总结系统
+
+### 文件总结功能
+- **files_summary.md**：自动生成的项目文件总结文档
+- **全面覆盖**：包含465个py、ipynb、md文件的分类总结
+- **结构化组织**：按核心架构、工具系统、知识文件、演示研究等分类
+
+### 总结内容架构
+1. **核心架构文件**：React Agent Minimal、拦截器、人类式学习等
+2. **工具系统**：Agent Creator、CreateAgentTool、调试工具等
+3. **知识文件系统**：自我认知、系统提示词、顺序思考等
+4. **演示和研究**：多个演示版本、MDA研究、代码图RAG等
+5. **配置文档**：语义记忆、用户配置、指南文档等
+6. **架构文档**：UML模型、交互图、组件图等
+
+### 统计信息
+- **总文件数**：465个（py、ipynb、md文件）
+- **核心代码**：~5个主要文件，1372行代码
+- **知识文件**：20+个Markdown知识文件
+- **演示示例**：10+个演示脚本
+- **研究文档**：多个研究笔记本和设计文档
+
 ## 最近经验教训
 
 ### 苦涩的教训实验（2025-09-13）
@@ -201,7 +223,8 @@ project/
   - `honest_failure_report.md` - 诚实的失败分析
   - `async_mechanism_insight.md` - 异步机制的重要性
   - `agent_md_placement_analysis.md` - agent.md放置策略分析
+- `files_summary.md` - 项目文件总结文档（2025-09-19）
 
 ---
-更新时间：2025-09-13
-更新原因：记录苦涩的教训实验结果和agent.md放置策略决策
+更新时间：2025-09-19
+更新原因：添加文件总结系统知识，记录项目文件结构和统计信息

@@ -15,6 +15,7 @@ from typing import List, Optional, Dict, Any
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from tool_base import Function
+from .context_stack import get_context_stack, reset_context_stack
 
 
 class ExecutionContext(Function):
@@ -43,18 +44,24 @@ class ExecutionContext(Function):
                         "start_task",        # 开始任务
                         "complete_task",     # 完成任务
                         "fail_task",         # 任务失败
-                        
+
                         # 状态管理（语义化）
                         "set_state",         # 设置当前状态
                         "get_state",         # 获取当前状态
-                        
+
                         # 通用KV存储（自由空间）
                         "set_data",          # 存储任意数据
                         "get_data",          # 读取数据
                         "delete_data",       # 删除数据
-                        
+
                         # 全局查询
                         "get_context",       # 获取完整上下文
+
+                        # Context栈操作（新增）
+                        "push_context",      # 进入新函数（压栈）
+                        "pop_context",       # 函数返回（弹栈）
+                        "peek_context",      # 查看栈中Context
+                        "get_call_stack",    # 获取调用栈
                     ],
                     "description": "操作类型。init_project:初始化新项目；add_tasks:添加任务列表；start_task:标记任务开始；complete_task:标记任务完成；fail_task:标记任务失败；set_state:设置语义化状态描述；set_data:存储数据(key-value)；get_context:查看全部上下文"
                 },
@@ -139,6 +146,16 @@ class ExecutionContext(Function):
         # 全局查询
         elif action == 'get_context':
             return self._get_context()
+
+        # Context栈操作
+        elif action == 'push_context':
+            return self._push_context(kwargs.get('goal'))
+        elif action == 'pop_context':
+            return self._pop_context()
+        elif action == 'peek_context':
+            return self._peek_context(kwargs.get('offset', 0))
+        elif action == 'get_call_stack':
+            return self._get_call_stack()
         else:
             return f"未知操作: {action}"
     
@@ -300,8 +317,81 @@ class ExecutionContext(Function):
                 task_str += f" → {task_info['result']}"
             
             formatted.append(task_str)
-        
+
         return formatted
+
+    # ========== Context栈方法 ==========
+
+    def _push_context(self, goal: str) -> str:
+        """进入新函数，压栈"""
+        if not goal:
+            return "❌ 请提供函数目标(goal)"
+
+        stack = get_context_stack()
+        ctx = stack.push(goal)
+
+        # 同时初始化新的project（与原有逻辑兼容）
+        self.project = {
+            "goal": goal,
+            "tasks": {},
+            "current_state": "项目已初始化",
+            "data": {},
+            "context_id": ctx.context_id
+        }
+
+        return f"✅ 进入函数: {goal}\n📚 栈深度: {stack.depth}\n🆔 Context ID: {ctx.context_id}"
+
+    def _pop_context(self) -> str:
+        """函数返回，弹栈"""
+        stack = get_context_stack()
+        ctx = stack.pop()
+
+        if ctx:
+            # 恢复父Context的project（如果存在）
+            if stack.current:
+                parent_data = stack.current.data.get('project')
+                if parent_data:
+                    self.project = parent_data
+                else:
+                    # 父Context没有project数据，创建一个新的
+                    self.project = {
+                        "goal": stack.current.goal,
+                        "tasks": {},
+                        "current_state": "已恢复",
+                        "data": {},
+                        "context_id": stack.current.context_id
+                    }
+
+            return f"✅ 退出函数: {ctx.goal}\n📚 当前栈深度: {stack.depth}"
+        else:
+            return "❌ 栈为空，无法弹出"
+
+    def _peek_context(self, offset: int) -> str:
+        """查看栈中的Context"""
+        stack = get_context_stack()
+        ctx = stack.peek(offset)
+
+        if ctx:
+            status = ctx.get_status()
+            return json.dumps(status, ensure_ascii=False, indent=2)
+        else:
+            return f"❌ 栈中没有偏移量为{offset}的Context"
+
+    def _get_call_stack(self) -> str:
+        """获取当前调用栈"""
+        stack = get_context_stack()
+        call_stack = stack.get_call_stack()
+
+        if not call_stack:
+            return "📚 调用栈为空"
+
+        # 格式化调用栈显示
+        lines = ["📚 当前调用栈:"]
+        for i, goal in enumerate(call_stack):
+            indent = "  " * i
+            lines.append(f"{indent}└─ [{i+1}] {goal}")
+
+        return "\n".join(lines)
     
     # ========== 辅助方法 ==========
     

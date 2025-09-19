@@ -80,23 +80,10 @@
 
 ## 知识函数调用约定
 
-### 重要原则：知识函数会启动ExecutionContext
-- **知识函数 = 需要ExecutionContext**：所有知识函数都会启动执行上下文
-- **简单任务不要定义知识函数**：如打印、简单计算等一步完成的任务
-- **何时使用知识函数**：
-  - ✅ 多步骤任务（如创建Agent、验证流程）
-  - ✅ 需要维护状态的任务（如迭代改进）
-  - ✅ 需要递归或函数调用的任务
-  - ❌ 简单输出（如hello world）
-  - ❌ 单步计算（如加法运算）
-  - ❌ 直接工具调用（如读文件）
-
-### 函数定义规范
+### 简单函数调用
 - **函数定义**：`@函数名(参数)`
 - **函数调用**：直接使用`@函数名(参数)`
 - **知识即程序**：知识文件定义可执行的函数
-- **ExecutionContext自动启动**：Agent看到知识函数会自动创建执行上下文
-
 
 ## 我能做什么
 
@@ -145,16 +132,10 @@ return x+"\n"+y
 
 #### 函数：@创建并测试Agent(需求描述)
 """Agent创建的主入口函数"""
-
-**注意Context栈的使用**：
-- 当任务是"调用反馈循环"时，push/pop就完成了任务
-- 不需要再使用complete_task
-
 步骤：
-1. **理解需求**（具体任务，需要complete）：
+1. **理解需求**：
    - 分析用户的业务需求
    - 提取Agent名称、功能、测试用例
-   - 使用complete_task标记完成
 
 2. **调用反馈循环**：
    ```python
@@ -407,7 +388,6 @@ return x+"\n"+y
 
 ### 函数：@执行创建反馈循环(需求描述)
 """完整的Agent创建流程，包含反馈循环"""
-
 步骤：
 1. **初始化循环**：
    - 设置迭代计数器 iteration = 0
@@ -466,31 +446,21 @@ return x+"\n"+y
 """根据需求生成第一版知识文件"""
 步骤：
 1. 分析需求，提取核心功能
-2. **判断任务复杂度**：
-   - 简单任务（如hello world、简单计算）→ 不要定义知识函数
-   - 复杂任务（多步骤、需要状态管理）→ 定义知识函数
-3. 使用**适当的风格**生成知识文件：
+2. 使用**简单函数风格**生成知识文件：
    ```markdown
    # Agent名称
 
-   ## 核心任务
-   对于简单任务，直接描述工作流程：
-   - 输出"Hello World"
-   - 计算两数之和
-
-   ## 函数：@执行复杂任务(输入)
-   # 只为复杂任务定义知识函数
-   # 知识函数会自动启动ExecutionContext
+   ## 函数：@执行任务(输入)
    步骤：
-   1. 初始化任务
-   2. 执行多个步骤
-   3. 维护状态
-   4. 返回结果
+   1. 处理输入
+   2. 调用工具
+   3. 返回结果
    ```
-4. **记住原则**：
-   - 简单任务不要定义知识函数
-   - 知识函数会启动ExecutionContext
-   - ExecutionContext适用于多步骤、需要状态管理的任务
+3. 每个功能都是`@函数名(参数)`，简单直接
+4. **确保函数签名清晰**：
+   - 明确的函数名
+   - 明确的参数列表
+   - 便于提取到description中
 5. 保存到 `/tmp/agent_creator/knowledge/[agent_name]_knowledge.md`
 返回：知识文件路径
 
@@ -643,10 +613,9 @@ return x+"\n"+y
 **原则**：除非明确无法进行符号主义验证（如纯文本生成、创意内容），否则都应该尝试创建验证脚本
 
 ### 函数：@执行符号主义验证(函数名, 执行结果)
-"""使用客观标准验证函数执行结果 - 创建并运行Python脚本"""
-
+"""使用客观标准验证函数执行结果 - 必须创建并运行Python脚本"""
 步骤：
-1. **创建验证脚本**：
+1. **创建验证脚本（强制要求）**：
    ```python
    # 必须创建实际的Python验证脚本
    script_name = f"validate_{函数名.replace('@', '')}.py"
@@ -697,22 +666,16 @@ if __name__ == "__main__":
    """
    ```
 
-3. **保存并执行验证脚本（使用Context跟踪）**：
+3. **保存并执行验证脚本**：
    ```python
-   # 步骤1：创建脚本
-   context(action="start_task", task="创建验证脚本")
-   write_file(script_path, 验证脚本内容)  # 强制外部化
-   context(action="complete_task", task="创建验证脚本", result=script_path)
+   # 保存脚本
+   write_file(script_path, 验证脚本内容)
 
-   # 步骤2：执行脚本（必须实际运行）
-   context(action="start_task", task="执行验证脚本")
+   # 执行脚本（必须实际运行）
    result = execute_command(f"python {script_path}")
-   context(action="complete_task", task="执行验证脚本", result=result)
 
-   # 步骤3：解析结果
-   context(action="start_task", task="解析验证结果")
+   # 解析验证结果
    validation_output = json.loads(result.stdout)
-   context(action="complete_task", task="解析验证结果", result=validation_output)
    ```
 
 4. **生成验证报告**：

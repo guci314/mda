@@ -22,6 +22,165 @@
 
 知识函数是在Markdown知识文件中定义的可执行逻辑，通过@符号调用。
 
+### ⚠️ 知识函数执行的强制要求
+
+**所有知识函数都必须使用ExecutionContext强制外部化**：
+
+重要原则：
+- 简单功能不需要知识函数，直接执行即可
+- 如果定义了知识函数，说明需要规范化流程
+- 因此，所有知识函数都必须使用ExecutionContext
+- **程序正义**：过程的正确性与结果同等重要
+
+当执行任何以`@`开头的知识函数时，你必须：
+
+1. **使用push_context进入函数（支持嵌套）**：
+   ```python
+   # 进入新函数（自动压栈）
+   context(action="push_context", goal=f"执行知识函数: {{函数名}}")
+   context(action="add_tasks", tasks=[...])  # 声明所有步骤
+   ```
+
+2. **对每个步骤使用context标记**：
+   ```python
+   context(action="start_task", task="步骤名称")
+   # 执行具体操作
+   context(action="complete_task", task="步骤名称", result="结果")
+   ```
+
+3. **验证类操作必须外部化**：
+   - 创建独立的Python验证脚本
+   - 脚本必须可以独立运行
+   - 必须实际执行脚本并捕获输出
+   - 禁止使用read_file进行"脑内"验证
+
+4. **确保所有artifact生成**：
+   - 声明的文件必须实际创建
+   - 验证脚本必须有物理存在
+
+5. **函数返回时pop_context，然后继续处理同层任务**：
+   ```python
+   # 子函数结束时弹栈，恢复父Context
+   context(action="pop_context")
+   # ⚠️ 重要：pop后要继续处理当前层的其他任务！
+   # 检查是否还有未完成的任务
+   context(action="get_context")  # 查看当前层状态
+   ```
+
+### ⚠️ Context栈的正确使用流程
+
+**关键原则**：
+1. **pop_context只是返回上一层** - 不是结束整个流程
+2. **必须完成当前层所有任务** - 才能再次pop或结束
+3. **每层独立管理** - 每个Context有自己的任务列表
+
+**正确的执行流程**：
+```python
+# 深度0：主流程
+context(action="add_tasks", tasks=["任务A", "调用子函数B", "任务C"])
+
+# 执行任务A
+context(action="start_task", task="任务A")
+# ... 执行 ...
+context(action="complete_task", task="任务A")
+
+# 调用子函数B
+context(action="start_task", task="调用子函数B")
+context(action="push_context", goal="执行子函数B")  # 进入深度1
+# ... 子函数逻辑 ...
+context(action="pop_context")  # 返回深度0
+# ✅ "调用子函数B"已通过push/pop完成
+
+# 继续执行任务C（重要！不要忘记同层的其他任务）
+context(action="start_task", task="任务C")
+# ... 执行 ...
+context(action="complete_task", task="任务C")
+
+# 只有所有任务完成后，才能结束或再次pop
+```
+
+### ⚠️ 重要：push/pop就是执行
+
+**关键规则：判断任务是否需要complete_task**
+
+1. **如果任务是调用知识函数（包含@符号或"执行"、"调用"等词）**：
+   ```python
+   # 示例任务："调用反馈循环"、"执行测试"、"执行@创建Agent"
+   context(action="start_task", task="调用反馈循环")
+   context(action="push_context", goal="执行创建反馈循环")
+   # ... 子函数逻辑 ...
+   context(action="pop_context")
+   # ✅ 任务已完成！push/pop就是执行，不需要complete_task
+   ```
+
+2. **如果任务是具体操作（不涉及函数调用）**：
+   ```python
+   # 示例任务："清空目录"、"写入文件"、"验证数据"
+   context(action="start_task", task="清空目录")
+   # ... 执行具体操作 ...
+   context(action="complete_task", task="清空目录", result="已清空")
+   # ✅ 需要complete_task
+   ```
+
+**记住**：
+- push_context = 开始执行子函数 = 该任务已经在执行
+- pop_context = 子函数返回 = 该任务已经完成
+- 不要对"调用XXX"或"执行XXX"类型的任务再使用complete_task
+
+**示例：支持嵌套调用的完整流程**：
+```python
+# 主函数开始（深度0）
+context(action="push_context", goal="执行创建并测试Agent")  # 进入深度1
+context(action="add_tasks", tasks=["理解需求", "调用反馈循环", "处理结果"])
+
+# 执行第一个任务
+context(action="start_task", task="理解需求")
+# ... 分析需求 ...
+context(action="complete_task", task="理解需求")
+
+# 执行第二个任务（函数调用）
+context(action="start_task", task="调用反馈循环")
+context(action="push_context", goal="执行创建反馈循环")  # 进入深度2
+context(action="add_tasks", tasks=["生成知识文件", "创建Agent", "执行测试"])
+
+# ... 在深度2执行子函数任务 ...
+
+# 子函数内调用孙函数
+context(action="start_task", task="执行测试")
+context(action="push_context", goal="执行符号主义验证")  # 进入深度3
+# ... 验证逻辑 ...
+context(action="pop_context")  # 返回深度2
+# "执行测试"已通过push/pop完成
+
+context(action="pop_context")  # 返回深度1
+# "调用反馈循环"已通过push/pop完成
+
+# ⚠️ 重要：继续处理深度1的剩余任务！
+context(action="start_task", task="处理结果")
+# ... 处理结果 ...
+context(action="complete_task", task="处理结果")
+
+# 现在深度1的所有任务都完成了，可以pop
+context(action="pop_context")  # 返回深度0（如果有的话）
+```
+
+**查看调用栈**：
+```python
+# 任何时候都可以查看当前调用栈
+context(action="get_call_stack")
+# 输出：
+# 📚 当前调用栈:
+# └─ [1] 执行创建并测试Agent
+#   └─ [2] 执行创建反馈循环
+#     └─ [3] 执行符号主义验证
+```
+
+**核心理念**：
+- 这是抑制LLM"偷懒本能"的必要机制
+- 不允许通过read_file直接验证，必须创建可独立运行的验证脚本
+- **所有知识函数都必须使用ExecutionContext**（因为简单功能根本不会写知识函数）
+- 程序正义：过程的正确性与结果同等重要
+
 ## 🎯 ExecutionContext使用策略：按需启用
 
 ### 何时使用ExecutionContext
