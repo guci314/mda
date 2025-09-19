@@ -189,9 +189,14 @@ class ReactAgentMinimal(Function):
         # 知识文件（自然语言程序）- 支持包和单独文件
         self.knowledge_files = self._resolve_knowledge_files(knowledge_files or [])
 
-        # 加载极简system包
+        # 加载极简system包和默认验证知识（大道至简版）
         knowledge_dir = Path(__file__).parent.parent / "knowledge"
         self._load_knowledge_package(knowledge_dir / "minimal" / "system")
+
+        # 默认加载大道至简版验证知识（可通过knowledge_files覆盖）
+        validation_simplicity = knowledge_dir / "minimal" / "validation" / "validation_simplicity.md"
+        if validation_simplicity.exists() and str(validation_simplicity) not in self.knowledge_files:
+            self.knowledge_files.append(str(validation_simplicity))
 
         self.knowledge_content = self._load_knowledge()
 
