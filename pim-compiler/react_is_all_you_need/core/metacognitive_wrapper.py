@@ -48,7 +48,6 @@ class MetacognitiveWrapper:
             base_url="https://openrouter.ai/api/v1",
             api_key=os.getenv("OPENROUTER_API_KEY"),
             knowledge_files=[
-                f"{project_root}/knowledge/minimal/system/execution_context_guide.md",
                 f"{project_root}/knowledge/minimal/system/system_prompt_minimal.md",
                 f"{project_root}/knowledge/agent_builder_knowledge.md"
             ],
@@ -177,7 +176,6 @@ def demo_transparent_wrapper():
         base_url="https://api.deepseek.com/v1",
         api_key=os.getenv("DEEPSEEK_API_KEY"),
         knowledge_files=[
-            f"{project_root}/knowledge/minimal/system/execution_context_guide.md",
             f"{project_root}/knowledge/minimal/system/system_prompt_minimal.md"
         ],
         max_rounds=10,

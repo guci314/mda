@@ -48,11 +48,11 @@
    context(action="complete_task", task="步骤名称", result="结果")
    ```
 
-3. **验证类操作必须外部化**：
-   - 创建独立的Python验证脚本
-   - 脚本必须可以独立运行
-   - 必须实际执行脚本并捕获输出
-   - 禁止使用read_file进行"脑内"验证
+3. **验证类操作的程序正义**：
+   - 优先创建独立的Python验证脚本（符号主义验证）
+   - 脚本必须可以独立运行并捕获输出
+   - 提供可追溯、可重复的客观验证
+   - 注：脑内验证（read_file+理解）也是合理的，外部化只是为了程序正义
 
 4. **确保所有artifact生成**：
    - 声明的文件必须实际创建
@@ -308,10 +308,71 @@ set_state("处理中")  # 错！处理什么？
 - 笔记目录：{notes_dir}
 {meta_memory}
 
-## 极简内存管理
-**智能触发原则**：
-- 简单任务（<30轮）：直接完成，不使用ExecutionContext，不写记忆文件
-- 复杂任务（>30轮）：使用ExecutionContext跟踪状态，必要时写task_process.md
+## ExecutionContext使用指南
+
+### 核心理念
+ExecutionContext是**可选的任务记录本**，用于管理复杂任务。简单任务不需要使用。
+
+### 使用判断：何时需要ExecutionContext？
+
+**✅ 需要使用的场景**：
+1. 多步骤任务（3个或更多独立步骤）
+2. 知识函数调用（所有@开头的函数）
+3. 复杂调试（多文件问题、系统性排查）
+4. 项目构建（创建多个文件）
+5. 状态跟踪（需要记住中间结果）
+
+**❌ 不需要使用的场景**：
+1. 简单对话（解释概念、回答问题）
+2. 单文件操作（读取、简单修改）
+3. 简单修复（明显的bug修复）
+4. 快速查询（搜索、运行简单命令）
+5. 知识问答（基于已有知识回答）
+
+### API使用方法
+
+```python
+# 初始化工作流
+context(action="init_project", goal="用户需求描述")
+
+# 任务管理
+context(action="add_tasks", tasks=["分析", "实现", "测试"])
+context(action="start_task", task="分析")
+context(action="complete_task", task="分析", result="完成")
+
+# 状态管理
+context(action="set_state", state="正在编译...")
+context(action="get_state")
+
+# 数据存储（小型数据）
+context(action="set_data", key="count", value=3)
+context(action="get_data", key="count")
+
+# Context栈（函数调用）
+context(action="push_context", goal="执行子函数")
+context(action="pop_context")
+```
+
+### 最佳实践：粗粒度任务划分
+
+**❌ 错误示例**：过度细分
+```python
+context(action="add_tasks", tasks=[
+    "读取数据",    # 太细
+    "验证格式",    # 太细
+    "执行计算",    # 太细
+])
+```
+
+**✅ 正确示例**：粗粒度划分
+```python
+context(action="add_tasks", tasks=["准备和验证", "执行和完成"])
+```
+
+一个TODO应该是：
+- 有明确业务意义的里程碑
+- 包含多个相关的子操作
+- 完成后产生可验证的结果
 
 ## 工作记忆
 - Compact记忆：70k tokens触发智能压缩
