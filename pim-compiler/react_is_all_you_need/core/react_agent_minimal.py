@@ -183,19 +183,21 @@ class ReactAgentMinimal(Function):
         self.compact_threshold = 70000
         self.compact_memory = None  # 存储压缩后的记忆
         
+        # 设置agent_name（必须在加载知识文件之前，因为知识文件需要替换模板变量）
+        self.agent_name = name  # 保留agent_name字段以兼容
+
         # 知识文件（自然语言程序）- 支持包和单独文件
         self.knowledge_files = self._resolve_knowledge_files(knowledge_files or [])
-        
+
         # 加载极简system包
         knowledge_dir = Path(__file__).parent.parent / "knowledge"
         self._load_knowledge_package(knowledge_dir / "minimal" / "system")
-        
+
         self.knowledge_content = self._load_knowledge()
-        
+
         # 🌟 Compact记忆系统 - Agent自己就是智能压缩器！
         # 不再需要滑动窗口，使用智能压缩
         # 使用name创建独立的笔记目录
-        self.agent_name = name  # 保留agent_name字段以兼容
         
         # Agent的大脑放在用户home目录，而不是工作目录
         # 这样清空工作目录不会影响Agent的记忆
@@ -262,10 +264,10 @@ class ReactAgentMinimal(Function):
     def execute(self, **kwargs) -> str:
         """
         执行任务 - 实现Function接口
-        
+
         Args:
             **kwargs: 包含task参数
-            
+
         Returns:
             任务结果
         """
@@ -273,7 +275,14 @@ class ReactAgentMinimal(Function):
         task = kwargs.get("task", "")
         if not task:
             return "错误：未提供任务描述"
-        
+
+        # ===== 纯粹的拦截钩子 =====
+        if hasattr(self, 'interceptor') and self.interceptor:
+            result = self.interceptor(task)
+            if result is not None:
+                return result
+        # ===== 钩子结束 =====
+
         # 如果是无状态模式，清空消息历史（保留系统提示）
         if not self.stateful:
             # 重新初始化消息列表，只保留系统提示
@@ -638,6 +647,10 @@ class ReactAgentMinimal(Function):
                 
                 if path.exists():
                     content = path.read_text(encoding='utf-8')
+                    # 替换知识文件中的模板变量
+                    content = content.replace('{agent_name}', self.agent_name)
+                    content = content.replace('{work_dir}', str(self.work_dir))
+                    content = content.replace('{home_dir}', f'~/.agent/{self.agent_name}')
                     knowledge_content.append(f"=== {path.name} ===\n{content}")
                     print(f"  ✅ 加载知识文件: {path.name}")
                 else:
@@ -730,8 +743,8 @@ class ReactAgentMinimal(Function):
         
         # 添加语义记忆工具
         from tools.semantic_memory_tool import WriteSemanticMemoryTool, ReadSemanticMemoryTool
-        tools.append(WriteSemanticMemoryTool(self.work_dir))
-        tools.append(ReadSemanticMemoryTool(self.work_dir))
+        tools.append(WriteSemanticMemoryTool(str(self.work_dir)))
+        tools.append(ReadSemanticMemoryTool(str(self.work_dir)))
         
         # Claude Code工具已移除 - 使用知识文件方式更灵活
         # 如需Claude Code功能，请加载knowledge/tools/claude_code_cli.md
@@ -1124,7 +1137,14 @@ class ReactAgentMinimal(Function):
         # 如果没有提供内容，生成默认模板
         if content is None:
             timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            content = f"""# 模块知识 - {path.name}
+            # 处理path可能为None的情况
+            if path and hasattr(path, 'name'):
+                path_name = path.name
+            elif path:
+                path_name = str(path)
+            else:
+                path_name = agent_md_path.parent.name  # 使用目录名
+            content = f"""# 模块知识 - {path_name}
 
 ## 核心概念
 <!-- Agent 学到的关键概念 -->

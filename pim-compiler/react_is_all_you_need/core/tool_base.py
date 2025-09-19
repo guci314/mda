@@ -180,11 +180,20 @@ class WriteFileTool(Function):
         self.work_dir = Path(work_dir)
     
     def execute(self, **kwargs) -> str:
-        file_path = self.work_dir / kwargs["file_path"]
+        path_str = kwargs["file_path"]
+
+        # 处理绝对路径和~路径（与ReadFileTool保持一致）
+        if path_str.startswith('~') or path_str.startswith('/'):
+            # 绝对路径或用户目录路径
+            file_path = Path(path_str).expanduser()
+        else:
+            # 相对路径
+            file_path = self.work_dir / path_str
+
         file_path.parent.mkdir(parents=True, exist_ok=True)
         with open(file_path, 'w', encoding='utf-8') as f:
             f.write(kwargs["content"])
-        return f"文件已写入: {kwargs['file_path']}"
+        return f"文件已写入: {path_str}"
 
 
 class AppendFileTool(Function):
@@ -208,11 +217,20 @@ class AppendFileTool(Function):
         self.work_dir = Path(work_dir)
     
     def execute(self, **kwargs) -> str:
-        file_path = self.work_dir / kwargs["file_path"]
+        path_str = kwargs["file_path"]
+
+        # 处理绝对路径和~路径（与ReadFileTool保持一致）
+        if path_str.startswith('~') or path_str.startswith('/'):
+            # 绝对路径或用户目录路径
+            file_path = Path(path_str).expanduser()
+        else:
+            # 相对路径
+            file_path = self.work_dir / path_str
+
         file_path.parent.mkdir(parents=True, exist_ok=True)
         with open(file_path, 'a', encoding='utf-8') as f:
             f.write(kwargs["content"])
-        return f"内容已追加到: {kwargs['file_path']}"
+        return f"内容已追加到: {path_str}"
 
 
 class ExecuteCommandTool(Function):

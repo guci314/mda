@@ -9,6 +9,7 @@ import os
 sys.path.insert(0, '/home/guci/aiProjects/mda/pim-compiler/react_is_all_you_need')
 
 from core.react_agent_minimal import ReactAgentMinimal
+from core.tools.create_agent_tool import CreateAgentTool
 from pathlib import Path
 import json
 from datetime import datetime
@@ -31,11 +32,15 @@ class AgentCreator:
             base_url=self.base_url,
             api_key=self.api_key,
             knowledge_files=[
-                "/home/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/knowledge/agent_creator_knowledge.md"
+                "/home/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/knowledge/agent_creator_self_knowledge.md"
             ],
             stateful=False,  # 每次创建都是独立的
             max_rounds=20
         )
+
+        # 添加CreateAgentTool，这样Creator可以创建并直接使用Agent
+        create_tool = CreateAgentTool(work_dir="/tmp/agent_creator", parent_agent=self.creator_agent)
+        self.creator_agent.append_tool(create_tool)
         
         print("🤖 Agent Creator 已初始化")
         print("=" * 60)
