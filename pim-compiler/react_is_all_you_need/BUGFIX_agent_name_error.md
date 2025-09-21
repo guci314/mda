@@ -33,7 +33,6 @@ prompt = template.format(
     work_dir=self.work_dir,
     notes_dir=self.notes_dir,
     notes_file=self.notes_file,
-    meta_memory=meta_memory,
     window_size=self.window_size,
     knowledge_content=knowledge_section
 )
@@ -44,7 +43,6 @@ prompt = template.format(
     notes_dir=self.notes_dir,
     notes_file=self.notes_file,
     agent_name=self.agent_name,  # 添加这一行
-    meta_memory=meta_memory,
     window_size=self.window_size,
     knowledge_content=knowledge_section
 )

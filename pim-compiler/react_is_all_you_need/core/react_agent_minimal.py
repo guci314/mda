@@ -140,7 +140,8 @@ class ReactAgentMinimal(Function):
         self.model = model
         self.max_rounds = max_rounds
         self.stateful = stateful  # 保存状态标志
-        
+        self.interceptor = None  # 拦截器钩子，可选功能
+
         # 移除LLM策略，保持简洁
         
         # API配置 - 根据模型名称智能选择
@@ -197,6 +198,11 @@ class ReactAgentMinimal(Function):
         validation_simplicity = knowledge_dir / "minimal" / "validation" / "validation_simplicity.md"
         if validation_simplicity.exists() and str(validation_simplicity) not in self.knowledge_files:
             self.knowledge_files.append(str(validation_simplicity))
+
+        # 分形同构：默认加载fractal_agent知识，让每个Agent都理解自己是Creator
+        fractal_agent_knowledge = knowledge_dir / "fractal_agent_knowledge.md"
+        if fractal_agent_knowledge.exists() and str(fractal_agent_knowledge) not in self.knowledge_files:
+            self.knowledge_files.append(str(fractal_agent_knowledge))
 
         self.knowledge_content = self._load_knowledge()
 
@@ -582,9 +588,6 @@ class ReactAgentMinimal(Function):
             # 使用外部模板
             template = prompt_template_path.read_text(encoding='utf-8')
             
-            # Compact模式不需要元记忆
-            meta_memory = ""
-            
             # 准备知识内容部分
             knowledge_section = ""
             if self.knowledge_content:
@@ -596,26 +599,25 @@ class ReactAgentMinimal(Function):
             # 替换模板中的占位符
             # 注意：system_prompt.md中的{{agent_name}}是转义的，会变成{agent_name}
             # 而{agent_name}需要被替换
+            # 准备知识文件列表字符串
+            knowledge_files_str = "\n".join([f"  - {kf}" for kf in self.knowledge_files])
+
             prompt = template.format(
                 work_dir=self.work_dir,
                 notes_dir=self.notes_dir,
                 notes_file=self.notes_file,
-                meta_memory=meta_memory,
                 knowledge_content=knowledge_section,
-                agent_name=self.agent_name
+                agent_name=self.agent_name,
+                description=self.description,
+                knowledge_files_list=knowledge_files_str
             )
         else:
             # 降级到内置提示词（保持向后兼容）
-            meta_memory = ""
-            if self.notes_file.exists():
-                meta_memory = f"\n[元记忆] 发现之前的笔记: {self.notes_file}\n首次需要时，使用read_file查看。\n"
-            
             prompt = f"""你是一个编程助手，像数学家一样使用笔记扩展认知。
 你只能写工作目录和笔记目录下的文件，别的地方可以读，但不能写。
-            
+
 工作目录：{self.work_dir}
 笔记目录：{self.notes_dir}
-{meta_memory}
 认知模型（Compact记忆）：
 - 工作记忆通过智能压缩管理
 - 超过70k tokens自动压缩保留关键信息
@@ -741,7 +743,16 @@ class ReactAgentMinimal(Function):
         except Exception as e:
             # 如果新闻搜索工具初始化失败，继续运行但不添加新闻搜索功能
             pass
-        
+
+        # 分形同构：每个Agent默认都有CreateAgentTool能力
+        # 让每个Agent都能创建子Agent，实现无限递归
+        try:
+            from .tools.create_agent_tool import CreateAgentTool
+            tools.append(CreateAgentTool(work_dir=str(self.work_dir), parent_agent=self))
+        except ImportError:
+            # 如果导入失败（比如循环依赖），继续运行
+            pass
+
         return tools
     
     def _switch_model(self, new_model: str) -> None:

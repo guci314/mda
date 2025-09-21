@@ -181,6 +181,22 @@ agent = ReactAgentMinimal(
 
 ## 核心理论
 
+### AIA (Agent Is Architecture)
+
+**核心理念**：Agent不是运行在架构上的应用，Agent本身就是架构。
+
+**含义**：
+- 传统观点：架构 → 应用 → Agent
+- AIA观点：Agent = 架构 = 应用
+- 每个Agent都是完整的计算系统
+- 架构通过Agent网络涌现，而非预先设计
+
+**实践意义**：
+- 不需要设计复杂的基础设施
+- Agent自带完整的执行环境
+- 通过Agent组合实现复杂系统
+- 分形同构：每个Agent都包含完整架构
+
 ### AGI = 冯·诺依曼完备 + 世界模型 + 元认知
 
 **终极公式**：

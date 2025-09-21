@@ -7,6 +7,7 @@ Agent本身就是Function，可以直接调用
 import os
 import sys
 import time
+from pathlib import Path
 from typing import List, Optional, Dict, Any
 import json
 
@@ -61,6 +62,21 @@ class CreateAgentTool(Function):
         )
         self.work_dir = work_dir
         self.parent_agent = parent_agent  # 父Agent引用
+
+    def to_openai_function(self):
+        """重写父类方法，设置必需参数"""
+        return {
+            "type": "function",
+            "function": {
+                "name": self.name,
+                "description": self.description,
+                "parameters": {
+                    "type": "object",
+                    "properties": self.parameters,
+                    "required": ["agent_type", "description", "knowledge_files"]  # 三个必需参数
+                }
+            }
+        }
     
     def execute(self, **kwargs) -> str:
         """
@@ -70,7 +86,7 @@ class CreateAgentTool(Function):
             创建结果信息
         """
         # 提取参数
-        model = kwargs.get('model', 'x-ai/grok-code-fast-1')  # 默认使用Grok
+        model = kwargs.get('model', 'deepseek-chat')  # 默认使用DeepSeek
         knowledge_files = kwargs.get('knowledge_files', [])
         max_iterations = kwargs.get('max_iterations', 100)
         agent_type = kwargs.get('agent_type', 'worker')
@@ -84,8 +100,18 @@ class CreateAgentTool(Function):
             # 处理知识文件路径
             processed_knowledge_files = []
             for kf in knowledge_files:
-                if '/' not in kf:
-                    processed_knowledge_files.append(f'knowledge/{kf}')
+                # 如果是绝对路径，直接使用
+                if kf.startswith('/'):
+                    processed_knowledge_files.append(kf)
+                # 如果是相对路径，基于work_dir解析
+                elif '/' not in kf:
+                    # 优先在work_dir查找
+                    work_dir_path = Path(self.work_dir) / kf
+                    if work_dir_path.exists():
+                        processed_knowledge_files.append(str(work_dir_path))
+                    else:
+                        # 否则尝试knowledge目录
+                        processed_knowledge_files.append(f'knowledge/{kf}')
                 else:
                     processed_knowledge_files.append(kf)
             
@@ -117,6 +143,14 @@ class CreateAgentTool(Function):
                 }
             )
             
+            # 分形同构：为新Agent添加CreateAgentTool能力
+            # 让每个Agent都能创建子Agent，实现无限递归
+            child_create_tool = CreateAgentTool(
+                work_dir=self.work_dir,
+                parent_agent=agent  # 新Agent成为其子Agent的父Agent
+            )
+            agent.add_function(child_create_tool)
+
             # 继承指定的工具（其他Agent）
             inherited_count = 0
             if inherit_tools and self.parent_agent:
@@ -139,6 +173,7 @@ class CreateAgentTool(Function):
 - 名称：{agent_name}
 - 模型：{model}
 - 描述：{description}{inherit_msg}
+- 分形能力：✅ 已添加CreateAgentTool（可创建子Agent）
 - 用法：直接调用 {agent_name}(task="你的任务")
 """
             else:

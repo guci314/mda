@@ -73,9 +73,9 @@ Agent知识层（*_agent.md）
 
 ### 推荐的模型分配
 ```python
-# ⚠️ 统一使用Grok以确保SOP严格执行
-# 经验教训：DeepSeek会跳过日志检查等关键步骤，破坏元认知循环
-model = "x-ai/grok-code-fast-1"  # 所有Agent统一使用
+# ⚠️ 统一使用DeepSeek作为默认模型
+# 更新：经过改进，DeepSeek现在能可靠执行SOP
+model = "deepseek-chat"  # 默认模型，除非用户指定其他
 
 # 原策略已废弃的原因：
 # 1. DeepSeek不执行SOP第4步（日志分析）
@@ -107,7 +107,7 @@ agent = ReactAgentMinimal(
 
 # 方式2：通过CreateAgentTool创建
 create_agent(
-    model="x-ai/grok-code-fast-1",  # 推荐使用Grok Code Fast模型
+    model="deepseek-chat",  # 默认使用DeepSeek模型
     knowledge_files=["知识文件列表"],
     # ⚠️ 重要：禁止使用knowledge_str参数！
     # knowledge_str会破坏知识的可追溯性、可维护性和可复用性
@@ -1135,7 +1135,7 @@ from core.tools.create_agent_tool import CreateAgentTool
 # 创建Agent Builder
 builder = ReactAgentMinimal(
     work_dir="/tmp/my_project",
-    model="x-ai/grok-code-fast-1",  # 推荐：服从性好
+    model="deepseek-chat",  # 默认模型
     knowledge_files=["knowledge/agent_builder_knowledge.md"]
 )
 
