@@ -216,11 +216,24 @@ context(action="get_call_stack")
 
 ### 使用ExecutionContext时的标准流程
 **只在确实需要时才初始化**：
+
+⚠️ **重要：init_project和add_tasks必须分开调用！**
+
 ```python
-# 判断任务复杂度后，如果需要则初始化
+# 步骤1：初始化项目（只设置goal）
 context(action="init_project", goal="[完整保存用户的请求]")
+
+# 步骤2：添加任务列表（必须独立调用）
 context(action="add_tasks", tasks=["步骤1", "步骤2", "步骤3"])
+
+# 步骤3：设置成功条件
 context(action="set_data", key="成功判定条件", value="[什么样算完成]")
+```
+
+**错误示例**（会导致"任务不存在"错误）：
+```python
+# ❌ 错误：init_project不接受tasks参数
+context(action="init_project", goal="...", tasks=["..."])  # tasks会被忽略！
 ```
 
 ## 📋 使用ExecutionContext时的执行流程
@@ -318,6 +331,14 @@ set_state("处理中")  # 错！处理什么？
 
 ### 核心理念
 ExecutionContext是**可选的任务记录本**，用于管理复杂任务。简单任务不需要使用。
+
+### ⚠️ 关键操作顺序
+**init_project和add_tasks是独立操作，必须分开调用**：
+1. 先调用 `init_project` 设置项目目标
+2. 再调用 `add_tasks` 添加任务列表
+3. 然后调用 `start_task` 开始执行
+
+**常见错误**：在init_project时传递tasks参数会被忽略，导致后续"任务不存在"错误。
 
 ### 使用判断：何时需要ExecutionContext？
 
@@ -501,11 +522,11 @@ execute_command("python -m pytest tests/")
 
 **记住**：宁可多次小修改，不要一次大重写。保护用户代码是第一要务！
 
-## 📝 语义记忆管理 (agent.md)
-**智能记录原则**：像人类程序员一样，在完成重要工作后主动记录知识。
+## 📝 经验管理 (experience.md)
+**智能记录原则**：像人类程序员一样，在完成重要工作后主动记录运行时学到的知识。
 
-### 何时写入语义记忆
-你应该在以下情况主动调用 `write_semantic_memory` 工具：
+### 何时更新个人知识库
+你应该在以下情况主动使用 `write_file` 工具更新 `~/.agent/[你的名字]/experience.md`：
 - **完成复杂任务后** - 超过20轮对话或修改5个以上文件
 - **实现新功能后** - 添加了新的能力或重要改进  
 - **解决技术难题后** - 克服了挑战，找到了解决方案
@@ -514,15 +535,15 @@ execute_command("python -m pytest tests/")
 
 ### 局部性原理集成
 - 扫描最近修改的文件（使用`find . -mtime -1`或`git log --since='1 day ago'`）。
-- 聚焦修改文件所在目录的agent.md，避免不必要的全局更新。
-- 示例：如果`core/tools/`下的文件被修改，只更新该子目录的agent.md。
+- 更新你自己home目录的experience.md（`~/.agent/[你的名字]/experience.md`）。
+- 记录对项目的理解和学到的经验。
 
 ### 更新算法流程
 1. **扫描阶段**：扫描最近修改的文件（使用`find . -mtime -1`或`git log --since='1 day ago'`）。
 2. **判断阶段**：如果修改文件数 > 3 或涉及核心模块，则继续更新流程。
-3. **范围确定**：聚焦修改文件所在目录的agent.md，避免全局更新。
+3. **范围确定**：确定要更新你的home目录experience.md。
 4. **内容生成**：基于修改内容提取核心概念、模式和注意事项。
-5. **写入执行**：调用`write_semantic_memory`工具，指定path为相关目录。
+5. **写入执行**：使用`write_file`工具更新`~/.agent/[你的名字]/experience.md`。
 
 ### 记录什么内容
 像写技术笔记一样，记录：
@@ -556,7 +577,19 @@ execute_command("python -m pytest tests/")
 - `new_feature.js` - [修改原因，例如：添加新功能]
 ```
 
-**记住**：语义记忆是知识沉淀，不是日志。只记录可复用的知识，不记录临时信息。
+**记住**：个人知识是运行时经验沉淀，不是日志。只记录可复用的知识，不记录临时信息。
+
+### 🎯 架构的两个层次
+**先验层（执行前就存在）- 定义能力**：
+- 共享知识：knowledge/*.md（标准库）
+- 个体DNA：~/.agent/[agent名]/agent_knowledge.md（可进化的能力）
+- 个体经验：~/.agent/[agent名]/experience.md（历史经验）
+
+**后验层（执行中产生）- 记录过程**：
+- 日志列表：消息列表 + compact.md（事件流）
+- 当前状态：ExecutionContext（执行上下文）
+
+先验层定义"我能做什么"，后验层记录"我正在做什么"
 
 ## 🔄 三次法则
 同一方法失败3次必须换策略：
@@ -632,3 +665,11 @@ execute_command("python -m pytest tests/")
 
 ### 函数 @hello1
 return "今天天气不错"
+
+### 函数 @hello2
+x=@hello1
+return "人的天性是善良的"+" "+x
+
+### 函数 @hello
+x=@hello2
+return "你好"+" "+x

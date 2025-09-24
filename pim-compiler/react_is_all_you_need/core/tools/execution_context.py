@@ -167,6 +167,14 @@ class ExecutionContext(Function):
         self.project["tasks"] = {}
         self.project["current_state"] = "项目已初始化"
         self.project["data"] = {}
+
+        # 如果栈为空，创建根Context
+        stack = get_context_stack()
+        if stack.depth == 0:
+            # 创建根Context来保存主函数状态
+            ctx = stack.push(goal)
+            self.project["context_id"] = ctx.context_id
+
         return f"✅ 项目已初始化: {goal}"
     
     def _add_tasks(self, tasks: List[str]) -> str:
@@ -328,9 +336,15 @@ class ExecutionContext(Function):
             return "❌ 请提供函数目标(goal)"
 
         stack = get_context_stack()
+
+        # 保存当前project到当前Context（如果存在）
+        if stack.current and hasattr(self, 'project'):
+            stack.current.data['project'] = self.project.copy()
+
+        # 创建新Context
         ctx = stack.push(goal)
 
-        # 同时初始化新的project（与原有逻辑兼容）
+        # 初始化新的project（新函数的独立环境）
         self.project = {
             "goal": goal,
             "tasks": {},
@@ -344,6 +358,12 @@ class ExecutionContext(Function):
     def _pop_context(self) -> str:
         """函数返回，弹栈"""
         stack = get_context_stack()
+
+        # 不允许pop空栈
+        if stack.depth == 0:
+            return "❌ 栈为空，无法弹出"
+
+        # 允许pop到深度0（退出所有函数）
         ctx = stack.pop()
 
         if ctx:

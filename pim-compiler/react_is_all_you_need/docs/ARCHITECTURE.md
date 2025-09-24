@@ -494,19 +494,7 @@ rsync -av --delete .memory/ backup_server:.memory/
 - [ ] 记忆可视化界面
 - [ ] 认知度量标准
 
-## 参考文献
-
-### 认知心理学
-- Atkinson, R. C., & Shiffrin, R. M. (1968). Human memory: A proposed system
-- Baddeley, A. (2000). The episodic buffer: a new component of working memory?
-- Tulving, E. (1985). Memory and consciousness
-
-### 相关项目
-- LangChain Memory Systems
-- Semantic Kernel Memory
-- MemGPT
-
-### 技术文档
+## 相关文档
 - [NLPL语言规范](./nlpl_language_specification.md)
 - [记忆系统设计](./nlpl_memory_pragmatic_design.md)
 - [认知心理学评审](./nlpl_memory_cognitive_review.md)

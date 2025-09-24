@@ -676,13 +676,6 @@ def future_research():
 
 ---
 
-## 参考文献
-
-1. Vaswani, A., et al. (2017). "Attention is All You Need"
-2. Shannon, C. E. (1948). "A Mathematical Theory of Communication"  
-3. Schmidhuber, J. (2010). "Formal Theory of Creativity, Fun, and Intrinsic Motivation"
-4. Friston, K. (2010). "The Free-Energy Principle: A Unified Brain Theory?"
-5. Wolpert, D. H. (2006). "Information Theory — The Bridge Connecting Bounded Rational Game Theory and Statistical Physics"
 
 ## 附录：代码实现
 

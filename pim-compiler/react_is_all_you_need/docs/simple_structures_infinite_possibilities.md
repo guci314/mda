@@ -578,28 +578,3 @@ while True:
 
 ---
 
-## 参考文献
-
-1. Mountcastle, V. B. (1957). "Modality and topographic properties of single neurons of cat's somatic sensory cortex." Journal of Neurophysiology.
-
-2. Hawkins, J. (2004). "On Intelligence." Times Books.
-
-3. Sur, M., Garraghty, P. E., & Roe, A. W. (1988). "Experimentally induced visual projections into auditory thalamus and cortex." Science.
-
-4. Turing, A. M. (1936). "On Computable Numbers, with an Application to the Entscheidungsproblem."
-
-5. Wolfram, S. (2002). "A New Kind of Science." Wolfram Media.
-
-6. 《大正藏》佛教经典集成
-
-7. 《道德经》老子著
-
-8. 《庄子》庄周著
-
-9. 《华严经》佛教经典
-
-10. Vaswani, A., et al. (2017). "Attention is all you need." NeurIPS.
-
----
-
-*本文献给所有追求简单之美的探索者。*

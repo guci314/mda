@@ -77,7 +77,7 @@ class ReactAgentMinimal(Function):
     
     核心理念：
     1. Agent即Function - 可以作为工具被调用
-    2. 三层记忆架构 - 工作记忆/情景记忆/语义记忆
+    2. 三层记忆架构 - 工作记忆/情景记忆/状态记忆
     3. 压缩就是认知 - 通过写笔记实现显式压缩
     """
     
@@ -204,6 +204,54 @@ class ReactAgentMinimal(Function):
         if fractal_agent_knowledge.exists() and str(fractal_agent_knowledge) not in self.knowledge_files:
             self.knowledge_files.append(str(fractal_agent_knowledge))
 
+        # 默认加载learning_functions知识，让每个Agent都能学习和记忆
+        learning_functions = knowledge_dir / "learning_functions.md"
+        if learning_functions.exists() and str(learning_functions) not in self.knowledge_files:
+            self.knowledge_files.append(str(learning_functions))
+
+        # Home目录: ~/.agent/[agent名]/
+        agent_home = Path.home() / ".agent" / self.name
+        agent_home.mkdir(parents=True, exist_ok=True)  # 确保home目录存在
+
+        # 三层知识体系：
+        # 1. 共享知识（knowledge/*.md）- 已在上面加载
+        # 2. 个体DNA（agent_knowledge.md）- 可进化的能力定义
+        agent_knowledge = agent_home / "agent_knowledge.md"
+        if agent_knowledge.exists() and str(agent_knowledge) not in self.knowledge_files:
+            self.knowledge_files.append(str(agent_knowledge))
+            print(f"  ✅ 加载个体DNA: {agent_knowledge}")
+        else:
+            # 创建初始agent_knowledge.md
+            if not agent_knowledge.exists():
+                agent_knowledge.write_text(f"# {self.name} 能力定义\n\n创建时间: {datetime.now().isoformat()}\n\n## 我的能力\n\n## 决策逻辑\n\n", encoding='utf-8')
+                print(f"  🧬 创建个体DNA: {agent_knowledge}")
+
+        # 3. 个体经验（experience.md）- 运行时学习的经验
+        experience = agent_home / "experience.md"
+        if experience.exists() and str(experience) not in self.knowledge_files:
+            self.knowledge_files.append(str(experience))
+            print(f"  ✅ 加载经验记录: {experience}")
+        else:
+            # 创建初始experience.md
+            if not experience.exists():
+                experience.write_text(f"# {self.name} 经验积累\n\n创建时间: {datetime.now().isoformat()}\n\n## 运行时学习的经验\n\n", encoding='utf-8')
+                print(f"  📚 创建经验记录: {experience}")
+
+        # 加载compact.md（如果存在）
+        compact_md = agent_home / "compact.md"
+        if compact_md.exists() and str(compact_md) not in self.knowledge_files:
+            self.knowledge_files.append(str(compact_md))
+            print(f"  ✅ 加载过程记录: {compact_md}")
+
+        # 🎯 初始化拦截器系统
+        # 1. 系统拦截器（最高优先级）
+        from core.interceptors.system_interceptor import SystemInterceptor
+        self.system_interceptor = SystemInterceptor(self)
+
+        # 2. 斜杠命令拦截器（次优先级）
+        from core.interceptors.minimal_slash_interceptor import MinimalSlashInterceptor
+        self.slash_interceptor = MinimalSlashInterceptor(self.name)
+
         self.knowledge_content = self._load_knowledge()
 
         # 🌟 Compact记忆系统 - Agent自己就是智能压缩器！
@@ -220,9 +268,9 @@ class ReactAgentMinimal(Function):
         # 因为TodoTool需要在这里保存task_process文件
         self.agent_home.mkdir(parents=True, exist_ok=True)
             
-        # Compact模式不使用这些记忆文件
-        # 只保留变量名以保持兼容性
-        self.agent_knowledge_file = self.agent_home / "agent_knowledge.md"
+        # 三层知识体系文件路径
+        self.agent_knowledge_file = self.agent_home / "agent_knowledge.md"  # 个体DNA
+        self.experience_file = self.agent_home / "experience.md"  # 运行时经验
         self.task_process_file = self.agent_home / f"task_process_{self.work_dir.name}.md"
         self.world_state_file = self.agent_home / "world_state.md"
         self.notes_file = self.notes_dir / "session_notes.md"  # 兼容性
@@ -232,10 +280,7 @@ class ReactAgentMinimal(Function):
         # 生成函数定义（用于API调用）
         self.functions = [func.to_openai_function() for func in self.function_instances]
         
-        # Session目录（也放在Agent home，不污染工作目录）
-        self.sessions_dir = self.agent_home / "sessions"
-        # 总是创建sessions目录（用于记录执行历史）
-        self.sessions_dir.mkdir(parents=True, exist_ok=True)
+        # sessions_dir已废弃，不再需要
         
         # 自动加载记忆文件（基础设施保证）
         self._auto_load_memory()
@@ -307,20 +352,7 @@ class ReactAgentMinimal(Function):
                     "content": f"[已加载历史压缩记忆]\n{self.compact_memory}"
                 })
         
-        # 动态加载并注入语义记忆（基于当前工作目录）
-        semantic_contexts = self._load_semantic_memory(self.work_dir)
-        if semantic_contexts:
-            # 将语义记忆作为用户消息注入（位置感知的知识）
-            semantic_content = "\n\n".join(semantic_contexts)
-            self.messages.append({
-                "role": "user",
-                "content": f"[当前位置的语义记忆]\n{semantic_content}\n\n请基于以上知识处理任务。"
-            })
-            self.messages.append({
-                "role": "assistant",
-                "content": "已加载当前位置的语义记忆，我会基于这些知识来处理任务。"
-            })
-        
+        # personal_knowledge.md现在在init时作为知识文件加载，不需要在这里重复注入
         # 重定向标准输出到output.log
         import sys
         output_log_path = self.notes_dir / "output.log"
@@ -372,9 +404,10 @@ class ReactAgentMinimal(Function):
             
             # 执行任务的主逻辑将在try块中
             result = self._execute_task_impl(task, original_stdout, log_file)
-            
-            # Compact模式不保存session
-            
+
+            # 🔄 自动保存状态（实现"活在文件系统"）
+            self._auto_save_state()
+
             return result
         except Exception as e:
             print(f"\n❌ 任务执行出错: {e}")
@@ -397,10 +430,23 @@ class ReactAgentMinimal(Function):
     def _execute_task_impl(self, task: str, original_stdout, log_file) -> str:
         """实际执行任务的实现"""
         import sys
-        
-        # 处理斜杠命令
+
+        # 🎯 拦截器链处理（优先级从高到低）
         if task.strip().startswith("/"):
-            return self._handle_slash_command(task.strip())
+            # 1. 系统拦截器（最高优先级）
+            result = self.system_interceptor.intercept(task.strip())
+            if result is not None:
+                print(f"[{self.name}] ⚡ 系统命令执行")
+                return result
+
+            # 2. 斜杠命令拦截器（工具命令）
+            result = self.slash_interceptor.intercept(task.strip())
+            if result is not None:
+                print(f"[{self.name}] ⚡ 工具命令执行")
+                return result
+
+            # 3. 未知斜杠命令
+            return f"❓ 未知命令: {task.strip()}\n使用 /help 查看可用命令"
         
         # 添加用户任务到消息列表（消息列表已在__init__中初始化）
         self.messages.append({"role": "user", "content": task})
@@ -667,33 +713,34 @@ class ReactAgentMinimal(Function):
         
         return "\n\n".join(knowledge_content) if knowledge_content else ""
     
-    def append_tool(self, tool):
-        """
-        添加Function到Agent的function列表（保留方法名以兼容）
-        
-        Args:
-            tool: Function实例（工具或另一个Agent）
-        """
-        # 检查是否有必要的方法（鸭子类型）
-        if not hasattr(tool, 'execute') or not hasattr(tool, 'to_openai_function'):
-            raise TypeError(f"Function必须有execute和to_openai_function方法")
-        
-        self.function_instances.append(tool)
-        self.functions = [f.to_openai_function() for f in self.function_instances]
-        
-        # 显示添加的工具信息
-        tool_name = tool.name if hasattr(tool, 'name') else str(tool)
-        print(f"  ➕ 已添加工具: {tool_name}")
-    
     def add_function(self, function):
         """
-        添加Function（工具或Agent）的别名方法
+        添加Function到Agent的function列表
         项目经理Agent可以通过此方法添加子Agent作为工具
-        
+
         Args:
             function: Function实例（可以是工具或另一个Agent）
         """
-        return self.append_tool(function)
+        # 检查是否有必要的方法（鸭子类型）
+        if not hasattr(function, 'execute') or not hasattr(function, 'to_openai_function'):
+            raise TypeError(f"Function必须有execute和to_openai_function方法")
+
+        self.function_instances.append(function)
+        self.functions = [f.to_openai_function() for f in self.function_instances]
+
+        # 显示添加的工具信息
+        function_name = function.name if hasattr(function, 'name') else str(function)
+        print(f"  ➕ 已添加函数: {function_name}")
+
+    def append_tool(self, tool):
+        """
+        添加工具的兼容性方法（已废弃，请使用add_function）
+        保留此方法以保持向后兼容性
+
+        Args:
+            tool: Function实例（工具或另一个Agent）
+        """
+        return self.add_function(tool)
     
     def _create_function_instances(self) -> List[Function]:
         """创建Function实例（包括工具和Agent）"""
@@ -728,14 +775,12 @@ class ReactAgentMinimal(Function):
             # 如果导入失败，继续运行
             pass
         
-        # 添加语义记忆工具
-        from tools.semantic_memory_tool import WriteSemanticMemoryTool, ReadSemanticMemoryTool
-        tools.append(WriteSemanticMemoryTool(str(self.work_dir)))
-        tools.append(ReadSemanticMemoryTool(str(self.work_dir)))
         
         # Claude Code工具已移除 - 使用知识文件方式更灵活
         # 如需Claude Code功能，请加载knowledge/tools/claude_code_cli.md
-        
+
+        # AskClaude工具已移除 - 没有全局视角，不如直接换模型
+        # 如需高智力任务，直接使用Claude作为主模型
         # 添加新闻搜索工具（如果API密钥存在）
         try:
             if os.getenv("SERPER_API_KEY"):
@@ -934,7 +979,10 @@ class ReactAgentMinimal(Function):
     
     def _save_compact_memory(self):
         """保存压缩后的记忆到compact.md（不包含系统提示词）"""
-        compact_file = self.notes_dir / "compact.md"
+        # 使用Agent的home目录
+        agent_home = Path.home() / ".agent" / self.name
+        agent_home.mkdir(parents=True, exist_ok=True)
+        compact_file = agent_home / "compact.md"
         
         # 确保目录存在
         self.notes_dir.mkdir(parents=True, exist_ok=True)
@@ -978,7 +1026,9 @@ class ReactAgentMinimal(Function):
     
     def _load_compact_memory(self):
         """从compact.md加载压缩的记忆"""
-        compact_file = self.notes_dir / "compact.md"
+        # 使用Agent的home目录
+        agent_home = Path.home() / ".agent" / self.name
+        compact_file = agent_home / "compact.md"
         
         if not compact_file.exists():
             return False
@@ -1062,168 +1112,43 @@ class ReactAgentMinimal(Function):
         # 如果找不到，返回None
         return None
     
-    def _load_semantic_memory(self, current_path: Optional[Path] = None) -> List[str]:
-        """加载语义记忆（agent.md）- 只从项目根目录加载
-        
-        策略：
-        1. 查找项目根目录
-        2. 只加载根目录的 agent.md
-        3. 不再加载子目录的 agent.md
-        
-        Args:
-            current_path: 当前工作路径，如果为None则使用work_dir
-            
-        Returns:
-            加载的语义记忆内容列表
+    
+    def _auto_save_state(self) -> None:
         """
-        if current_path is None:
-            current_path = self.work_dir
-        
-        contexts = []
-        
-        # 查找项目根目录
-        project_root = self._find_project_root(current_path)
-        
-        if project_root:
-            # 只加载项目根目录的 agent.md
-            root_agent_md = project_root / "agent.md"
-            if root_agent_md.exists():
-                content = root_agent_md.read_text(encoding='utf-8')
-                contexts.append(f"[项目语义记忆 - {project_root.name}]\n{content}")
-                print(f"  📖 加载语义记忆: {root_agent_md}")
-            else:
-                print(f"  ℹ️ 项目根目录未找到agent.md: {project_root}")
-        else:
-            # 如果找不到项目根目录，尝试当前目录的 agent.md（向后兼容）
-            current_agent_md = current_path / "agent.md"
-            if current_agent_md.exists():
-                content = current_agent_md.read_text(encoding='utf-8')
-                contexts.append(f"[当前目录语义记忆 - {current_path.name}]\n{content}")
-                print(f"  📖 加载语义记忆（后备）: {current_agent_md}")
-        
-        return contexts
-    
-    def write_semantic_memory(self, path: Optional[Path] = None, content: Optional[str] = None) -> str:
-        """写入语义记忆（agent.md）- 只写入项目根目录
-        
-        策略：
-        1. 查找项目根目录
-        2. 只在根目录创建/更新 agent.md
-        3. 如果找不到根目录，才在当前目录创建（向后兼容）
-        
-        Args:
-            path: 写入路径（已废弃，保留接口兼容性）
-            content: 要写入的内容，如果为None则自动生成
-            
-        Returns:
-            操作结果消息
+        自动保存Agent状态到home目录
+        实现"活在文件系统"的理念 - 每次执行后自动持久化
         """
-        # 查找项目根目录
-        project_root = self._find_project_root(self.work_dir)
-        
-        if project_root:
-            # 使用项目根目录
-            agent_md_path = project_root / "agent.md"
-            location_desc = f"项目根目录"
-        else:
-            # 向后兼容：如果找不到项目根，使用当前工作目录
-            agent_md_path = self.work_dir / "agent.md"
-            location_desc = f"当前目录（未找到项目根）"
-        
-        # 如果没有提供内容，生成默认模板
-        if content is None:
-            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            # 处理path可能为None的情况
-            if path and hasattr(path, 'name'):
-                path_name = path.name
-            elif path:
-                path_name = str(path)
-            else:
-                path_name = agent_md_path.parent.name  # 使用目录名
-            content = f"""# 模块知识 - {path_name}
+        try:
+            # 构建状态
+            state = {
+                "name": self.name,
+                "description": self.description,  # 保存Agent描述
+                "model": self.model,  # 保存使用的LLM模型
+                "messages": self.messages,
+                "compact_memory": self.compact_memory,
+                "timestamp": datetime.now().isoformat(),
+                "task_count": getattr(self, '_task_count', 0) + 1
+            }
 
-## 核心概念
-<!-- Agent 学到的关键概念 -->
+            # 保存到home目录
+            agent_home = Path.home() / ".agent" / self.name
+            agent_home.mkdir(parents=True, exist_ok=True)
+            state_file = agent_home / "state.json"
 
-## 重要模式
-<!-- 发现的设计模式或解决方案 -->
+            # 原子写入（先写临时文件，再重命名）
+            import json
+            temp_file = state_file.with_suffix('.tmp')
+            temp_file.write_text(json.dumps(state, ensure_ascii=False, indent=2))
+            temp_file.replace(state_file)  # 原子操作
 
-## 注意事项
-<!-- 踩过的坑或特殊约定 -->
+            # 更新任务计数
+            self._task_count = state["task_count"]
 
-## 相关文件
-<!-- 重要的相关文件列表 -->
+        except Exception as e:
+            # 自动保存失败不应该影响正常执行
+            # 只是记录错误（不打印，避免干扰输出）
+            pass
 
----
-更新时间：{timestamp}
-更新原因：[待填写]
-"""
-        
-        # 写入文件
-        agent_md_path.write_text(content, encoding='utf-8')
-        
-        return f"✅ 已保存语义记忆到{location_desc}: {agent_md_path}"
-    
-    def _suggest_semantic_memory(self, task_complexity: Dict) -> None:
-        """在复杂任务完成后建议保存语义记忆
-        
-        Args:
-            task_complexity: 任务复杂度指标
-        """
-        # 判断是否为复杂任务
-        is_complex = (
-            task_complexity.get('rounds', 0) > 20 or
-            task_complexity.get('files_modified', 0) > 5 or
-            task_complexity.get('is_architecture_change', False) or
-            task_complexity.get('is_new_feature', False)
-        )
-        
-        if is_complex:
-            print("\n💡 建议：此次任务涉及重要知识，是否保存到 agent.md？")
-            print("   使用 'write_semantic_memory()' 工具来保存")
-    
-    def _handle_slash_command(self, command: str) -> str:
-        """处理斜杠命令"""
-        cmd = command.lower().strip()
-        
-        if cmd == "/compact":
-            # 手动触发compact压缩（不检查阈值）
-            print("\n🧠 手动触发Compact压缩...")
-            
-            if len(self.messages) <= 1:
-                return "📝 当前对话历史为空，无需压缩"
-            
-            # 显示压缩前的信息
-            original_count = len(self.messages)
-            original_tokens = self._count_tokens(self.messages)
-            print(f"  压缩前: {original_count} 条消息, 约 {original_tokens} tokens")
-            
-            # 执行压缩（传入manual=True参数表示手动触发）
-            self.messages = self._compact_messages(self.messages, manual=True)
-            
-            # 显示压缩后的信息
-            new_count = len(self.messages)
-            new_tokens = self._count_tokens(self.messages)
-            print(f"  压缩后: {new_count} 条消息, 约 {new_tokens} tokens")
-            print(f"  压缩率: {(1 - new_tokens/original_tokens)*100:.1f}%")
-            
-            # 保存压缩结果到compact.md
-            self._save_compact_memory()
-            print(f"  💾 已保存到: {self.notes_dir}/compact.md")
-            
-            return f"✨ Compact压缩完成！{original_count}条消息 → {new_count}条消息"
-        
-        elif cmd == "/help":
-            return """
-📚 可用的斜杠命令：
-  /compact - 手动触发Compact压缩
-  /help    - 显示此帮助信息
-"""
-        
-        else:
-            return f"❌ 未知命令: {command}\n💡 输入 /help 查看可用命令"
-    
-    
     def _compact_messages(self, messages: List[Dict], manual: bool = False) -> List[Dict]:
         """智能压缩对话历史 - 使用description作为注意力先验
         
@@ -1390,396 +1315,78 @@ Agent描述（注意力框架）：
                 result_messages.append(original_system_msg)
             result_messages.extend(kept_msgs)
             return result_messages
-    
-    def save_template(self, filepath: str = "agent_template.json") -> str:
-        """
-        保存Agent模板 - 用于创建新Agent
-        包含Function接口定义和配置，不包含运行时状态
-        """
-        template = {
-            "type": "agent_template",
-            "version": "1.0",
-            "function_meta": {
-                "name": self.name,
-                "description": self.description,
-                "parameters": self.parameters,
-                "return_type": self.return_type
-            },
-            "config": {
-                "model": self.model,
-                "base_url": self.base_url,
-                "max_rounds": self.max_rounds,
-                "knowledge_files": self.knowledge_files,
-                "compress_config": self.compress_config
-            }
-        }
-        
-        file_path = Path(filepath)
-        with open(str(file_path), 'w', encoding='utf-8') as f:
-            json.dump(template, f, ensure_ascii=False, indent=2)
-        
-        print(f"📋 Agent模板已保存: {file_path}")
-        return str(file_path)
-    
+
     @classmethod
-    def create_from_template(cls, template_file: str, work_dir: str, **kwargs):
+    def load(cls, name: str, **kwargs):
         """
-        从模板创建新Agent实例
-        
+        根据名字加载Agent - 最简单的方法
+
         Args:
-            template_file: 模板文件路径
-            work_dir: 新Agent的工作目录
-            **kwargs: 覆盖模板中的配置
+            name: Agent名字
+            **kwargs: 其他参数（可选）
+
+        Returns:
+            Agent实例
+
+        使用方式:
+            alice = ReactAgentMinimal.load("alice")
+
+        行为:
+            - 如果~/.agent/{name}存在，自动加载其中的知识和状态
+            - 如果不存在，创建新的Agent
         """
-        with open(template_file, 'r', encoding='utf-8') as f:
-            template = json.load(f)
-        
-        if template.get("type") != "agent_template":
-            raise ValueError(f"Invalid template type: {template.get('type')}")
-        
-        # 合并配置
-        config = template["config"].copy()
-        config.update(kwargs)
-        
-        # 分离compress_config（不是__init__参数）
-        compress_config = config.pop("compress_config", None)
-        
-        # 创建Agent
+        # 默认工作目录为当前目录
+        work_dir = kwargs.pop("work_dir", ".")
+
+        # 检查是否有保存的配置
+        home = Path.home() / ".agent" / name
+        config_file = home / "config.json"
+
+        # 如果有保存的配置，加载它
+        if config_file.exists():
+            try:
+                import json
+                saved_config = json.loads(config_file.read_text())
+                # 合并保存的配置和传入的参数（传入参数优先）
+                for key, value in saved_config.items():
+                    if key not in kwargs and key not in ["name", "work_dir"]:
+                        kwargs[key] = value
+            except:
+                pass  # 如果配置文件损坏，忽略
+
+        # 创建Agent（__init__会自动加载home目录中的文件）
         agent = cls(
             work_dir=work_dir,
-            name=template["function_meta"]["name"],
-            description=template["function_meta"]["description"],
-            parameters=template["function_meta"]["parameters"],
-            return_type=template["function_meta"]["return_type"],
-            **config
+            name=name,
+            **kwargs
         )
-        
-        # 恢复compress_config
-        if compress_config:
-            agent.compress_config = compress_config
-        
-        print(f"✨ 从模板创建Agent: {template['function_meta']['name']}")
+
+        # 尝试恢复状态
+        state_file = home / "state.json"
+        if state_file.exists():
+            try:
+                import json
+                state = json.loads(state_file.read_text())
+                # 恢复消息历史
+                if "messages" in state and isinstance(state["messages"], list):
+                    # 保留系统提示词，添加历史消息
+                    if agent.messages and agent.messages[0]["role"] == "system":
+                        agent.messages = [agent.messages[0]] + state["messages"]
+                    else:
+                        agent.messages = state["messages"]
+                # 恢复compact记忆
+                if "compact_memory" in state:
+                    agent.compact_memory = state["compact_memory"]
+                print(f"  📂 已从home目录恢复状态")
+            except:
+                pass  # 状态文件损坏，使用新状态
+
         return agent
-    
-    def save_instance(self, messages: List[Dict], filepath: str = "agent_instance.json") -> str:
-        """
-        保存Agent实例 - 包含完整运行时状态
-        可用于中断恢复、Agent迁移、调试回放
-        
-        Args:
-            messages: 当前对话消息列表
-            filepath: 保存路径
-        """
-        instance = {
-            "type": "agent_instance",
-            "version": "1.0",
-            "timestamp": datetime.now().isoformat(),
-            
-            # Function接口（其他Agent调用时需要）
-            "function_meta": {
-                "name": self.name,
-                "description": self.description,
-                "parameters": self.parameters,
-                "return_type": self.return_type
-            },
-            
-            # 核心运行时状态
-            "state": {
-                "messages": messages,  # 完整对话历史
-                "compact_memory": self.compact_memory,  # 压缩记忆
-                "round_count": len([m for m in messages if m["role"] == "assistant"])
-            },
-            
-            # 运行环境
-            "runtime": {
-                "work_dir": str(self.work_dir),
-                "agent_name": self.agent_name,
-                "notes_dir": str(self.notes_dir)
-            },
-            
-            # 配置
-            "config": {
-                "model": self.model,
-                "base_url": self.base_url,
-                "max_rounds": self.max_rounds,
-                "compress_config": self.compress_config,
-                "knowledge_files": self.knowledge_files
-            }
-        }
-        
-        file_path = Path(filepath)
-        with open(str(file_path), 'w', encoding='utf-8') as f:
-            json.dump(instance, f, ensure_ascii=False, indent=2)
-        
-        print(f"💾 Agent实例已保存: {file_path} ({len(messages)}条消息)")
-        return str(file_path)
-    
-    @classmethod
-    def restore_instance(cls, instance_file: str, new_work_dir: Optional[str] = None):
-        """
-        恢复Agent实例
-        
-        Args:
-            instance_file: 实例文件路径
-            new_work_dir: 新的工作目录（可选，用于迁移）
-        
-        Returns:
-            (agent, messages): 恢复的Agent和消息列表
-        """
-        with open(instance_file, 'r', encoding='utf-8') as f:
-            instance = json.load(f)
-        
-        if instance.get("type") != "agent_instance":
-            raise ValueError(f"Invalid instance type: {instance.get('type')}")
-        
-        # 决定工作目录
-        work_dir = new_work_dir or instance["runtime"]["work_dir"]
-        
-        # 准备配置
-        config = instance["config"].copy()
-        compress_config = config.pop("compress_config", None)
-        
-        # 创建Agent
-        agent = cls(
-            work_dir=work_dir,
-            name=instance["function_meta"]["name"],
-            description=instance["function_meta"]["description"],
-            parameters=instance["function_meta"]["parameters"],
-            return_type=instance["function_meta"]["return_type"],
-            **config
-        )
-        
-        # 恢复compress_config
-        if compress_config:
-            agent.compress_config = compress_config
-        
-        # 恢复运行时状态
-        agent.compact_memory = instance["state"]["compact_memory"]
-        messages = instance["state"]["messages"]
-        
-        print(f"🔄 Agent实例已恢复: {instance['function_meta']['name']}")
-        print(f"  📊 包含{len(messages)}条消息")
-        if agent.compact_memory:
-            print(f"  🧠 包含压缩记忆")
-        
-        return agent, messages
-    
-    def continue_from_messages(self, messages: List[Dict], additional_task: Optional[str] = None) -> str:
-        """
-        从保存的消息列表继续执行
-        
-        Args:
-            messages: 恢复的消息列表
-            additional_task: 附加任务（可选）
-        """
-        if additional_task:
-            messages.append({"role": "user", "content": additional_task})
-        
-        # 继续执行
-        print(f"\n🔄 继续执行任务...")
-        
-        # 使用恢复的消息继续React循环
-        original_stdout = sys.stdout
-        log_file = None
-        
-        try:
-            # 继续执行循环
-            for round_num in range(len(messages), self.max_rounds):
-                # 调用API
-                response = self._call_api(messages)
-                if not response:
-                    break
-                
-                # 处理响应
-                message = response["choices"][0]["message"]
-                messages.append(message)
-                
-                # Compact记忆管理
-                token_count = self._count_tokens(messages)
-                if token_count > self.compress_config["threshold"]:
-                    messages = self._compact_messages(messages)
-                
-                # 检查完成
-                if response["choices"][0].get("finish_reason") == "stop" and not message.get("tool_calls"):
-                    result = message.get("content", "任务完成")
-                    print(f"\n[{self.name}] ✅ 任务完成（第{round_num + 1}轮）")
-                    return result
-                
-                # 处理工具调用
-                if "tool_calls" in message and message["tool_calls"]:
-                    for tool_call in message["tool_calls"]:
-                        tool_result = self._execute_tool(
-                            tool_call["function"]["name"],
-                            json.loads(tool_call["function"]["arguments"])
-                        )
-                        messages.append({
-                            "role": "tool",
-                            "tool_call_id": tool_call["id"],
-                            "content": tool_result
-                        })
-            
-            return "达到最大轮数限制"
-            
-        except Exception as e:
-            print(f"❌ 继续执行出错: {e}")
-            return f"错误: {e}"
-        finally:
-            # 安全地恢复stdout和关闭文件
-            try:
-                sys.stdout = original_stdout
-            except:
-                pass
-            try:
-                if log_file and not log_file.closed:
-                    log_file.close()
-            except:
-                pass
-    
-    def _save_session(self, task: str, result: str, status: str) -> None:
-        """
-        保存session记录（仅在完整模式下）
-        
-        注意：minimal模式下不保存session，符合Compact哲学：
-        - "当下即永恒"：不需要历史记录
-        - "遗忘即优化"：没有审计追踪
-        
-        Args:
-            task: 执行的任务
-            result: 任务结果
-            status: 任务状态 (completed/failed)
-        """
-        try:
-            # 生成带真实时间戳的文件名
-            timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
-            
-            # 生成安全的任务简述（去除特殊字符）
-            import re
-            safe_summary = re.sub(r'[^\w\s-]', '', task[:50].replace('\n', ' '))
-            safe_summary = safe_summary.strip().replace(' ', '_')
-            
-            # 生成session文件名
-            session_filename = f"{timestamp}_{safe_summary}.md"
-            session_path = self.sessions_dir / session_filename
-            
-            # 计算执行时长
-            duration = datetime.now() - self.task_start_time
-            
-            # 构建session内容
-            session_content = f"""# Session: {self.agent_name}
 
-## 任务信息
-- **开始时间**: {self.task_start_time.strftime('%Y-%m-%d %H:%M:%S')}
-- **结束时间**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
-- **执行时长**: {duration}
-- **状态**: {status}
-- **Agent**: {self.agent_name}
-- **模型**: {self.model}
-
-## 任务描述
-```
-{task}
-```
-
-## 执行结果
-```
-{result[:5000] if len(result) > 5000 else result}
-```
-
-## 记忆文件
-- agent_knowledge.md
-- world_state.md  
-- task_process.md
-"""
-            
-            # 写入session文件
-            session_path.write_text(session_content, encoding='utf-8')
-            print(f"\n💾 Session已保存: {session_filename}")
-            
-        except Exception as e:
-            print(f"\n⚠️ Session保存失败: {e}")
-    
-    def query_sessions(self, pattern: Optional[str] = None, limit: int = 10) -> str:
-        """
-        查询历史session（按需查询工具）
-        
-        Args:
-            pattern: 搜索模式（可选）
-            limit: 返回数量限制
-            
-        Returns:
-            匹配的session信息
-        """
-        if not self.sessions_dir.exists():
-            return "没有找到session记录"
-        
-        # 获取所有session文件，按时间倒序
-        session_files = sorted(self.sessions_dir.glob("*.md"), reverse=True)
-        
-        if pattern:
-            # 如果提供了搜索模式，过滤文件
-            import re
-            regex = re.compile(pattern, re.IGNORECASE)
-            session_files = [f for f in session_files if regex.search(f.read_text(encoding='utf-8'))]
-        
-        # 限制返回数量
-        session_files = session_files[:limit]
-        
-        if not session_files:
-            return "没有找到匹配的session"
-        
-        # 构建结果
-        results = []
-        for session_file in session_files:
-            # 读取文件前几行获取摘要
-            lines = session_file.read_text(encoding='utf-8').split('\n')[:10]
-            summary = '\n'.join(lines)
-            results.append(f"## {session_file.name}\n{summary}\n...")
-        
-        return '\n\n'.join(results)
-    
     def cleanup(self) -> None:
         """清理资源"""
         print(f"🧹 清理完成，笔记已保存在: {self.notes_file}")
     
-    def get_template(self) -> str:
-        """
-        获取Agent的模板字符串，用于元认知包装
-        
-        Returns:
-            JSON格式的Agent配置模板
-        """
-        import json
-        
-        template = {
-            "name": self.name,
-            "description": self.description,
-            "model": self.model,
-            "base_url": self.base_url,
-            "knowledge_files": self.knowledge_files,
-            "max_rounds": self.max_rounds,
-            "work_dir": str(self.work_dir)
-        }
-        
-        return json.dumps(template, indent=2, ensure_ascii=False)
-    
-    def get_instance(self) -> dict:
-        """
-        获取Agent的实例配置字典
-        
-        Returns:
-            包含Agent完整配置的字典
-        """
-        return {
-            "name": self.name,
-            "description": self.description,
-            "model": self.model,
-            "base_url": self.base_url,
-            "api_key": self.api_key,  # 注意：敏感信息
-            "knowledge_files": self.knowledge_files,
-            "max_rounds": self.max_rounds,
-            "work_dir": str(self.work_dir),
-            "function_instances": [f.name for f in self.function_instances]  # 工具列表
-        }
 
 
 
