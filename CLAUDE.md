@@ -2,18 +2,24 @@
 
 ### 架构的哲学层次
 
-#### 先验层（A Priori）- 三层知识体系
+#### 先验层（A Priori）- 两层知识体系
 执行前就存在，定义Agent的能力：
 1. **共享知识**（knowledge/*.md）- 所有Agent共享的标准库
-2. **个体DNA**（agent_knowledge.md）- 每个Agent的独特能力
-3. **归纳知识**（experience.md）- 从经验中归纳的类型知识（非日志！）
+2. **个体知识**（knowledge.md）- 每个Agent的独特能力和经验
 
 #### 后验层（A Posteriori）- Event Sourcing
 执行中产生，记录Agent的行为：
-- **日志列表**：消息列表 + compact.md（事件流）
-- **当前状态**：ExecutionContext（执行上下文）
+- **全局历史**：compact.md（压缩的对话事件流）
+- **项目笔记**：work_dir/.notes/agent_notes.md（项目特定记忆）
+- **当前状态**：ExecutionContext（执行上下文栈）
 
 先验层定义"能做什么"，后验层记录"正在做什么"。
+
+#### 多项目记忆管理
+Agent应该主动为每个work_dir维护独立的后验笔记：
+- 先验知识（knowledge.md）跨项目通用
+- 后验笔记（.notes/agent_notes.md）项目特定
+- 这样实现了知识的分层管理：通用能力vs项目记忆
 
 #### 计算同构映射
 
@@ -54,8 +60,7 @@ Agent系统采用Event Sourcing模式管理知识和记忆：
 
 ```
 ~/.agent/[agent名]/                              # 【每个Agent的Home目录】
-├── agent_knowledge.md                          # 该Agent的DNA（可进化的能力定义）
-├── experience.md                               # 该Agent的经验积累（运行时学习）
+├── knowledge.md                                # 该Agent的知识（能力定义+经验积累）
 ├── compact.md                                  # 该Agent的压缩事件流
 └── ...                                         # Agent的其他文件
 
@@ -75,7 +80,7 @@ Agent系统采用Event Sourcing模式管理知识和记忆：
 
 **重要说明**：
 - 每个Agent有独立的Home目录：`~/.agent/[agent名]/`
-- agent_knowledge.md、experience.md和compact.md放在各自Agent的Home目录中
+- knowledge.md和compact.md放在各自Agent的Home目录中
 - `pim-compiler/react_is_all_you_need/`是共享的工作目录
 
 ### Event Sourcing模型正确理解
@@ -96,17 +101,12 @@ Agent系统采用Event Sourcing模式管理知识和记忆：
    - 定义通用能力和行为模式
    - 不应被修改（像不修改pandas源码）
 
-4. **个体DNA（agent_knowledge.md）**：
-   - ~/.agent/[name]/agent_knowledge.md
-   - 定义该Agent的独特能力
-   - 可进化：Agent可以修改自己的DNA
-   - 可遗传：子Agent继承父Agent的DNA
-
-5. **归纳知识（experience.md）**：
-   - ~/.agent/[name]/experience.md
-   - 不是日志！是从经验归纳的知识
-   - 记录类型层的规律（如"订单需要库存验证"）
-   - 类似最佳实践文档，不是执行记录
+4. **个体知识（knowledge.md）**：
+   - ~/.agent/[name]/knowledge.md
+   - 包含Agent的独特能力和从经验归纳的知识
+   - 可进化：Agent可以修改自己的知识文件
+   - 可遗传：子Agent继承父Agent的knowledge.md
+   - 用章节组织不同类型的知识（如"## 核心能力"、"## 经验总结"）
 
 ### Agent间的共享机制
 **主观上Share Nothing，客观上Share工作目录**
@@ -120,13 +120,13 @@ Agent系统采用Event Sourcing模式管理知识和记忆：
 2. **客观共享（Share Working Directory）**：
    - 所有Agent共享工作目录：`pim-compiler/react_is_all_you_need/`
    - 通过工作目录中的文件系统实现隐式通信
-   - 每个Agent的agent_knowledge.md和experience.md独立存储在各自Home目录
+   - 每个Agent的knowledge.md独立存储在各自Home目录
    - 工作目录像"办公室"，Home目录像"个人住所"
 
 3. **共享效果**：
    - Agent A在工作目录的输出成为Agent B的输入
    - 知识通过工作目录传播，无需显式同步
-   - 每个Agent维护自己的DNA（agent_knowledge.md）、经验（experience.md）和历史（compact.md）
+   - 每个Agent维护自己的知识（knowledge.md）和历史（compact.md）
    - 实现了"联邦式"的协作：独立但互通
 
 ### 知识传递链
@@ -137,8 +137,7 @@ Agent系统采用Event Sourcing模式管理知识和记忆：
    - 工作目录中的共享文件
 
 2. **各个Agent** 知道：
-   - `~/.agent/[自己]/agent_knowledge.md` - 自己的DNA（能力定义）
-   - `~/.agent/[自己]/experience.md` - 自己的经验积累
+   - `~/.agent/[自己]/knowledge.md` - 自己的知识（能力+经验）
    - `~/.agent/[自己]/compact.md` - 自己的过程记录
    - `./knowledge/*.md` - 工作目录中的领域知识
    - 工作目录中的共享文件
@@ -151,26 +150,26 @@ Agent系统采用Event Sourcing模式管理知识和记忆：
    - 创建自己的Home目录：`~/.agent/[子agent名]/`
 
 ### 重要原则
-1. **三层知识分离**：agent_knowledge.md存能力，experience.md存经验，compact.md存过程
+1. **两层知识分离**：knowledge.md存知识（能力+经验），compact.md存过程
 2. **Home目录独立**：每个Agent有独立的Home目录（`~/.agent/[agent名]/`）
 3. **工作目录共享**：通过共享工作目录实现Agent间协作
 4. **知识隔离**：CLAUDE.md是用户私有配置，Agent不应直接访问
 5. **Event Sourcing**：所有变化都是事件，状态是事件的累积
 6. **联邦式架构**：每个Agent独立管理自己的状态，通过工作目录互通
 
-### DNA进化机制
-Agent具备自主进化能力，通过修改agent_knowledge.md实现能力进化：
+### 知识进化机制
+Agent具备自主进化能力，通过修改knowledge.md实现能力进化：
 
 1. **学习到进化的路径**：
-   - 经验积累 → experience.md（短期记忆）
+   - 经验积累 → 记录在knowledge.md的经验章节
    - 经验总结 → 提炼出模式和规律
-   - 能力进化 → 修改agent_knowledge.md（长期能力）
-   - 遗传传递 → 子Agent继承父Agent的agent_knowledge.md
+   - 能力进化 → 更新knowledge.md的能力章节
+   - 遗传传递 → 子Agent继承父Agent的knowledge.md
 
 2. **进化触发**：
-   - 创建外部工具 → 更新agent_knowledge.md添加新能力
-   - 学习新算法 → 将算法写入agent_knowledge.md
-   - 优化决策逻辑 → 修改agent_knowledge.md的决策规则
+   - 创建外部工具 → 更新knowledge.md添加新能力
+   - 学习新算法 → 将算法写入knowledge.md
+   - 优化决策逻辑 → 修改knowledge.md的决策规则
 
 3. **进化原则**：
    - 自主决定：Agent自己决定何时进化

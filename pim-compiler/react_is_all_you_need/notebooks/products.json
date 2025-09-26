@@ -1,0 +1,32 @@
+[
+  {
+    "product_id": "PROD001",
+    "name": "iPhone 15",
+    "price": 5999,
+    "stock_status": "充足"
+  },
+  {
+    "product_id": "PROD002",
+    "name": "MacBook Pro",
+    "price": 12999,
+    "stock_status": "充足"
+  },
+  {
+    "product_id": "PROD003",
+    "name": "AirPods Pro",
+    "price": 1899,
+    "stock_status": "不足"
+  },
+  {
+    "product_id": "PROD004",
+    "name": "iPad Air",
+    "price": 4799,
+    "stock_status": "充足"
+  },
+  {
+    "product_id": "PROD005",
+    "name": "iPhone 15",
+    "price": 5999,
+    "stock_status": "充足"
+  }
+]

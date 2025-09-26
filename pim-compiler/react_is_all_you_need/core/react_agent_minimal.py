@@ -89,7 +89,7 @@ class ReactAgentMinimal(Function):
         }
     }
     
-    def __init__(self, 
+    def __init__(self,
                  work_dir: str,
                  name: str = "react_agent",
                  description: str = "React Agent - 能够思考和使用工具的智能代理",
@@ -101,6 +101,7 @@ class ReactAgentMinimal(Function):
                  max_rounds: int = 100,
                  knowledge_files: Optional[List[str]] = None,
                  stateful: bool = True,  # 新增：是否保持状态
+                 _from_load: bool = False,  # 内部参数：是否从load方法创建
 ):
         """
         初始化极简Agent
@@ -136,11 +137,22 @@ class ReactAgentMinimal(Function):
         self.return_type = return_type
         self.work_dir = Path(work_dir)
         self.work_dir.mkdir(parents=True, exist_ok=True)
-        
+
+        # 模型简写映射
+        model_shortcuts = {
+            "kimi": "kimi-k2-turbo-preview",
+            "grok": "x-ai/grok-code-fast-1",
+            "claude": "anthropic/claude-sonnet-4"
+        }
+        # 如果是简写，转换为完整模型名
+        if model in model_shortcuts:
+            model = model_shortcuts[model]
+
         self.model = model
         self.max_rounds = max_rounds
         self.stateful = stateful  # 保存状态标志
         self.interceptor = None  # 拦截器钩子，可选功能
+        self.children = []  # 子Agent列表（金字塔结构）
 
         # 移除LLM策略，保持简洁
         
@@ -209,39 +221,60 @@ class ReactAgentMinimal(Function):
         if learning_functions.exists() and str(learning_functions) not in self.knowledge_files:
             self.knowledge_files.append(str(learning_functions))
 
+        # 默认加载agent_essence知识，让每个Agent理解自己的本质
+        agent_essence = knowledge_dir / "minimal" / "agent_essence.md"
+        if agent_essence.exists() and str(agent_essence) not in self.knowledge_files:
+            self.knowledge_files.append(str(agent_essence))
+
         # Home目录: ~/.agent/[agent名]/
         agent_home = Path.home() / ".agent" / self.name
         agent_home.mkdir(parents=True, exist_ok=True)  # 确保home目录存在
 
         # 三层知识体系：
         # 1. 共享知识（knowledge/*.md）- 已在上面加载
-        # 2. 个体DNA（agent_knowledge.md）- 可进化的能力定义
-        agent_knowledge = agent_home / "agent_knowledge.md"
-        if agent_knowledge.exists() and str(agent_knowledge) not in self.knowledge_files:
-            self.knowledge_files.append(str(agent_knowledge))
-            print(f"  ✅ 加载个体DNA: {agent_knowledge}")
+        # 2. 统一的知识文件（knowledge.md）- 能力+经验
+        knowledge = agent_home / "knowledge.md"
+        if knowledge.exists() and str(knowledge) not in self.knowledge_files:
+            self.knowledge_files.append(str(knowledge))
+            # 不在这里打印，统一在_load_all_knowledge_files中打印
         else:
-            # 创建初始agent_knowledge.md
-            if not agent_knowledge.exists():
-                agent_knowledge.write_text(f"# {self.name} 能力定义\n\n创建时间: {datetime.now().isoformat()}\n\n## 我的能力\n\n## 决策逻辑\n\n", encoding='utf-8')
-                print(f"  🧬 创建个体DNA: {agent_knowledge}")
+            # 迁移旧文件到新格式
+            agent_knowledge = agent_home / "agent_knowledge.md"
+            experience = agent_home / "experience.md"
 
-        # 3. 个体经验（experience.md）- 运行时学习的经验
-        experience = agent_home / "experience.md"
-        if experience.exists() and str(experience) not in self.knowledge_files:
-            self.knowledge_files.append(str(experience))
-            print(f"  ✅ 加载经验记录: {experience}")
-        else:
-            # 创建初始experience.md
-            if not experience.exists():
-                experience.write_text(f"# {self.name} 经验积累\n\n创建时间: {datetime.now().isoformat()}\n\n## 运行时学习的经验\n\n", encoding='utf-8')
-                print(f"  📚 创建经验记录: {experience}")
+            if not knowledge.exists():
+                # 如果旧文件存在，合并它们
+                if agent_knowledge.exists() or experience.exists():
+                    content = f"# {self.name} 知识\n\n创建时间: {datetime.now().isoformat()}\n\n"
 
-        # 加载compact.md（如果存在）
-        compact_md = agent_home / "compact.md"
-        if compact_md.exists() and str(compact_md) not in self.knowledge_files:
-            self.knowledge_files.append(str(compact_md))
-            print(f"  ✅ 加载过程记录: {compact_md}")
+                    if agent_knowledge.exists():
+                        content += "## 核心能力\n\n"
+                        content += agent_knowledge.read_text(encoding='utf-8').replace(f"# {self.name} 能力定义", "").strip()
+                        content += "\n\n"
+
+                    if experience.exists():
+                        content += "## 经验总结\n\n"
+                        content += experience.read_text(encoding='utf-8').replace(f"# {self.name} 经验积累", "").strip()
+                        content += "\n\n"
+
+                    knowledge.write_text(content, encoding='utf-8')
+                    print(f"  🔄 已合并旧知识文件到: {knowledge}")
+
+                    # 删除旧文件
+                    if agent_knowledge.exists():
+                        agent_knowledge.unlink()
+                    if experience.exists():
+                        experience.unlink()
+                else:
+                    # 创建新的知识文件
+                    knowledge.write_text(
+                        f"# {self.name} 知识\n\n创建时间: {datetime.now().isoformat()}\n\n"
+                        f"## 核心能力\n\n## 决策逻辑\n\n## 经验总结\n\n",
+                        encoding='utf-8'
+                    )
+                    print(f"  📚 创建统一知识文件: {knowledge}")
+
+        # compact.md不作为知识文件加载，只作为压缩记忆使用
 
         # 🎯 初始化拦截器系统
         # 1. 系统拦截器（最高优先级）
@@ -265,21 +298,28 @@ class ReactAgentMinimal(Function):
         self.notes_dir = self.agent_home  # 兼容旧代码
         
         # 总是创建agent_home目录（即使在minimal模式下也需要）
-        # 因为TodoTool需要在这里保存task_process文件
+        # 创建Agent的home目录
         self.agent_home.mkdir(parents=True, exist_ok=True)
             
-        # 三层知识体系文件路径
-        self.agent_knowledge_file = self.agent_home / "agent_knowledge.md"  # 个体DNA
-        self.experience_file = self.agent_home / "experience.md"  # 运行时经验
-        self.task_process_file = self.agent_home / f"task_process_{self.work_dir.name}.md"
+        # 知识文件路径（简化为单一文件）
+        self.knowledge_file = self.agent_home / "knowledge.md"  # 统一的知识文件（能力+经验）
+        # 保留旧路径以便迁移
+        self.agent_knowledge_file = self.agent_home / "agent_knowledge.md"  # 即将废弃
+        self.experience_file = self.agent_home / "experience.md"  # 即将废弃
+        # task_process_file 已废弃，ExecutionContext 现在只存在于内存中
         self.world_state_file = self.agent_home / "world_state.md"
         self.notes_file = self.notes_dir / "session_notes.md"  # 兼容性
         
         # 创建Function实例（包括工具和Agent）
         self.function_instances = self._create_function_instances()
+
+        # 将Agent自己添加到functions列表（元认知：自己调用自己）
+        # 注意：只暴露特定的自我管理方法，避免递归调用execute
+        self._add_self_management_functions()
+
         # 生成函数定义（用于API调用）
         self.functions = [func.to_openai_function() for func in self.function_instances]
-        
+
         # sessions_dir已废弃，不再需要
         
         # 自动加载记忆文件（基础设施保证）
@@ -301,15 +341,16 @@ class ReactAgentMinimal(Function):
                 })
                 print(f"  ✨ 已加载Compact记忆到消息列表")
         
-        # 显示初始化信息
-        print(f"🚀 极简Agent已初始化 [{self.agent_name}]")
-        print(f"  📍 API: {self._detect_service()}")
-        print(f"  🤖 模型: {self.model}")
-        print(f"  🧠 Compact记忆: 70k tokens触发压缩")
-        print(f"  ⚡ Compact记忆替代文件系统")
-        if self.knowledge_files:
-            print(f"  📚 知识文件: {len(self.knowledge_files)}个")
-        print(f"  ✨ Compact即注意力机制")
+        # 显示初始化信息（延迟到load方法，避免混淆）
+        if not _from_load:  # 只在非load创建时显示
+            print(f"🚀 极简Agent已初始化 [{self.agent_name}]")
+            print(f"  📍 API: {self._detect_service()}")
+            print(f"  🤖 模型: {self.model}")
+            print(f"  🧠 Compact记忆: 70k tokens触发压缩")
+            print(f"  ⚡ Compact记忆替代文件系统")
+            if self.knowledge_files:
+                print(f"  📚 知识文件: {len(self.knowledge_files)}个")
+            print(f"  ✨ Compact即注意力机制")
     
     def _auto_load_memory(self) -> None:
         """自动加载记忆文件"""
@@ -321,13 +362,53 @@ class ReactAgentMinimal(Function):
         """
         执行任务 - 实现Function接口
 
+        特殊处理：如果是self_management调用，执行相应的自我管理方法。
+
         Args:
-            **kwargs: 包含task参数
+            **kwargs: 包含task参数或method/args参数
 
         Returns:
             任务结果
         """
-        # 从kwargs中提取task参数
+        # 检查是否是self_management调用
+        if "method" in kwargs:
+            method_name = kwargs["method"]
+            method_args = kwargs.get("args", {})
+
+            # 调用相应的方法
+            if method_name == "update_description":
+                return self.update_description(method_args.get("new_description", ""))
+            elif method_name == "get_status":
+                return self.get_status()
+            elif method_name == "update_knowledge":
+                return self.update_knowledge(method_args.get("content", ""))
+            elif method_name == "update_agent_knowledge":
+                return self.update_agent_knowledge()
+            elif method_name == "switch_model":
+                model = method_args.get("model", "")
+                old_model = self.model
+                self.switch_model(model)
+                # 保存状态
+                self._auto_save_state()
+                return f"✅ 模型已切换\n从: {old_model}\n到: {self.model}\nAPI: {self.base_url}"
+            elif method_name == "change_work_dir":
+                new_work_dir = method_args.get("new_work_dir", "")
+                if not new_work_dir:
+                    return "错误：change_work_dir方法需要new_work_dir参数"
+                return self.change_work_dir(new_work_dir)
+            elif method_name == "get_work_dir":
+                return self.get_work_dir()
+            elif method_name == "execute":
+                # 递归调用execute，但这次用task参数
+                task = method_args.get("task", "")
+                if not task:
+                    return "错误：execute方法需要task参数"
+                # 注意：这里直接传递task，不再传method/args
+                return self.execute(task=task)
+            else:
+                return f"错误：未知的方法 {method_name}"
+
+        # 普通任务执行
         task = kwargs.get("task", "")
         if not task:
             return "错误：未提供任务描述"
@@ -744,7 +825,7 @@ class ReactAgentMinimal(Function):
     
     def _create_function_instances(self) -> List[Function]:
         """创建Function实例（包括工具和Agent）"""
-        # 导入ExecutionContext（原TodoTool）
+        # 导入ExecutionContext（任务管理，只在内存中）
         from tools.execution_context import ExecutionContext
         
         # 基础工具集
@@ -800,10 +881,31 @@ class ReactAgentMinimal(Function):
 
         return tools
     
-    def _switch_model(self, new_model: str) -> None:
-        """切换模型并更新API配置"""
+    def switch_model(self, new_model: str, silent: bool = False) -> None:
+        """切换模型并更新API配置
+
+        支持的简写：
+        - 'kimi' -> 'kimi-k2-turbo-preview'
+        - 'grok' -> 'x-ai/grok-code-fast-1'
+        - 'claude' -> 'anthropic/claude-sonnet-4'
+
+        Args:
+            new_model: 新模型名称或简写
+            silent: 是否静默切换（不打印信息）
+        """
+        # 模型简写映射
+        model_shortcuts = {
+            "kimi": "kimi-k2-turbo-preview",
+            "grok": "x-ai/grok-code-fast-1",
+            "claude": "anthropic/claude-3.5-sonnet"
+        }
+
+        # 如果是简写，转换为完整模型名
+        if new_model in model_shortcuts:
+            new_model = model_shortcuts[new_model]
+
         self.model = new_model
-        
+
         # 根据新模型更新API配置
         if "kimi" in new_model.lower() or "moonshot" in new_model.lower():
             self.api_key = os.getenv("MOONSHOT_API_KEY")
@@ -812,6 +914,9 @@ class ReactAgentMinimal(Function):
             self.api_key = os.getenv("DEEPSEEK_API_KEY")
             self.base_url = "https://api.deepseek.com/v1"
         elif "x-ai/grok" in new_model.lower():  # Grok模型通过OpenRouter
+            self.api_key = os.getenv("OPENROUTER_API_KEY")
+            self.base_url = "https://openrouter.ai/api/v1"
+        elif "anthropic/" in new_model.lower():  # Claude模型通过OpenRouter
             self.api_key = os.getenv("OPENROUTER_API_KEY")
             self.base_url = "https://openrouter.ai/api/v1"
         elif "/" in new_model:  # 其他OpenRouter模型格式
@@ -828,9 +933,9 @@ class ReactAgentMinimal(Function):
             for tool in self.function_instances:  # 查找对应的function实例
                 if tool.name == tool_name:
                     return tool.execute(**arguments)
-            
+
             return f"未知工具: {tool_name}"
-                
+
         except Exception as e:
             return f"工具执行错误: {str(e)}"
     
@@ -953,23 +1058,88 @@ class ReactAgentMinimal(Function):
     def to_openai_function(self) -> Dict:
         """
         转换为OpenAI function calling格式
-        使Agent可以作为工具被其他Agent调用
-        
+
+        特殊处理：如果是Agent自己，只暴露安全的自我管理方法，
+        避免危险的递归调用（如execute）。
+
         Returns:
             OpenAI格式的函数定义
         """
-        return {
-            "type": "function",
-            "function": {
-                "name": self.name,
-                "description": self.description,
-                "parameters": {
-                    "type": "object",
-                    "properties": self.parameters,
-                    "required": []  # Grok可能对required字段敏感，先设为空数组
+        # ReactAgentMinimal实例返回特殊格式，暴露所有方法
+        if isinstance(self, ReactAgentMinimal):
+            # 这是Agent自己，暴露所有主要方法
+            return {
+                "type": "function",
+                "function": {
+                    "name": self.name,
+                    "description": f"{self.description} - 可调用管理方法进行自我管理",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "method": {
+                                "type": "string",
+                                "enum": [
+                                    "execute",
+                                    "update_description",
+                                    "get_status",
+                                    "update_knowledge",
+                                    "update_agent_knowledge",
+                                    "switch_model",
+                                    "change_work_dir",
+                                    "get_work_dir"
+                                ],
+                                "description": "要调用的方法名"
+                            },
+                            "args": {
+                                "type": "object",
+                                "description": "方法参数。execute需要task参数；update_description需要new_description参数；switch_model需要model参数；update_knowledge需要content参数；change_work_dir需要new_work_dir参数；update_agent_knowledge和get_work_dir不需要参数",
+                                "properties": {
+                                    "task": {
+                                        "type": "string",
+                                        "description": "要执行的任务（仅用于execute方法）"
+                                    },
+                                    "new_description": {
+                                        "type": "string",
+                                        "description": "新的description（仅用于update_description方法）"
+                                    },
+                                    "model": {
+                                        "type": "string",
+                                        "description": "新的模型名称，如'kimi'、'grok'、'claude'等（仅用于switch_model方法）"
+                                    },
+                                    "new_work_dir": {
+                                        "type": "string",
+                                        "description": "新的工作目录路径（仅用于change_work_dir方法）"
+                                    },
+                                    "content": {
+                                        "type": "string",
+                                        "description": "要添加的知识内容（仅用于update_knowledge方法）"
+                                    },
+                                    "operation": {
+                                        "type": "string",
+                                        "enum": ["append", "replace"],
+                                        "description": "知识操作类型（仅用于update_knowledge方法）"
+                                    }
+                                }
+                            }
+                        },
+                        "required": ["method"]
+                    }
                 }
             }
-        }
+        else:
+            # 普通Function或其他Agent，使用原有逻辑
+            return {
+                "type": "function",
+                "function": {
+                    "name": self.name,
+                    "description": self.description,
+                    "parameters": {
+                        "type": "object",
+                        "properties": self.parameters,
+                        "required": []  # Grok可能对required字段敏感，先设为空数组
+                    }
+                }
+            }
     
     def _count_tokens(self, messages: List[Dict]) -> int:
         """估算消息列表的token数"""
@@ -1124,10 +1294,12 @@ class ReactAgentMinimal(Function):
                 "name": self.name,
                 "description": self.description,  # 保存Agent描述
                 "model": self.model,  # 保存使用的LLM模型
+                "work_dir": str(self.work_dir),  # 保存工作目录
                 "messages": self.messages,
                 "compact_memory": self.compact_memory,
                 "timestamp": datetime.now().isoformat(),
-                "task_count": getattr(self, '_task_count', 0) + 1
+                "task_count": getattr(self, '_task_count', 0) + 1,
+                "children": self.children  # 保存子Agent列表（金字塔结构）
             }
 
             # 保存到home目录
@@ -1354,6 +1526,9 @@ Agent描述（注意力框架）：
             except:
                 pass  # 如果配置文件损坏，忽略
 
+        # 设置标记，避免在__init__中显示信息
+        kwargs['_from_load'] = True
+
         # 创建Agent（__init__会自动加载home目录中的文件）
         agent = cls(
             work_dir=work_dir,
@@ -1363,10 +1538,19 @@ Agent描述（注意力框架）：
 
         # 尝试恢复状态
         state_file = home / "state.json"
+        state_restored = False
         if state_file.exists():
             try:
                 import json
                 state = json.loads(state_file.read_text())
+                # 恢复工作目录（如果保存了的话）
+                if "work_dir" in state and work_dir == ".":
+                    # 只有在没有显式指定work_dir时才使用保存的值
+                    agent.work_dir = Path(state["work_dir"])
+                # 恢复模型设置（如果保存了的话）
+                if "model" in state:
+                    # 恢复之前切换的模型
+                    agent.switch_model(state["model"], silent=True)  # 静默切换，不打印
                 # 恢复消息历史
                 if "messages" in state and isinstance(state["messages"], list):
                     # 保留系统提示词，添加历史消息
@@ -1377,11 +1561,231 @@ Agent描述（注意力框架）：
                 # 恢复compact记忆
                 if "compact_memory" in state:
                     agent.compact_memory = state["compact_memory"]
-                print(f"  📂 已从home目录恢复状态")
+                # 恢复description（接口定义）
+                if "description" in state:
+                    agent.description = state["description"]
+                # 恢复子Agent列表（金字塔结构）
+                if "children" in state:
+                    agent.children = state["children"]
+                state_restored = True
             except:
                 pass  # 状态文件损坏，使用新状态
 
+        # 显示实际的初始化信息
+        print(f"🚀 极简Agent已加载 [{agent.name}]")
+        print(f"  📍 API: {agent._detect_service()}")
+        print(f"  🤖 模型: {agent.model}")  # 显示实际使用的模型
+        print(f"  🧠 Compact记忆: 70k tokens触发压缩")
+        print(f"  ⚡ Compact记忆替代文件系统")
+        if agent.knowledge_files:
+            print(f"  📚 知识文件: {len(agent.knowledge_files)}个")
+        print(f"  ✨ Compact即注意力机制")
+        if state_restored:
+            print(f"  📂 已从home目录恢复状态")
+
+        # 级联加载子Agent（金字塔结构）
+        if agent.children:
+            print(f"  👶 子Agent: {len(agent.children)}个")
+            print(f"     级联加载中...")
+            for child_name in agent.children:
+                try:
+                    # 递归加载子Agent
+                    child_agent = cls.load(child_name)
+                    # 将子Agent添加到父Agent的工具列表
+                    agent.add_function(child_agent)
+                    print(f"     ✅ {child_name} 已加载并添加为工具")
+                except Exception as e:
+                    print(f"     ⚠️ {child_name} 加载失败: {e}")
+
         return agent
+
+    def _add_self_management_functions(self) -> None:
+        """添加自我管理函数（元认知能力）
+
+        将Agent自己注册为工具，让Agent可以调用自己的所有方法。
+        这实现了真正的元认知：Agent可以调用自己。
+        """
+        # 将自己作为Function添加
+        self.function_instances.append(self)
+
+    # ========== 自我管理方法（暴露给Agent自己调用） ==========
+
+    def update_description(self, new_description: str) -> str:
+        """更新Agent的description（接口定义）"""
+        old = self.description
+        self.description = new_description
+        self._auto_save_state()
+        return f"✅ Description已更新\n从: {old}\n到: {new_description}"
+
+    def get_status(self) -> str:
+        """获取Agent当前状态"""
+        return f"""Agent状态:
+- 名称: {self.name}
+- 描述: {self.description}
+- 模型: {self.model}
+- 消息数: {len(self.messages)}
+- 工具数: {len(self.function_instances)}
+- Home目录: {self.agent_home}"""
+
+    def save_state(self) -> str:
+        """手动保存当前状态（内部使用，不暴露给Agent）"""
+        self._auto_save_state()
+        return "✅ 状态已保存到state.json"
+
+    def update_knowledge(self, content: str) -> str:
+        """更新knowledge.md（统一知识文件）"""
+        knowledge_file = self.agent_home / "knowledge.md"
+
+        # 读取现有内容
+        existing = ""
+        if knowledge_file.exists():
+            existing = knowledge_file.read_text()
+
+        # 追加新内容
+        from datetime import datetime
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M")
+        new_section = f"\n\n## {timestamp}\n{content}\n"
+
+        knowledge_file.write_text(existing + new_section)
+        return f"✅ 已更新knowledge.md，添加了{len(content)}字符"
+
+    def update_agent_knowledge(self) -> str:
+        """读取knowledge.md并重构系统提示词
+
+        工作流程：
+        1. 用户和Agent多轮讨论，直接编辑~/.agent/[name]/knowledge.md
+        2. 用户满意后，告诉Agent更新
+        3. Agent调用此方法读取文件，重构系统提示词
+
+        Returns:
+            更新结果描述
+        """
+        knowledge_file = self.agent_home / "knowledge.md"
+
+        # 检查文件是否存在
+        if not knowledge_file.exists():
+            return f"❌ 文件不存在: {knowledge_file}"
+
+        # 读取文件内容
+        try:
+            content = knowledge_file.read_text(encoding='utf-8')
+            file_size = len(content)
+        except Exception as e:
+            return f"❌ 读取文件失败: {e}"
+
+        # 重新加载知识到系统消息
+        self._reload_system_prompt()
+
+        # 记录更新
+        from datetime import datetime
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        return f"""✅ 已重新加载agent_knowledge.md并重构系统提示词
+时间: {timestamp}
+文件: {knowledge_file}
+大小: {file_size}字符
+状态: 系统提示词已更新，新知识已生效"""
+
+    def change_work_dir(self, new_work_dir: str) -> str:
+        """更改Agent的工作目录
+
+        Args:
+            new_work_dir: 新的工作目录路径
+
+        Returns:
+            更改结果描述
+        """
+        # 验证新目录
+        new_path = Path(new_work_dir).expanduser().resolve()
+
+        # 检查目录是否存在
+        if not new_path.exists():
+            try:
+                new_path.mkdir(parents=True, exist_ok=True)
+                created = True
+            except Exception as e:
+                return f"❌ 无法创建目录 {new_path}: {e}"
+        else:
+            created = False
+            if not new_path.is_dir():
+                return f"❌ 路径存在但不是目录: {new_path}"
+
+        # 保存旧目录
+        old_work_dir = self.work_dir
+
+        # 更新工作目录
+        self.work_dir = new_path
+
+        # 保存状态
+        self._auto_save_state()
+
+        # 返回结果
+        status = "✅ 工作目录已更改"
+        if created:
+            status += "（已创建新目录）"
+
+        return f"""{status}
+从: {old_work_dir}
+到: {new_path}
+当前位置: {new_path}"""
+
+    def get_work_dir(self) -> str:
+        """获取当前工作目录
+
+        Returns:
+            当前工作目录的完整路径
+        """
+        return f"""📂 当前工作目录
+路径: {self.work_dir}
+绝对路径: {Path(self.work_dir).resolve()}
+存在: {'✅ 是' if Path(self.work_dir).exists() else '❌ 否'}"""
+
+    def _reload_system_prompt(self) -> None:
+        """重新加载系统提示词，包括更新后的knowledge.md"""
+        # 重新读取所有知识文件
+        knowledge_content = []
+
+        # 1. 加载统一的知识文件（knowledge.md）
+        knowledge_file = self.agent_home / "knowledge.md"
+        if knowledge_file.exists():
+            content = knowledge_file.read_text()
+            if content.strip():
+                knowledge_content.append(f"## 你的知识\n{content}")
+
+        # 3. 加载知识文件（如果有）
+        if self.knowledge_files:
+            for kf in self.knowledge_files:
+                try:
+                    kf_path = Path(kf)
+                    if not kf_path.exists():
+                        # 尝试在knowledge目录查找
+                        kf_path = Path(__file__).parent.parent / "knowledge" / kf
+
+                    if kf_path.exists():
+                        content = kf_path.read_text()
+                        knowledge_content.append(f"## 知识文件: {kf_path.name}\n{content}")
+                except Exception as e:
+                    print(f"  ⚠️ 无法加载知识文件 {kf}: {e}")
+
+        # 更新系统消息
+        if knowledge_content:
+            # 找到系统消息并更新
+            for i, msg in enumerate(self.messages):
+                if msg.get("role") == "system":
+                    # 保留基础系统提示，追加知识内容
+                    base_prompt = f"""你是{self.name}，一个基于React模式的智能Agent。
+你的描述：{self.description}
+
+工作目录：{self.work_dir}"""
+
+                    # 组合完整的系统提示
+                    full_prompt = base_prompt + "\n\n" + "\n\n".join(knowledge_content)
+                    self.messages[i]["content"] = full_prompt
+                    break
+
+        # 自动保存状态
+        self._auto_save_state()
+
 
     def cleanup(self) -> None:
         """清理资源"""

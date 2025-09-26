@@ -1,7 +1,7 @@
-# 条件反射模式
+# 符号接口直通模式
 
 ## 核心理念
-像生物的条件反射一样，某些模式化的输入可以直接触发响应，无需经过"大脑"（LLM）的复杂推理。
+某些结构化的输入（JSON、SQL等）可以通过符号主义接口直接路由到对应工具，无需经过连接主义接口（LLM）的语义理解。
 
 ## 实现机制
 
@@ -10,7 +10,7 @@
 
 ```python
 def preprocess_input(self, user_input: str):
-    """输入预处理 - 条件反射检查"""
+    """输入预处理 - 符号接口检测"""
 
     # JSON模式检测
     if self._is_json_command(user_input):
@@ -46,13 +46,13 @@ SELECT * FROM orders WHERE status='pending'
 # 不经过LLM
 ```
 
-### 3. 条件反射注册
+### 3. 符号接口注册
 
-Agent可以学习并注册新的条件反射：
+Agent可以学习并注册新的符号接口映射：
 
 ```python
 # 在personal_knowledge.md中记录
-conditional_reflexes:
+symbolic_interfaces:
   - pattern: '{"action": "inventory_*"}'
     handler: inventory_tool.py
   - pattern: 'SELECT * FROM'
@@ -76,7 +76,7 @@ conditional_reflexes:
 3. **认知负载降低**
    - LLM专注复杂任务
    - 简单任务自动处理
-   - 类似人类的"肌肉记忆"
+   - 类似编程语言的直接编译
 
 ## 实现建议
 
@@ -85,7 +85,7 @@ conditional_reflexes:
 
 ```python
 def run(self, task: str):
-    # 条件反射检查
+    # 符号接口检查
     if task.strip().startswith('{'):
         try:
             cmd = json.loads(task)
@@ -103,9 +103,9 @@ def run(self, task: str):
 在知识文件中定义反射规则：
 
 ```markdown
-## 条件反射规则
+## 符号接口映射规则
 
-当输入匹配以下模式时，直接执行对应动作：
+当输入匹配以下结构化模式时，直接通过符号接口执行：
 
 1. **JSON库存命令**
    - 模式: `{"action": "inventory_*", ...}`
@@ -135,8 +135,8 @@ def run(self, task: str):
 
 ### 第三阶段：自主学习
 - Agent观察自己的行为模式
-- 自动提取条件反射
-- 示例：发现总是用同样方式处理JSON，就注册为反射
+- 自动提取符号接口映射
+- 示例：发现总是用同样方式处理JSON，就注册为符号接口
 
 ## 注意事项
 
@@ -145,35 +145,35 @@ def run(self, task: str):
    - 保留LLM的灵活性
 
 2. **错误处理**
-   - 反射失败时降级到LLM
-   - 记录反射使用情况
+   - 符号接口失败时降级到连接主义接口（LLM）
+   - 记录接口使用情况
 
 3. **可解释性**
-   - 记录为什么触发反射
+   - 记录为什么选择符号接口
    - 便于调试和审计
 
-## 生物学启发
+## 计算范式层次
 
-人类认知的层次：
-1. **反射弧**（最快）：膝跳反射
-2. **条件反射**（快）：看到红灯停车
-3. **直觉**（中等）：模式识别
-4. **理性思考**（慢）：复杂推理
+接口调用的层次：
+1. **直接映射**（最快）：结构化数据 → 确定性函数
+2. **模式匹配**（快）：已知模式 → 预定义处理
+3. **语义理解**（中等）：自然语言 → 简单推理
+4. **深度推理**（慢）：复杂语义 → 多步推理
 
-Agent认知的对应：
-1. **硬编码反射**：JSON → Tool
-2. **学习的反射**：已知模式
-3. **快速推理**：简单LLM调用
-4. **深度推理**：复杂LLM + 工具链
+Agent接口的对应：
+1. **纯符号接口**：JSON → Tool（微秒级）
+2. **混合接口**：模式识别 + 执行（毫秒级）
+3. **简单连接接口**：单步LLM调用（秒级）
+4. **复杂连接接口**：LLM + 工具链（多秒级）
 
 ## 实现示例
 
 ```python
-class ConditionalReflex:
-    """条件反射处理器"""
+class SymbolicInterface:
+    """符号接口处理器"""
 
     def __init__(self):
-        self.reflexes = {
+        self.interfaces = {
             'json_inventory': (
                 lambda x: x.strip().startswith('{') and '"action"' in x and 'inventory' in x,
                 lambda x: f"python inventory_tool.py {json.loads(x)['action']} {json.loads(x).get('id', '')}"
@@ -185,8 +185,8 @@ class ConditionalReflex:
         }
 
     def process(self, input_str: str):
-        """尝试条件反射处理"""
-        for name, (matcher, handler) in self.reflexes.items():
+        """尝试符号接口处理"""
+        for name, (matcher, handler) in self.interfaces.items():
             if matcher(input_str):
                 return handler(input_str), name
         return None, None
@@ -194,9 +194,9 @@ class ConditionalReflex:
 
 ## 总结
 
-条件反射机制是Agent走向高效的关键一步：
-- **快速路径**处理模式化任务
-- **慢速路径**处理复杂推理
-- 两者结合实现**认知效率**最大化
+双接口机制是Agent走向高效的关键设计：
+- **符号接口**处理结构化任务（确定性计算）
+- **连接接口**处理语义任务（语义理解）
+- 两者结合实现**计算效率**最大化
 
-这不是过早优化，而是**认知架构**的必要组成部分。
+这不是过早优化，而是**双接口架构**的核心设计。

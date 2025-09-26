@@ -169,7 +169,7 @@ class WriteFileTool(Function):
             parameters={
                 "file_path": {
                     "type": "string",
-                    "description": "相对于工作目录的文件路径，如'app/main.py'。如果目录不存在会自动创建"
+                    "description": "文件路径（必须使用绝对路径，如'/home/user/project/app/main.py'或'~/project/app/main.py'）。如果目录不存在会自动创建"
                 },
                 "content": {
                     "type": "string",
@@ -206,7 +206,7 @@ class AppendFileTool(Function):
             parameters={
                 "file_path": {
                     "type": "string",
-                    "description": "相对于工作目录的文件路径，如'log.txt'、'data/output.md'。文件不存在会自动创建"
+                    "description": "文件路径（必须使用绝对路径，如'/home/user/project/log.txt'或'~/project/data/output.md'）。文件不存在会自动创建"
                 },
                 "content": {
                     "type": "string",

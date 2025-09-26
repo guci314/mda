@@ -1,0 +1,27 @@
+[
+  {
+    "product_id": "PROD001",
+    "price": 100,
+    "stock_status": "充足"
+  },
+  {
+    "product_id": "PROD002",
+    "price": 100,
+    "stock_status": "充足"
+  },
+  {
+    "product_id": "PROD003",
+    "price": 100,
+    "stock_status": "充足"
+  },
+  {
+    "product_id": "PROD004",
+    "price": 100,
+    "stock_status": "不足"
+  },
+  {
+    "product_id": "PROD005",
+    "price": 200,
+    "stock_status": "充足"
+  }
+]

@@ -1,0 +1,42 @@
+[
+  {
+    "customer_id": "CUST001",
+    "name": "李四",
+    "level": "VIP"
+  },
+  {
+    "customer_id": "CUST002",
+    "name": "王五",
+    "level": "普通会员"
+  },
+  {
+    "customer_id": "CUST003",
+    "name": "赵六",
+    "level": "非会员"
+  },
+  {
+    "customer_id": "CUST004",
+    "name": "孙七",
+    "level": "VIP"
+  },
+  {
+    "customer_id": "CUST005",
+    "name": "张三",
+    "level": "普通会员"
+  },
+  {
+    "customer_id": "CUST006",
+    "name": "谷词",
+    "level": "普通会员"
+  },
+  {
+    "customer_id": "CUST007",
+    "name": "刘亦菲",
+    "level": "普通会员"
+  },
+  {
+    "customer_id": "CUST008",
+    "name": "刘亦菲",
+    "level": "普通会员"
+  }
+]

@@ -1,4 +1,4 @@
-# 斜杠命令条件反射设计
+# 斜杠命令条件反射设计（极简版）
 
 ## 核心理念
 
@@ -13,39 +13,52 @@
                             直接执行工具
 ```
 
-## 实现设计
+## 极简实现
 
-### 1. 斜杠命令注册表
+### MinimalSlashInterceptor
+
+**核心思想**：
+- 无需注册表（slash_commands.json）
+- 直接扫描 `~/.agent/{name}/external_tools/` 目录
+- 文件名即命令名：`order_tool.py` → `/order_tool`
+- 支持带扩展名：`/order_tool.py` 也能工作
 
 ```python
-class SlashCommandRegistry:
-    """斜杠命令注册中心"""
+class MinimalSlashInterceptor:
+    """极简斜杠命令拦截器"""
 
-    def __init__(self, agent_home):
-        self.agent_home = Path(agent_home)
-        self.registry_file = self.agent_home / "slash_commands.json"
-        self.load_registry()
+    def __init__(self, agent_name: str):
+        self.agent_name = agent_name
+        self.tools_dir = Path(f"~/.agent/{agent_name}/external_tools").expanduser()
 
-    def load_registry(self):
-        """从文件加载注册表"""
-        if self.registry_file.exists():
-            self.commands = json.loads(self.registry_file.read_text())
-        else:
-            self.commands = {}
-            self.save_registry()
+    def intercept(self, message: str) -> Optional[str]:
+        """拦截斜杠命令，直接执行对应Python文件"""
+        if not message.startswith("/"):
+            return None
 
-    def register(self, command, tool_path, description):
-        """注册新命令"""
-        self.commands[command] = {
-            "tool": tool_path,
-            "description": description,
-            "created": datetime.now().isoformat()
-        }
-        self.save_registry()
+        # 解析命令：/inventory_manager list → inventory_manager.py list
+        parts = message[1:].split()
+        tool_name = parts[0]
 
-    def save_registry(self):
-        """保存注册表"""
-        self.registry_file.write_text(json.dumps(self.commands, indent=2))
+        # 处理文件扩展名（支持 /order_tool 和 /order_tool.py）
+        if '.' in tool_name:
+            tool_name = tool_name.split('.')[0]
+
+        # 构造完整路径
+        tool_path = self.tools_dir / f"{tool_name}.py"
+
+        if not tool_path.exists():
+            return None  # 不是工具命令，交给LLM处理
+
+        # 执行工具（条件反射）
+        result = subprocess.run(
+            ["python3", str(tool_path)] + parts[1:],
+            capture_output=True,
+            text=True,
+            timeout=10
+        )
+
+        return result.stdout.strip() if result.returncode == 0 else f"❌ {result.stderr}"
 ```
 
 ### 2. 条件反射拦截器

@@ -38,7 +38,10 @@ class MinimalSlashInterceptor:
         if not parts:
             return None
 
+        # 处理文件扩展名（支持 /order_tool 和 /order_tool.py）
         tool_name = parts[0]
+        if '.' in tool_name:
+            tool_name = tool_name.split('.')[0]  # 去掉扩展名
         args = parts[1:] if len(parts) > 1 else []
 
         # 构造完整路径：~/.agent/{agent_name}/external_tools/{tool_name}.py

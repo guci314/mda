@@ -99,27 +99,38 @@ compile_to_spring(agent)   # → Spring Cloud微服务
 - ADA：用Agent生成Spring Cloud（智能体造机器）
 - AIA：Agent直接工作（智能体就是系统）
 
-### 3.2 双神经系统架构
+### 3.2 双重架构维度
 
-**中枢神经系统 = 公司层级**：
+#### 组织维度：中枢 vs 植物神经系统
+
+**中枢神经系统 = 金字塔同步组织**：
 ```python
-class CorporateHierarchy:
-    """模仿人类公司的金字塔结构"""
+class HierarchicalOrganization:
+    """层级化的同步协调"""
     CEO → VP → Manager → Worker
-    # 深思熟虑的决策
+    # 同步决策链
     # 全局优化
     # 战略规划
 ```
 
-**植物神经系统 = 社区自组织**：
+**植物神经系统 = 网状异步组织**：
 ```python
-class CommunityNetwork:
-    """模仿人类社区的去中心化"""
-    市场交易 ⟷ 点对点服务
-    # 条件反射
-    # 自动响应
-    # 局部优化
+class NetworkOrganization:
+    """去中心化的异步协作"""
+    Agent ⟷ Agent ⟷ Agent
+    # 异步消息传递
+    # 局部自治
+    # 涌现行为
 ```
+
+#### 接口维度：连接主义 vs 符号主义
+
+**连接主义接口**：自然语言输入输出，语义理解
+**符号主义接口**：JSON/结构化数据，确定性计算
+
+这两个维度是**正交的**：
+- 金字塔组织可以用自然语言（CEO发指令）或JSON（API调用）
+- 网状组织也可以用自然语言（Agent对话）或JSON（消息队列）
 
 ### 3.3 为什么不需要Spring Cloud
 
@@ -141,16 +152,16 @@ ADA: Agent → 编译 → FastAPI/Spring → 生产环境
 AIA: Agent → 生产环境（Agent就是服务器）
 ```
 
-### 3.8 双轨执行机制
+### 3.8 双接口执行机制
 
 ```python
 class AIAProduction:
     def handle_request(self, request):
         if is_json(request):
-            # 80% 请求：符号主义快速路径
+            # 80% 请求：符号接口（确定性计算）
             return external_tool.execute(request)  # 微秒级
         else:
-            # 20% 请求：连接主义智能路径
+            # 20% 请求：连接接口（语义理解）
             return agent.execute(request)  # 毫秒级
 ```
 

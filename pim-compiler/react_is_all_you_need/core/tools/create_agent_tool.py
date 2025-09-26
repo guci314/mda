@@ -115,10 +115,8 @@ class CreateAgentTool(Function):
                 else:
                     processed_knowledge_files.append(kf)
             
-            # 生成唯一的agent名称
-            model_short = model.split('/')[-1].replace('-', '_')[:15]
-            timestamp = int(time.time() * 1000) % 100000
-            agent_name = f"{agent_type}_{model_short}_{timestamp}"
+            # 直接使用agent_type作为名称
+            agent_name = agent_type
             
             # 设置描述
             if not description:
@@ -167,7 +165,14 @@ class CreateAgentTool(Function):
             # 如果有父Agent，直接将新Agent添加到父Agent的工具列表
             if self.parent_agent:
                 self.parent_agent.append_tool(agent)
-                
+
+                # 记录父子关系（金字塔结构）
+                if hasattr(self.parent_agent, 'children'):
+                    if agent_name not in self.parent_agent.children:
+                        self.parent_agent.children.append(agent_name)
+                        # 立即保存状态，确保父子关系持久化
+                        self.parent_agent._auto_save_state()
+
                 inherit_msg = f"\n- 继承工具：{inherited_count}个" if inherited_count > 0 else ""
                 return f"""Agent创建成功并已添加到工具列表！
 - 名称：{agent_name}
