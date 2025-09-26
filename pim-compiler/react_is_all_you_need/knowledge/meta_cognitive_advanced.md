@@ -26,7 +26,7 @@
 #### 分析任务
 - **关键词**：analyze, understand, explain, review, investigate
 - **模型选择**：kimi-k2-turbo-preview（深度理解）
-- **知识配置**：structured_notes.md + agent_knowledge.md
+- **知识配置**：structured_notes.md + knowledge.md
 
 #### 搜索任务
 - **关键词**：search, find, locate, discover, explore
@@ -82,13 +82,13 @@ Agent命名应该反映其职责：
 # 读取失败Agent的笔记了解情况
 read_file(".notes/{agent_name}/task_process.md")
 read_file(".notes/{agent_name}/world_state.md") 
-read_file(".notes/{agent_name}/agent_knowledge.md")
+read_file(".notes/{agent_name}/knowledge.md")
 ```
 
 #### 步骤2：分析失败原因
 从笔记中寻找：
 - **阻塞点**：task_process.md中的"阻塞点"部分
-- **错误模式**：agent_knowledge.md中的"错误模式"部分
+- **错误模式**：knowledge.md中的"错误模式"部分
 - **异常状态**：world_state.md中的异常描述
 
 #### 步骤3：询问子Agent（如果还活跃）
@@ -155,13 +155,13 @@ validator = create_agent(type="validator", task="验证方案")
 当子Agent成功完成任务：
 ```python
 # 1. 读取成功Agent的知识
-knowledge = read_file(f".notes/{agent_name}/agent_knowledge.md")
+knowledge = read_file(f".notes/{agent_name}/knowledge.md")
 
 # 2. 提取有价值的模式
 patterns = extract_success_patterns(knowledge)
 
 # 3. 更新全局知识库
-append_to_file("knowledge/agent_knowledge.md", patterns)
+append_to_file("knowledge/knowledge.md", patterns)
 ```
 
 #### 失败教训记录

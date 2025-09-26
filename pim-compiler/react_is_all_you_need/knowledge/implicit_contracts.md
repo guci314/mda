@@ -15,8 +15,8 @@ Agent系统同样需要隐式契约，减少显式配置和文档。
 ```
 ~/.agent/[agent_name]/       # Agent的家（永恒不变）
 ├── state.json              # 当前状态（自动保存）
-├── agent_knowledge.md      # 能力定义（DNA）
-├── experience.md           # 经验积累（<10KB）
+├── knowledge.md      # 能力定义（DNA）
+├── knowledge.md的经验总结章节           # 经验积累（<10KB）
 ├── compact.md             # 压缩记忆
 └── temp/                  # 临时文件
 
@@ -107,12 +107,12 @@ nohup python run_agent.py &
 ```python
 # 隐式契约：子Agent继承父Agent的知识
 child = parent.create_agent(...)
-# 自动继承 agent_knowledge.md
+# 自动继承 knowledge.md
 ```
 
 ### 经验积累
 ```python
-# 隐式契约：experience.md < 10KB
+# 隐式契约：knowledge.md的经验总结章节 < 10KB
 # 超过自动压缩或归档
 ```
 

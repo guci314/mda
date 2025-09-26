@@ -3,7 +3,7 @@
 ## 核心认知：笔记即学习
 
 **关键洞察**：Agent的`.notes/`目录就是完整的学习系统！
-- `agent_knowledge.md` = 长期记忆（经验提炼）
+- `knowledge.md` = 长期记忆（经验提炼）
 - `task_process.md` = 工作记忆（执行过程）
 - `world_state.md` = 环境认知（世界模型）
 
@@ -60,7 +60,7 @@ Agent应该自动从task_process提炼模式到agent_knowledge：
 
 #### 第2层：模式识别
 ```markdown
-# agent_knowledge.md（自动提炼）
+# knowledge.md（自动提炼）
 ## Pydantic兼容性模式
 - **频率**：10次/任务
 - **模式**：Optional[str] → Union[str, None]
@@ -69,7 +69,7 @@ Agent应该自动从task_process提炼模式到agent_knowledge：
 
 #### 第3层：抽象原理
 ```markdown
-# agent_knowledge.md（深度提炼）
+# knowledge.md（深度提炼）
 ## API兼容性原理
 不同LLM API对类型的要求不同，需要适配层
 ```
@@ -171,7 +171,7 @@ agent_knowledge += new_patterns
 ### 1. 立即开始
 修改structured_notes.md，强化学习导向：
 ```markdown
-## agent_knowledge.md 生成规则
+## knowledge.md 生成规则
 - 必须包含"模式频率"统计
 - 必须包含"适用条件"判断
 - 必须包含"抽象原理"提炼

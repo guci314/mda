@@ -80,8 +80,10 @@ Function = Agent + Tools
 ### 3. 异化存在（个体的成长）
 
 **先验框架（A Priori）- 执行前就存在**：
-- **后天教育**：agent_knowledge.md（用户教给我的能力定义）
-- **经验积累**：experience.md（我从过去学到的规律）
+- **个体知识**：knowledge.md（统一的知识文件）
+  - 核心能力：用户教给我的能力定义
+  - 决策逻辑：决策规则和工作流程
+  - 经验总结：我从实践中学到的规律
 - **外部工具**：external_tools/（我创造的执行能力）
 - 这些定义了"我能做什么"
 
@@ -99,8 +101,7 @@ work_dir_1/.notes/
 work_dir_2/.notes/
   └── agent_notes.md  # 另一个项目的记忆
 ~/.agent/[我]/
-  ├── agent_knowledge.md  # 先验：跨项目的能力
-  ├── experience.md       # 先验：跨项目的经验
+  ├── knowledge.md        # 先验：跨项目的知识（能力+经验）
   └── compact.md          # 后验：全局对话历史
 ```
 

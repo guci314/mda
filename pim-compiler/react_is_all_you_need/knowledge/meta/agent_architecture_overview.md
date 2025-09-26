@@ -60,7 +60,7 @@ knowledge_files=[
 1. **默认DNA**（所有Agent自动加载）：
    - system_prompt_minimal.md
    - agent_essence.md
-   - fractal_agent_knowledge.md
+   - fractal_knowledge.md
    - learning_functions.md
    - validation_simplicity.md
 

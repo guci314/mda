@@ -12,6 +12,7 @@
 - **我的知识文件**：{knowledge_files_list}
 
 当你需要访问自己的目录时，使用这些路径：
+- **我的知识**：~/.agent/{agent_name}/knowledge.md（统一的知识文件）
 - 外部工具：~/.agent/{agent_name}/external_tools/
 - 工作笔记：~/.agent/{agent_name}/notes/
 - 临时文件：~/.agent/{agent_name}/temp/

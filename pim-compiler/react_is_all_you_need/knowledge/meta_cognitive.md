@@ -154,7 +154,7 @@ else:
 ```python
 base_knowledge = [
     "knowledge/structured_notes.md",  # 笔记系统
-    "knowledge/agent_knowledge.md",   # 基础知识
+    "knowledge/knowledge.md",   # 基础知识
 ]
 ```
 

@@ -49,7 +49,7 @@ process = process.replace("- [ ] 任务1", "- [x] 任务1")
 ### 🔄 状态文件（Read-Merge-Write）
 
 #### 1. Agent Knowledge（知识库）
-- **路径**: `.notes/{agent_name}/agent_knowledge.md`
+- **路径**: `.notes/{agent_name}/knowledge.md`
 - **模式**: **读取-整合-更新（Merge Update）**
 - **原则**:
   - ✅ 必须先读取现有知识
@@ -59,13 +59,13 @@ process = process.replace("- [ ] 任务1", "- [x] 任务1")
 - **示例**:
 ```python
 # ✅ 正确：整合式更新
-existing_knowledge = read_file("agent_knowledge.md")
+existing_knowledge = read_file("knowledge.md")
 new_patterns = extract_patterns(task_process)
 merged_knowledge = merge_knowledge(existing_knowledge, new_patterns)
-write_file("agent_knowledge.md", merged_knowledge)
+write_file("knowledge.md", merged_knowledge)
 
 # ❌ 错误：直接覆盖
-write_file("agent_knowledge.md", "全新的知识")  # 丢失历史！
+write_file("knowledge.md", "全新的知识")  # 丢失历史！
 ```
 
 #### 2. World State（世界状态）

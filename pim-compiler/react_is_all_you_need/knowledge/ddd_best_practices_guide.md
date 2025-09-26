@@ -56,7 +56,7 @@
 在DDD实践中，保持以下五个组件同步至关重要：
 1. **领域模型**（domain_model.md）：实体定义
 2. **服务模型**（service_model.md）：服务接口
-3. **Agent知识**（agent_knowledge.md）：能力描述
+3. **Agent知识**（knowledge.md）：能力描述
 4. **外部工具**（order_tool.py）：实现代码
 5. **接口描述**（description）：用户接口
 
@@ -98,11 +98,11 @@ def add_customer(name, level):
 ### 知识更新机制
 - **后天教育**：通过@memory记录用户教育
 - **自我学习**：通过@learning积累经验
-- **能力扩展**：创建新工具后更新agent_knowledge.md
+- **能力扩展**：创建新工具后更新knowledge.md
 
 **进化流程**：
 1. 获得新能力（如创建工具）
-2. 更新agent_knowledge.md定义新能力
+2. 更新knowledge.md定义新能力
 3. 更新description反映变化
 4. 验证一致性
 

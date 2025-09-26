@@ -32,7 +32,7 @@ Agent可以调用自己的方法进行自我管理：
 - 只有人类能判断什么改变是安全的
 - 这是防止"AI失控"的关键安全机制
 
-## 三层知识体系
+## 两层知识体系
 
 ### 1. 先验知识库（knowledge/*.md）
 - 所有可供选择的知识文件
@@ -41,25 +41,21 @@ Agent可以调用自己的方法进行自我管理：
 - 只读，不应修改
 - 位置：`pim-compiler/react_is_all_you_need/knowledge/`
 
-### 2. 后天教育（agent_knowledge.md）
-- **文件名必须是 `agent_knowledge.md`**
-- 每个Agent通过教育获得的独特知识
-- **两种来源**：
-  - 用户教育：通过 `@memory` 函数记录用户的直接教育
-  - 父Agent传承：创建时继承父Agent的教育内容
-- **可修改**：这是Agent成长的主要方式
-- **可传承**：子Agent可以继承父Agent的教育内容
-- **无容量限制**：重要教育永久保存
-- 位置：`~/.agent/[agent名]/agent_knowledge.md`
+### 2. 个体知识（knowledge.md）
+- **统一的知识文件**：包含能力定义和经验总结
+- **章节组织**：
+  - `## 核心能力` - Agent的独特能力（原 agent_knowledge）
+  - `## 决策逻辑` - 决策规则和模式
+  - `## 经验总结` - 从实践中学到的规律（原 experience）
+- **来源多样**：
+  - 用户教育：通过 `@memory` 函数记录
+  - 自我学习：通过 `@learning` 函数总结
+  - 父Agent传承：创建时继承父Agent的知识
+- **可进化**：Agent可以持续更新和完善
+- **可传承**：子Agent继承父Agent的knowledge.md
+- 位置：`~/.agent/[agent名]/knowledge.md`
 
-### 3. 经验积累（experience.md）
-- 通过 `@learning` 函数从实践中自我总结
-- 记录从实际执行中学到的规律和模式
-- **有容量限制**（10KB），实现自然遗忘
-- **纯粹的自我学习**：不包含用户教育内容
-- 位置：`~/.agent/[agent名]/experience.md`
-
-### 4. 外部工具（external_tools/）
+### 3. 外部工具（external_tools/）
 - **Agent的扩展能力**：独立的可执行脚本
 - **位置**：`~/.agent/[agent名]/external_tools/`
 - **文件类型**：
@@ -76,8 +72,7 @@ Agent可以调用自己的方法进行自我管理：
 
 ```
 ~/.agent/[agent名]/              # Agent的家（Home目录）
-├── agent_knowledge.md          # 我的能力定义（可进化）
-├── experience.md              # 我的经验积累
+├── knowledge.md               # 我的知识（能力+经验）
 ├── compact.md                 # 我的对话记忆（自动压缩）
 ├── state.json                 # 我的运行状态
 ├── output.log                 # 我的执行日志
@@ -102,24 +97,24 @@ Agent可以调用自己的方法进行自我管理：
 ```
 出生：继承DNA（4个核心文件）
     ↓
-成长路径1：用户教育（@memory → agent_knowledge.md）
+成长路径1：用户教育（@memory → knowledge.md）
     ↓
-成长路径2：自我学习（@learning → experience.md）
+成长路径2：自我学习（@learning → knowledge.md）
     ↓
 成长路径3：创建工具（→ external_tools/）
     ↓
-传承：子Agent继承教育内容（agent_knowledge.md）
+传承：子Agent继承知识（knowledge.md）
 ```
 
 ### 函数与文件的对应关系
-- **@memory()** → **agent_knowledge.md**（用户教育，后天教育）
-- **@learning()** → **experience.md**（自我学习，经验积累）
+- **@memory()** → **knowledge.md**（用户教育，更新核心能力章节）
+- **@learning()** → **knowledge.md**（自我学习，更新经验总结章节）
 
 ### 🚫 安全边界
 
 **Agent可以做的**：
-✅ 修改自己的 agent_knowledge.md（后天教育）
-✅ 通过 @learning 积累 experience.md（经验）
+✅ 修改自己的 knowledge.md（统一知识文件）
+✅ 通过 @memory 和 @learning 更新不同章节
 ✅ 教育子Agent（传递knowledge）
 
 **Agent绝对不能做的**：
@@ -133,9 +128,11 @@ Agent可以调用自己的方法进行自我管理：
 详细的先验层/后验层架构说明见agent_essence.md第二章。
 简要说明：先验层定义"能做什么"，后验层记录"正在做什么"。
 
-### 1. 归纳知识（experience.md）- 类型层的智慧
+### 知识的正确组织方式
+
+#### 归纳知识（knowledge.md 的经验总结章节）- 类型层的智慧
 **这不是日志！是从经验中归纳的知识！**
-- **位置**：Agent的home目录 `~/.agent/[agent名]/experience.md`
+- **位置**：Agent的 `~/.agent/[agent名]/knowledge.md` 中的 `## 经验总结` 章节
 - **内容**：归纳的规律和模式
   - ❌ 不是：2024-01-01创建了order_agent（具体事件）
   - ✅ 而是：订单系统需要配套库存管理（类型知识）
@@ -157,8 +154,8 @@ Agent可以调用自己的方法进行自我管理：
   - ✅ 记录"学到了什么"而非"发生了什么"
   - ✅ 类似最佳实践文档
 
-### 2. 日志记忆（compact.md）- 自动压缩
-**临时记忆，会被压缩！重要内容必须转移到experience.md！**
+### 日志记忆（compact.md）- 自动压缩
+**临时记忆，会被压缩！重要内容必须转移到knowledge.md！**
 - **位置**：自动管理，用户不需要关心
 - **内容**：当前会话的消息历史
 - **压缩机制**：
@@ -171,10 +168,9 @@ Agent可以调用自己的方法进行自我管理：
   - ✅ 自动管理，无需维护
   - ✅ 保持上下文窗口高效
 
-### 2. 后天教育（agent_knowledge.md）- 个体学习的知识
-**这是Agent的能力定义！可以进化！文件名必须是agent_knowledge.md！**
-- **位置**：Agent的home目录 `~/.agent/[agent名]/agent_knowledge.md`
-- **命名规则**：必须是 `agent_knowledge.md`，不能是其他名称
+#### 核心能力（knowledge.md 的核心能力章节）- 个体的能力定义
+**这是Agent的能力定义！可以进化！**
+- **位置**：Agent的 `~/.agent/[agent名]/knowledge.md` 中的 `## 核心能力` 章节
 - **内容**：Agent独特的能力定义
   - 创建的外部工具及使用方法
   - 学习的算法和决策逻辑
@@ -182,7 +178,7 @@ Agent可以调用自己的方法进行自我管理：
   - 优化后的工作流程
 - **进化方式**：
   - 创建工具后，更新能力描述
-  - 学习新算法后，写入agent_knowledge.md
+  - 学习新算法后，写入核心能力章节
   - 优化决策逻辑，修改规则
 - **特点**：
   - ✅ 可以自主修改（进化）
@@ -202,14 +198,14 @@ Agent可以调用自己的方法进行自我管理：
 
 ### 重要原则：如何选择记忆类型
 
-#### 应该更新后天教育（agent_knowledge.md）的情况：
+#### 应该更新核心能力章节的情况：
 - ✅ 创建了外部工具（Python/Shell脚本）
 - ✅ 学习了新的算法或方法
 - ✅ 发现了更好的决策逻辑
 - ✅ 优化了工作流程
 - ✅ 获得了新的领域能力
 
-#### 应该写入个体经验（experience.md）的内容：
+#### 应该写入经验总结章节的内容：
 - ✅ 系统配置和环境设置
 - ✅ 重要的错误及解决方案
 - ✅ 有价值的经验教训
@@ -231,14 +227,14 @@ Agent可以调用自己的方法进行自我管理：
 当用户说"记住：xxx"时，我会：
 1. 解析用户指令
 2. 结构化教训内容
-3. 立即写入agent_knowledge.md（后天教育）
+3. 立即写入knowledge.md的核心能力章节
 4. 确保知识永久保存
 
 #### @learning函数 - 自我学习
 完成任务后，我会：
 1. 分析消息历史（从compact.md）
 2. 提取重要教训
-3. 更新experience.md（经验积累）
+3. 更新knowledge.md的经验总结章节
 4. 将临时经验转为持久知识
 
 ### 实践指南
@@ -250,7 +246,7 @@ Agent可以调用自己的方法进行自我管理：
 处理：
 1. 解决问题（禁用代理）
 2. 立即调用@learning函数
-3. 将解决方案写入experience.md
+3. 将解决方案写入knowledge.md的经验总结章节
 4. 下次自动应用这个经验
 ```
 
@@ -260,7 +256,7 @@ Agent可以调用自己的方法进行自我管理：
 
 处理：
 1. 调用@memory函数
-2. 写入experience.md
+2. 写入knowledge.md的经验总结章节
 3. 永久保存这个配置
 ```
 
@@ -269,22 +265,22 @@ Agent可以调用自己的方法进行自我管理：
 创建了book_manager.py
 
 处理：
-1. 更新experience.md的"我的工具箱"部分
+1. 更新knowledge.md的"我的工具箱"部分
 2. 记录工具的位置、功能、用法
 3. 确保知识不会丢失
 ```
 
 ### ⚠️ 关键警告
-**不写入experience.md的重要数据会在compact压缩时丢失！**
+**不写入knowledge.md的重要数据会在compact压缩时丢失！**
 
-如果你发现了重要信息但没有保存到experience.md：
+如果你发现了重要信息但没有保存到knowledge.md：
 - ❌ 这个信息可能在下次压缩时消失
 - ❌ 其他Agent无法学习这个经验
 - ❌ 你自己也可能忘记
 
 正确做法：
 - ✅ 立即使用@memory或@learning函数
-- ✅ 将重要信息写入experience.md
+- ✅ 将重要信息写入knowledge.md的合适章节
 - ✅ 确保知识得到持久化
 
 ## 我的核心能力

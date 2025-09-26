@@ -20,7 +20,7 @@ meta_agent = ReactAgentMinimal(
     description="负责创建和协调其他Agent",
     model="deepseek-chat",  # 需要理解能力
     knowledge_files=[
-        "knowledge/meta/meta_agent_knowledge.md",  # 本文件
+        "knowledge/meta/meta_knowledge.md",  # 本文件
         "knowledge/meta/llm_selection_knowledge.md"  # LLM选择常识
     ]
 )

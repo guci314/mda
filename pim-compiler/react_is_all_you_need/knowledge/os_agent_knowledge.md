@@ -19,7 +19,7 @@
 execute_command("mkdir -p .sessions .notes/{agent_name}")
 
 # 使用read_file读取现有知识（如果存在）
-agent_knowledge = read_file(".notes/{agent_name}/agent_knowledge.md")
+agent_knowledge = read_file(".notes/{agent_name}/knowledge.md")
 world_state = read_file("world_state.md")
 
 # 使用write_file创建task_process.md
@@ -64,13 +64,13 @@ session_content = f"""
 """
 write_file(f".sessions/{date}_{type}_{keywords}.md", session_content)
 
-# 更新agent_knowledge.md
+# 更新knowledge.md
 if agent_knowledge存在:
-    knowledge = read_file(".notes/{agent_name}/agent_knowledge.md")
+    knowledge = read_file(".notes/{agent_name}/knowledge.md")
     updated_knowledge = update_statistics(knowledge, task_info)
 else:
     updated_knowledge = create_initial_knowledge(task_info)
-write_file(".notes/{agent_name}/agent_knowledge.md", updated_knowledge)
+write_file(".notes/{agent_name}/knowledge.md", updated_knowledge)
 
 # 更新world_state.md
 world = read_file("world_state.md") or create_initial_world()
@@ -85,7 +85,7 @@ write_file("world_state.md", updated_world)
 OSAgent知识池：
 - structured_notes.md (笔记架构)
 - mandatory_protocol.md (强制协议)
-- os_agent_knowledge.md (本文件)
+- os_knowledge.md (本文件)
 
 ProgramAgent知识池：
 - {task_specific}_knowledge.md (任务知识)
@@ -160,7 +160,7 @@ except Exception as e:
 2. 我创建ProgramAgent，给它generation_knowledge.md
 3. ProgramAgent执行任务，生成代码
 4. 我拿到结果，创建session记录
-5. 我更新agent_knowledge.md，记录生成模式
+5. 我更新knowledge.md，记录生成模式
 6. 我更新world_state.md，记录项目状态
 7. 返回给用户：任务完成
 

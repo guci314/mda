@@ -176,7 +176,7 @@ generator_deepseek_chat_23456(
 当子Agent失败时，我应该：
 1. 读取`.notes/{agent_name}/task_process.md`查看执行过程
 2. 读取`.notes/{agent_name}/world_state.md`了解系统状态
-3. 读取`.notes/{agent_name}/agent_knowledge.md`查看积累的经验
+3. 读取`.notes/{agent_name}/knowledge.md`查看积累的经验
 4. 如果Agent还活跃，直接询问：`agent_name(task="你遇到了什么困难？")`
 
 ### 知识增强
