@@ -230,49 +230,20 @@ class ReactAgentMinimal(Function):
         agent_home = Path.home() / ".agent" / self.name
         agent_home.mkdir(parents=True, exist_ok=True)  # 确保home目录存在
 
-        # 三层知识体系：
-        # 1. 共享知识（knowledge/*.md）- 已在上面加载
-        # 2. 统一的知识文件（knowledge.md）- 能力+经验
+        # 个体知识文件
         knowledge = agent_home / "knowledge.md"
         if knowledge.exists() and str(knowledge) not in self.knowledge_files:
             self.knowledge_files.append(str(knowledge))
             # 不在这里打印，统一在_load_all_knowledge_files中打印
         else:
-            # 迁移旧文件到新格式
-            agent_knowledge = agent_home / "agent_knowledge.md"
-            experience = agent_home / "experience.md"
-
+            # 创建新的知识文件
             if not knowledge.exists():
-                # 如果旧文件存在，合并它们
-                if agent_knowledge.exists() or experience.exists():
-                    content = f"# {self.name} 知识\n\n创建时间: {datetime.now().isoformat()}\n\n"
-
-                    if agent_knowledge.exists():
-                        content += "## 核心能力\n\n"
-                        content += agent_knowledge.read_text(encoding='utf-8').replace(f"# {self.name} 能力定义", "").strip()
-                        content += "\n\n"
-
-                    if experience.exists():
-                        content += "## 经验总结\n\n"
-                        content += experience.read_text(encoding='utf-8').replace(f"# {self.name} 经验积累", "").strip()
-                        content += "\n\n"
-
-                    knowledge.write_text(content, encoding='utf-8')
-                    print(f"  🔄 已合并旧知识文件到: {knowledge}")
-
-                    # 删除旧文件
-                    if agent_knowledge.exists():
-                        agent_knowledge.unlink()
-                    if experience.exists():
-                        experience.unlink()
-                else:
-                    # 创建新的知识文件
-                    knowledge.write_text(
-                        f"# {self.name} 知识\n\n创建时间: {datetime.now().isoformat()}\n\n"
-                        f"## 核心能力\n\n## 决策逻辑\n\n## 经验总结\n\n",
-                        encoding='utf-8'
-                    )
-                    print(f"  📚 创建统一知识文件: {knowledge}")
+                knowledge.write_text(
+                    f"# {self.name} 知识\n\n创建时间: {datetime.now().isoformat()}\n\n"
+                    f"## 核心能力\n\n## 决策逻辑\n\n## 经验总结\n\n",
+                    encoding='utf-8'
+                )
+                print(f"  📚 创建统一知识文件: {knowledge}")
 
         # compact.md不作为知识文件加载，只作为压缩记忆使用
 
@@ -301,11 +272,8 @@ class ReactAgentMinimal(Function):
         # 创建Agent的home目录
         self.agent_home.mkdir(parents=True, exist_ok=True)
             
-        # 知识文件路径（简化为单一文件）
-        self.knowledge_file = self.agent_home / "knowledge.md"  # 统一的知识文件（能力+经验）
-        # 保留旧路径以便迁移
-        self.agent_knowledge_file = self.agent_home / "agent_knowledge.md"  # 即将废弃
-        self.experience_file = self.agent_home / "experience.md"  # 即将废弃
+        # 知识文件路径
+        self.knowledge_file = self.agent_home / "knowledge.md"  # 统一的知识文件
         # task_process_file 已废弃，ExecutionContext 现在只存在于内存中
         self.world_state_file = self.agent_home / "world_state.md"
         self.notes_file = self.notes_dir / "session_notes.md"  # 兼容性
