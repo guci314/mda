@@ -211,11 +211,6 @@ class ReactAgentMinimal(Function):
         if validation_simplicity.exists() and str(validation_simplicity) not in self.knowledge_files:
             self.knowledge_files.append(str(validation_simplicity))
 
-        # 分形同构：默认加载fractal_agent知识，让每个Agent都理解自己是Creator
-        fractal_agent_knowledge = knowledge_dir / "fractal_agent_knowledge.md"
-        if fractal_agent_knowledge.exists() and str(fractal_agent_knowledge) not in self.knowledge_files:
-            self.knowledge_files.append(str(fractal_agent_knowledge))
-
         # 默认加载learning_functions知识，让每个Agent都能学习和记忆
         learning_functions = knowledge_dir / "learning_functions.md"
         if learning_functions.exists() and str(learning_functions) not in self.knowledge_files:
