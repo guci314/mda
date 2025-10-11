@@ -1,0 +1,120 @@
+{
+  "agent": [
+    {
+      "entity_id": "entity_1",
+      "entity_name": "Agent",
+      "type": "name_match",
+      "score": 1.0
+    },
+    {
+      "entity_id": "entity_4",
+      "entity_name": "三位一体",
+      "type": "description_match",
+      "score": 0.7
+    }
+  ],
+  "智能代理基于react循环的任务执行助手": [
+    {
+      "entity_id": "entity_1",
+      "entity_name": "Agent",
+      "type": "description_match",
+      "score": 0.7
+    }
+  ],
+  "function": [
+    {
+      "entity_id": "entity_2",
+      "entity_name": "Function",
+      "type": "name_match",
+      "score": 1.0
+    }
+  ],
+  "计算的基本单元agent的本质": [
+    {
+      "entity_id": "entity_2",
+      "entity_name": "Function",
+      "type": "description_match",
+      "score": 0.7
+    }
+  ],
+  "reactagentminimal": [
+    {
+      "entity_id": "entity_3",
+      "entity_name": "ReactAgentMinimal",
+      "type": "name_match",
+      "score": 1.0
+    }
+  ],
+  "基于react循环的agent实现框架": [
+    {
+      "entity_id": "entity_3",
+      "entity_name": "ReactAgentMinimal",
+      "type": "description_match",
+      "score": 0.7
+    }
+  ],
+  "三位一体": [
+    {
+      "entity_id": "entity_4",
+      "entity_name": "三位一体",
+      "type": "name_match",
+      "score": 1.0
+    }
+  ],
+  "creator的三重身份创造者索引者学习核心": [
+    {
+      "entity_id": "entity_4",
+      "entity_name": "三位一体",
+      "type": "description_match",
+      "score": 0.7
+    }
+  ],
+  "知识图谱": [
+    {
+      "entity_id": "entity_5",
+      "entity_name": "知识图谱",
+      "type": "name_match",
+      "score": 1.0
+    }
+  ],
+  "用于组织和表示知识的图结构": [
+    {
+      "entity_id": "entity_5",
+      "entity_name": "知识图谱",
+      "type": "description_match",
+      "score": 0.7
+    }
+  ],
+  "agent是function的一种特殊形式": [
+    {
+      "relation_id": "entity_1-entity_2",
+      "relation_type": "is_part_of",
+      "type": "relation_match",
+      "score": 0.5
+    }
+  ],
+  "reactagentminimal实现了agent的概念": [
+    {
+      "relation_id": "entity_3-entity_1",
+      "relation_type": "implements",
+      "type": "relation_match",
+      "score": 0.5
+    }
+  ],
+  "三位一体模式描述了agent的多重身份": [
+    {
+      "relation_id": "entity_4-entity_1",
+      "relation_type": "describes",
+      "type": "relation_match",
+      "score": 0.5
+    }
+  ],
+  "知识图谱支持三位一体中的索引者角色": [
+    {
+      "relation_id": "entity_5-entity_4",
+      "relation_type": "supports",
+      "type": "relation_match",
+      "score": 0.5
+    }
+  ]
+}

@@ -42,7 +42,18 @@ class EditFileTool(Function):
         self.work_dir = Path(work_dir)
     
     def execute(self, **kwargs) -> str:
-        file_path = self.work_dir / kwargs["file_path"]
+        # 处理文件路径，支持~展开和绝对路径
+        input_path = kwargs["file_path"]
+        if input_path.startswith("~"):
+            # 展开~为用户home目录
+            file_path = Path(input_path).expanduser()
+        elif Path(input_path).is_absolute():
+            # 如果是绝对路径，直接使用
+            file_path = Path(input_path)
+        else:
+            # 相对路径，基于work_dir
+            file_path = self.work_dir / input_path
+
         old_text = kwargs["old_text"]
         new_text = kwargs["new_text"]
         occurrence = kwargs.get("occurrence", 1)
@@ -124,7 +135,18 @@ class InsertLineTool(Function):
         self.work_dir = Path(work_dir)
     
     def execute(self, **kwargs) -> str:
-        file_path = self.work_dir / kwargs["file_path"]
+        # 处理文件路径，支持~展开和绝对路径
+        input_path = kwargs["file_path"]
+        if input_path.startswith("~"):
+            # 展开~为用户home目录
+            file_path = Path(input_path).expanduser()
+        elif Path(input_path).is_absolute():
+            # 如果是绝对路径，直接使用
+            file_path = Path(input_path)
+        else:
+            # 相对路径，基于work_dir
+            file_path = self.work_dir / input_path
+
         line_number = kwargs["line_number"]
         content = kwargs["content"]
         
@@ -185,7 +207,18 @@ class DeleteLinesTool(Function):
         self.work_dir = Path(work_dir)
     
     def execute(self, **kwargs) -> str:
-        file_path = self.work_dir / kwargs["file_path"]
+        # 处理文件路径，支持~展开和绝对路径
+        input_path = kwargs["file_path"]
+        if input_path.startswith("~"):
+            # 展开~为用户home目录
+            file_path = Path(input_path).expanduser()
+        elif Path(input_path).is_absolute():
+            # 如果是绝对路径，直接使用
+            file_path = Path(input_path)
+        else:
+            # 相对路径，基于work_dir
+            file_path = self.work_dir / input_path
+
         start_line = kwargs["start_line"]
         end_line = kwargs.get("end_line", start_line)
         

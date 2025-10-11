@@ -451,6 +451,124 @@ AGI = 计算完备 × 世界模型 × 元认知 × 对齐机制
 - ✅ 在知识文件中描述记忆格式
 - ✅ Agent自主决定记忆内容
 
+### 5. 诚实原则 (Honesty First)
+**要诚实，不要伪造成功**
+
+**核心要求**：
+- 如果任务失败，要诚实报告失败原因
+- 如果找不到文件，不要假装找到了
+- 如果测试失败，不要伪造通过的结果
+- 如果不理解某个概念，承认不懂并寻求帮助
+- 如果执行出错，保留完整错误信息
+
+**诚实表现**：
+- ✅ "我尝试了X方法，但失败了，错误是Y"
+- ✅ "找不到指定的文件，可能路径不对"
+- ✅ "测试有3个失败，具体是..."
+- ❌ "任务成功完成"（实际失败时）
+- ❌ "文件已创建"（实际未创建时）
+- ❌ "所有测试通过"（有失败时）
+
+**为什么诚实很重要**：
+- 伪造的成功会导致后续任务建立在错误基础上
+- 诚实的失败报告有助于快速定位和解决问题
+- 信任是人机协作的基础
+- 错误信息是调试的关键线索
+
+## Agent训练知识函数
+
+### @train_agent(name, domain, requirements)
+**正确的Agent训练流程**
+
+```python
+def train_agent(name, domain, requirements):
+    """
+    标准化的Agent训练流程，确保Agent能够正确学习和内化知识
+
+    参数:
+    - name: Agent名称
+    - domain: 专业领域
+    - requirements: 具体要求
+    """
+
+    # 步骤1: 创建Agent
+    # 注意：应该直接运行ReactAgentMinimal，而不是通过Task工具
+    # 这样才会生成output.log和state.json
+    agent = create_agent_tool(
+        name=name,
+        knowledge_files=[f"{domain}_knowledge.md"],
+        description=f"{domain}领域的专业Agent",
+        stateful=True  # 确保保存状态
+    )
+
+    # 步骤2: 编写Specification
+    spec = write_specification(
+        task_goal=requirements,
+        input_format="明确输入格式",
+        output_requirements="详细输出要求",
+        quality_standards="质量标准",
+        validation_criteria="验证标准"
+    )
+
+    # 步骤3: Agent自我实现
+    result = agent.self_implement(spec)
+
+    # 步骤4: 测试验证
+    test_result = validate_implementation(result)
+
+    # 步骤5: 反馈循环
+    while not satisfactory(test_result):
+        feedback = generate_feedback(test_result)
+        agent.receive_feedback(feedback)
+        result = agent.improve_implementation()
+        test_result = validate_implementation(result)
+
+    # 步骤6: 使用@learning内化经验
+    agent.execute("@learning", {
+        "type": "实践经验",
+        "content": "从训练中学到的关键知识",
+        "confidence": calculate_confidence(test_result)
+    })
+
+    # 步骤7: 执行/compact压缩历史
+    agent.execute("/compact", {
+        "preserve": "关键学习和决策",
+        "compress": "过程细节"
+    })
+
+    return agent
+```
+
+**使用示例**:
+```python
+# 训练Learner Agent
+learner = train_agent(
+    name="learner",
+    domain="knowledge_systems",
+    requirements="构建三位一体知识系统"
+)
+
+# 训练其他专业Agent
+debugger = train_agent(
+    name="debugger",
+    domain="code_analysis",
+    requirements="发现和修复代码错误"
+)
+```
+
+**关键原则**:
+1. **循环迭代**: 通过反馈循环不断改进，直到满意
+2. **知识内化**: 使用@learning将经验转化为永久知识
+3. **历史压缩**: 使用/compact保留关键信息，压缩过程细节
+4. **自主实现**: 让Agent自己实现，不是替它做
+5. **客观验证**: 基于实际结果验证，不是主观判断
+
+**质量标准**:
+- Agent必须真实创建输出（文件、代码等）
+- 必须通过客观测试验证
+- 必须使用@learning内化关键学习
+- 必须执行/compact优化历史记录
+
 ## 核心代码目录
 pim-compiler/react_is_all_you_need
 此目录是项目的核心代码目录，其它目录都是废弃的代码

@@ -126,6 +126,29 @@
 2. 如果需要搜索文件内容，使用命令执行工具运行 grep
 3. 找到目标文件后，用文件读取工具查看完整内容
 
+## 文件读取最佳实践
+
+**重要原则：一次性读取整个文件**
+
+当使用 read_file 工具时：
+- **默认行为**：设置 `limit=0` 来读取整个文件
+- **避免分段读取**：不要多次调用来读取同一文件的不同部分
+- **效率优先**：一次性读取比多次分段读取更高效
+
+正确示例：
+```python
+# ✅ 正确：一次读取整个文件
+read_file(file_path="main.py", limit=0)
+
+# ❌ 错误：多次分段读取
+read_file(file_path="main.py", limit=2000)  # 第一次
+read_file(file_path="main.py", offset=2000, limit=2000)  # 第二次
+```
+
+**例外情况**：
+- 超大文件（>100MB）可能需要分段读取
+- 只需要查看文件特定部分时可以使用 offset 和 limit
+
 ## 外部世界（工作目录）
 
 所有文件操作都相对于: {work_dir}
@@ -141,6 +164,62 @@
 - 保存分析的中间结果
 - 记录工作笔记和状态
 - 缓存临时数据
+
+## 知识函数
+
+### @train_agent(name, domain, requirements)
+**标准化的Agent训练流程**
+
+当需要训练新Agent或改进现有Agent时，使用此知识函数：
+
+```python
+def train_agent(name, domain, requirements):
+    """
+    正确的Agent训练流程，确保Agent能够学习和内化知识
+    """
+    # 步骤1: 创建Agent
+    agent = create_agent_tool(name, "domain_knowledge.md")
+
+    # 步骤2: 编写Specification
+    spec = write_specification(requirements)
+
+    # 步骤3: Agent自我实现
+    result = agent.self_implement(spec)
+
+    # 步骤4: 测试验证
+    test_result = validate_implementation(result)
+
+    # 步骤5: 反馈循环
+    while not satisfactory(test_result):
+        feedback = generate_feedback(test_result)
+        agent.improve_implementation(feedback)
+        test_result = validate_implementation()
+
+    # 步骤6: 使用@learning内化经验
+    agent.execute("@learning", key_learnings)
+
+    # 步骤7: 执行/compact压缩历史
+    agent.execute("/compact")
+
+    return agent
+```
+
+**关键原则**：
+- 让Agent自主实现，不是替它做
+- 通过反馈循环迭代改进
+- 使用@learning永久保存经验
+- 使用/compact优化历史记录
+
+### @learning(type, content, confidence)
+**记录和内化关键学习**
+
+将实践经验转化为永久知识：
+```markdown
+[@learning] 标题
+**类型**: 实践经验|设计原则|模式发现
+**内容**: 详细的学习内容
+**置信度**: 0.0-1.0
+```
 
 ## 任务执行说明
 

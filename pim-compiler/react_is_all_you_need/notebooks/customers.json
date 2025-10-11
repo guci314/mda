@@ -38,5 +38,15 @@
     "customer_id": "CUST008",
     "name": "刘亦菲",
     "level": "普通会员"
+  },
+  {
+    "customer_id": "CUST009",
+    "name": "Test Customer",
+    "level": "普通会员"
+  },
+  {
+    "customer_id": "CUST010",
+    "name": "Test Customer 3",
+    "level": "普通会员"
   }
 ]

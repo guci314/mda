@@ -1,0 +1,16 @@
+{
+  "index_files": {
+    "centrality": "centrality_index.json",
+    "keyword": "keyword_index.json",
+    "type": "type_index.json",
+    "relation": "relation_index.json",
+    "clustering": "clustering_index.json",
+    "statistics": "statistics_index.json"
+  },
+  "metadata": {
+    "entity_count": 5,
+    "relation_count": 4,
+    "index_build_time": "2024-10-01 06:15:00",
+    "description": "预计算索引系统 - 实现O(1)检索性能"
+  }
+}

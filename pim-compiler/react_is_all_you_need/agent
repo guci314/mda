@@ -1,0 +1,17 @@
+#!/usr/bin/env python3
+"""
+Agent CLI - 快速启动脚本
+使用: ./agent [选项]
+"""
+
+import os
+import sys
+
+# 设置路径并运行CLI
+script_dir = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, script_dir)
+
+from agent_cli import main
+
+if __name__ == "__main__":
+    main()

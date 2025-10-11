@@ -1,0 +1,39 @@
+{
+  "community_0": {
+    "size": 3,
+    "entities": [
+      {
+        "id": "entity_2",
+        "name": "Function",
+        "type": "agent_concept"
+      },
+      {
+        "id": "entity_3",
+        "name": "ReactAgentMinimal",
+        "type": "technical_component"
+      },
+      {
+        "id": "entity_1",
+        "name": "Agent",
+        "type": "agent_concept"
+      }
+    ],
+    "description": "知识社区 1 - 3 个相关概念"
+  },
+  "community_1": {
+    "size": 2,
+    "entities": [
+      {
+        "id": "entity_5",
+        "name": "知识图谱",
+        "type": "technical_component"
+      },
+      {
+        "id": "entity_4",
+        "name": "三位一体",
+        "type": "architecture_pattern"
+      }
+    ],
+    "description": "知识社区 2 - 2 个相关概念"
+  }
+}

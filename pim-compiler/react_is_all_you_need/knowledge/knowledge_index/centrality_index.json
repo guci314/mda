@@ -1,0 +1,37 @@
+{
+  "entity_1": {
+    "degree": 0.75,
+    "closeness": 0.8,
+    "betweenness": 0.8333333333333333,
+    "pagerank": 0.35893954590765736,
+    "composite_score": 0.6855682198102476
+  },
+  "entity_2": {
+    "degree": 0.25,
+    "closeness": 0.5,
+    "betweenness": 0.0,
+    "pagerank": 0.13361889834229507,
+    "composite_score": 0.22090472458557375
+  },
+  "entity_3": {
+    "degree": 0.25,
+    "closeness": 0.5,
+    "betweenness": 0.0,
+    "pagerank": 0.13937550380575592,
+    "composite_score": 0.22234387595143898
+  },
+  "entity_4": {
+    "degree": 0.5,
+    "closeness": 0.6666666666666666,
+    "betweenness": 0.5,
+    "pagerank": 0.23511475938110862,
+    "composite_score": 0.4754453565119438
+  },
+  "entity_5": {
+    "degree": 0.25,
+    "closeness": 0.4444444444444444,
+    "betweenness": 0.0,
+    "pagerank": 0.1329512925631832,
+    "composite_score": 0.2068489342519069
+  }
+}

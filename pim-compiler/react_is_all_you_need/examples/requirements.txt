@@ -1,0 +1,12 @@
+# Gemma 270M 依赖
+transformers>=4.45.0
+torch>=2.0.0
+sentencepiece>=0.1.99
+protobuf>=3.20.0
+psutil>=5.9.0
+accelerate>=0.20.0
+
+# 可选依赖（性能优化）
+# bitsandbytes>=0.41.0  # 8-bit量化
+# auto-gptq>=0.4.0  # 4-bit量化
+# flash-attn>=2.0.0  # Flash Attention加速

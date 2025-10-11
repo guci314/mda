@@ -1,0 +1,114 @@
+{
+  "@context": {
+    "cns": "http://cnschema.org/",
+    "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+    "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+    "xsd": "http://www.w3.org/2001/XMLSchema#",
+    "dir": "http://example.org/directory#",
+    "file": "http://example.org/file#"
+  },
+  "@graph": [
+    {
+      "@id": "dir:Directory",
+      "@type": "cns:DigitalDocument",
+      "rdfs:label": "目录",
+      "rdfs:comment": "文件系统中的目录"
+    },
+    {
+      "@id": "file:File",
+      "@type": "cns:DigitalDocument",
+      "rdfs:label": "文件",
+      "rdfs:comment": "文件系统中的文件"
+    },
+    {
+      "@id": "file:FileType",
+      "@type": "rdfs:Class",
+      "rdfs:label": "文件类型",
+      "rdfs:comment": "文件的类型分类"
+    },
+    {
+      "@id": "file:TextContent",
+      "@type": "cns:Text",
+      "rdfs:label": "文本内容",
+      "rdfs:comment": "文件的文本内容"
+    },
+    {
+      "@id": "dir:contains",
+      "@type": "rdf:Property",
+      "rdfs:label": "包含",
+      "rdfs:comment": "目录包含文件或子目录",
+      "rdfs:domain": "dir:Directory",
+      "rdfs:range": ["file:File", "dir:Directory"]
+    },
+    {
+      "@id": "file:hasType",
+      "@type": "rdf:Property",
+      "rdfs:label": "有类型",
+      "rdfs:comment": "文件具有的类型",
+      "rdfs:domain": "file:File",
+      "rdfs:range": "file:FileType"
+    },
+    {
+      "@id": "file:hasContent",
+      "@type": "rdf:Property",
+      "rdfs:label": "有内容",
+      "rdfs:comment": "文件具有的内容",
+      "rdfs:domain": "file:File",
+      "rdfs:range": "file:TextContent"
+    },
+    {
+      "@id": "file:hasSize",
+      "@type": "rdf:Property",
+      "rdfs:label": "有大小",
+      "rdfs:comment": "文件的大小（字节）",
+      "rdfs:domain": "file:File",
+      "rdfs:range": "xsd:integer"
+    },
+    {
+      "@id": "file:hasModificationTime",
+      "@type": "rdf:Property",
+      "rdfs:label": "有修改时间",
+      "rdfs:comment": "文件的最后修改时间",
+      "rdfs:domain": "file:File",
+      "rdfs:range": "xsd:dateTime"
+    },
+    {
+      "@id": "file:hasCreationTime",
+      "@type": "rdf:Property",
+      "rdfs:label": "有创建时间",
+      "rdfs:comment": "文件的创建时间",
+      "rdfs:domain": "file:File",
+      "rdfs:range": "xsd:dateTime"
+    },
+    {
+      "@id": "file:FileType_Markdown",
+      "@type": "file:FileType",
+      "rdfs:label": "Markdown文件",
+      "rdfs:comment": "Markdown格式的文档文件"
+    },
+    {
+      "@id": "file:FileType_Python",
+      "@type": "file:FileType",
+      "rdfs:label": "Python文件",
+      "rdfs:comment": "Python编程语言文件"
+    },
+    {
+      "@id": "file:FileType_JSON",
+      "@type": "file:FileType",
+      "rdfs:label": "JSON文件",
+      "rdfs:comment": "JSON数据格式文件"
+    },
+    {
+      "@id": "file:FileType_Text",
+      "@type": "file:FileType",
+      "rdfs:label": "文本文件",
+      "rdfs:comment": "纯文本文件"
+    },
+    {
+      "@id": "file:FileType_YAML",
+      "@type": "file:FileType",
+      "rdfs:label": "YAML文件",
+      "rdfs:comment": "YAML配置文件"
+    }
+  ]
+}

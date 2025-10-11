@@ -1,0 +1,21 @@
+{
+  "entity_count": 5,
+  "relation_count": 4,
+  "entity_types": {
+    "agent_concept": 2,
+    "technical_component": 2,
+    "architecture_pattern": 1
+  },
+  "relation_types": {
+    "is_part_of": 1,
+    "implements": 1,
+    "describes": 1,
+    "supports": 1
+  },
+  "source_files": {
+    "core/system_prompt.md": 2,
+    "minimal/agent_essence.md": 2,
+    "knowledge.md": 2
+  },
+  "density": 0.4
+}

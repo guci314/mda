@@ -1,0 +1,33 @@
+{
+  "agent_concept": [
+    {
+      "id": "entity_1",
+      "name": "Agent",
+      "description": "智能代理，基于React循环的任务执行助手"
+    },
+    {
+      "id": "entity_2",
+      "name": "Function",
+      "description": "计算的基本单元，Agent的本质"
+    }
+  ],
+  "technical_component": [
+    {
+      "id": "entity_3",
+      "name": "ReactAgentMinimal",
+      "description": "基于React循环的Agent实现框架"
+    },
+    {
+      "id": "entity_5",
+      "name": "知识图谱",
+      "description": "用于组织和表示知识的图结构"
+    }
+  ],
+  "architecture_pattern": [
+    {
+      "id": "entity_4",
+      "name": "三位一体",
+      "description": "Agent Creator的三重身份：创造者、索引者、学习核心"
+    }
+  ]
+}

@@ -1,0 +1,161 @@
+{
+  "@context": {
+    "cns": "http://cnschema.org/",
+    "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+    "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+    "xsd": "http://www.w3.org/2001/XMLSchema#",
+    "workflow": "http://example.org/workflow#"
+  },
+  "@graph": [
+    {
+      "@id": "workflow:WorkflowDocument",
+      "@type": "cns:DigitalDocument",
+      "rdfs:label": "工作流文档",
+      "rdfs:comment": "Agent之间协作的状态控制机制文档"
+    },
+    {
+      "@id": "workflow:Agent",
+      "@type": "cns:Person",
+      "rdfs:label": "Agent",
+      "rdfs:comment": "工作流参与者"
+    },
+    {
+      "@id": "workflow:WorkflowStatus",
+      "@type": "cns:ActionStatusType",
+      "rdfs:label": "工作流状态",
+      "rdfs:comment": "工作流的当前状态"
+    },
+    {
+      "@id": "workflow:Task",
+      "@type": "cns:Action",
+      "rdfs:label": "任务",
+      "rdfs:comment": "工作流中需要完成的具体任务"
+    },
+    {
+      "@id": "workflow:WorkflowAction",
+      "@type": "cns:Action",
+      "rdfs:label": "工作流动作",
+      "rdfs:comment": "Agent在工作流中执行的动作"
+    },
+    {
+      "@id": "workflow:StatusPending",
+      "@type": "workflow:WorkflowStatus",
+      "rdfs:label": "待处理",
+      "rdfs:comment": "工作流等待处理的状态"
+    },
+    {
+      "@id": "workflow:StatusInProgress",
+      "@type": "workflow:WorkflowStatus",
+      "rdfs:label": "进行中",
+      "rdfs:comment": "工作流正在处理的状态"
+    },
+    {
+      "@id": "workflow:StatusCompleted",
+      "@type": "workflow:WorkflowStatus",
+      "rdfs:label": "已完成",
+      "rdfs:comment": "工作流已完成的状态"
+    },
+    {
+      "@id": "workflow:StatusTerminated",
+      "@type": "workflow:WorkflowStatus",
+      "rdfs:label": "已终止",
+      "rdfs:comment": "工作流已终止的状态"
+    },
+    {
+      "@id": "workflow:AcceptAction",
+      "@type": "cns:AcceptAction",
+      "rdfs:label": "接受任务",
+      "rdfs:comment": "Agent接受工作流任务的动作"
+    },
+    {
+      "@id": "workflow:CompleteAction",
+      "@type": "cns:AchieveAction",
+      "rdfs:label": "完成任务",
+      "rdfs:comment": "Agent完成工作流任务的动作"
+    },
+    {
+      "@id": "workflow:TransferAction",
+      "@type": "cns:TransferAction",
+      "rdfs:label": "转交任务",
+      "rdfs:comment": "Agent将工作流转交给其他Agent的动作"
+    },
+    {
+      "@id": "workflow:TerminateAction",
+      "@type": "cns:CancelAction",
+      "rdfs:label": "终止工作流",
+      "rdfs:comment": "终止工作流的动作"
+    },
+    {
+      "@id": "workflow:hasStatus",
+      "@type": "rdf:Property",
+      "rdfs:label": "有状态",
+      "rdfs:comment": "工作流文档具有的状态",
+      "rdfs:domain": "workflow:WorkflowDocument",
+      "rdfs:range": "workflow:WorkflowStatus"
+    },
+    {
+      "@id": "workflow:hasCurrentOwner",
+      "@type": "rdf:Property",
+      "rdfs:label": "当前负责人",
+      "rdfs:comment": "工作流文档的当前负责人",
+      "rdfs:domain": "workflow:WorkflowDocument",
+      "rdfs:range": "workflow:Agent"
+    },
+    {
+      "@id": "workflow:hasPreviousOwner",
+      "@type": "rdf:Property",
+      "rdfs:label": "上一个负责人",
+      "rdfs:comment": "工作流文档的上一个负责人",
+      "rdfs:domain": "workflow:WorkflowDocument",
+      "rdfs:range": "workflow:Agent"
+    },
+    {
+      "@id": "workflow:hasTask",
+      "@type": "rdf:Property",
+      "rdfs:label": "有任务",
+      "rdfs:comment": "工作流文档包含的任务",
+      "rdfs:domain": "workflow:WorkflowDocument",
+      "rdfs:range": "workflow:Task"
+    },
+    {
+      "@id": "workflow:hasHistory",
+      "@type": "rdf:Property",
+      "rdfs:label": "有历史记录",
+      "rdfs:comment": "工作流文档的历史记录",
+      "rdfs:domain": "workflow:WorkflowDocument",
+      "rdfs:range": "workflow:WorkflowAction"
+    },
+    {
+      "@id": "workflow:performsAction",
+      "@type": "rdf:Property",
+      "rdfs:label": "执行动作",
+      "rdfs:comment": "Agent执行工作流动作",
+      "rdfs:domain": "workflow:Agent",
+      "rdfs:range": "workflow:WorkflowAction"
+    },
+    {
+      "@id": "workflow:causesStatusChange",
+      "@type": "rdf:Property",
+      "rdfs:label": "导致状态变化",
+      "rdfs:comment": "动作导致工作流状态变化",
+      "rdfs:domain": "workflow:WorkflowAction",
+      "rdfs:range": "workflow:WorkflowStatus"
+    },
+    {
+      "@id": "workflow:hasTerminationCondition",
+      "@type": "rdf:Property",
+      "rdfs:label": "有终止条件",
+      "rdfs:comment": "工作流文档的终止条件",
+      "rdfs:domain": "workflow:WorkflowDocument",
+      "rdfs:range": "xsd:string"
+    },
+    {
+      "@id": "workflow:hasNextAction",
+      "@type": "rdf:Property",
+      "rdfs:label": "有下一步动作",
+      "rdfs:comment": "工作流文档的下一步动作",
+      "rdfs:domain": "workflow:WorkflowDocument",
+      "rdfs:range": "xsd:string"
+    }
+  ]
+}

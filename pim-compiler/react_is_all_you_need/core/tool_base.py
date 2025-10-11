@@ -109,7 +109,7 @@ class ReadFileTool(Function):
                 },
                 "limit": {
                     "type": "integer",
-                    "description": "最多读取的字符数。默认2000字符，足够显示代码的关键部分。读取大文件时可分多次读取"
+                    "description": "最多读取的字符数。默认2000字符，足够显示代码的关键部分。设置为0表示读取整个文件（从offset到文件末尾）"
                 }
             }
         )
@@ -117,7 +117,7 @@ class ReadFileTool(Function):
     
     def execute(self, **kwargs) -> str:
         path_str = kwargs["file_path"]
-        
+
         # 处理绝对路径和~路径
         if path_str.startswith('~') or path_str.startswith('/'):
             # 绝对路径或用户目录路径
@@ -125,36 +125,38 @@ class ReadFileTool(Function):
         else:
             # 相对路径
             file_path = self.work_dir / path_str
-        
+
         if file_path.exists():
             # 确保offset和limit是整数
             offset = int(kwargs.get("offset", 0))
             limit = int(kwargs.get("limit", 2000))
-            
+
             # 读取整个文件内容（这样可以按字符而不是字节处理）
             with open(file_path, 'r', encoding='utf-8') as f:
                 content = f.read()
-            
+
             # 获取文件的字节大小（用于显示）
             file_size = file_path.stat().st_size
             content_length = len(content)
-            
+
             # 处理负偏移（从文件末尾开始）
             if offset < 0:
                 offset = max(0, content_length + offset)
-            
+
             # 确保offset不超过文件长度
             if offset >= content_length:
                 return f"偏移量{offset}超过文件长度{content_length}字符"
-            
-            # 按字符切片（而不是字节）
-            end_pos = min(offset + limit, content_length)
+
+            # limit=0 表示读取整个文件（从offset到文件末尾）
+            if limit == 0:
+                end_pos = content_length
+            else:
+                # 按字符切片（而不是字节）
+                end_pos = min(offset + limit, content_length)
+
             result = content[offset:end_pos]
-            
-            # 添加位置信息（仅在分段读取时）
-            if offset > 0 or end_pos < content_length:
-                return f"[读取范围: {offset}-{end_pos}/{content_length}字符]\n{result}"
-            
+
+
             return result
         return f"文件不存在: {path_str}"
 
@@ -233,33 +235,8 @@ class AppendFileTool(Function):
         return f"内容已追加到: {path_str}"
 
 
-class ExecuteCommandTool(Function):
-    """执行命令工具"""
-    
-    def __init__(self, work_dir):
-        super().__init__(
-            name="execute_command",
-            description="执行shell命令",
-            parameters={
-                "command": {
-                    "type": "string",
-                    "description": "Shell命令，如'ls -la'、'python test.py'、'npm install'。在工作目录执行，超时10秒"
-                }
-            }
-        )
-        self.work_dir = Path(work_dir)
-    
-    def execute(self, **kwargs) -> str:
-        import subprocess
-        result = subprocess.run(
-            kwargs["command"],
-            shell=True,
-            capture_output=True,
-            text=True,
-            cwd=self.work_dir,
-            timeout=10
-        )
-        return result.stdout[:500] if result.stdout else "命令执行完成"
+# ExecuteCommandTool已移除，统一使用ExecuteCommandExtended
+# 避免功能重复，遵循"大道至简"原则
 
 
 class SessionQueryTool(Function):

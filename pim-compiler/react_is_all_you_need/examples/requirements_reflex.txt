@@ -1,0 +1,11 @@
+# Gemini条件反射路由器依赖
+
+# 基础依赖
+requests>=2.31.0
+
+# HTTP客户端（支持代理）
+httpx>=0.25.0
+httpx[socks]>=0.25.0  # SOCKS代理支持
+
+# 数据处理
+numpy>=1.24.0

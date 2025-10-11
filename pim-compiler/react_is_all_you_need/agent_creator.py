@@ -25,7 +25,7 @@ class AgentCreator:
         
         # Creator本身是一个Agent
         self.creator_agent = ReactAgentMinimal(
-            name="agent_creator",
+            name="learner",
             description="帮助业务人员创建Agent的智能助手",
             work_dir="/tmp/agent_creator",
             model=self.model,

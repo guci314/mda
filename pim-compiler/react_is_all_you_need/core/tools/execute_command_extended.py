@@ -36,6 +36,11 @@ class ExecuteCommandExtended(Function):
                     "type": "boolean",
                     "description": "是否后台执行（立即返回），默认False",
                     "default": False
+                },
+                "max_output_length": {
+                    "type": "integer",
+                    "description": "最大输出长度（字符），0表示不截断，默认1000",
+                    "default": 1000
                 }
             }
         )
@@ -45,6 +50,7 @@ class ExecuteCommandExtended(Function):
         command = kwargs["command"]
         timeout = min(kwargs.get("timeout", 30), 300)  # 最大300秒
         background = kwargs.get("background", False)
+        max_output_length = kwargs.get("max_output_length", 1000)
 
         if background:
             # 后台执行，立即返回
@@ -84,9 +90,9 @@ class ExecuteCommandExtended(Function):
                 if result.stderr:
                     output += f"\n{result.stderr}"
 
-                # 限制输出长度
-                if len(output) > 1000:
-                    output = output[:1000] + "\n... (输出过长，已截断)"
+                # 处理输出截断
+                if max_output_length > 0 and len(output) > max_output_length:
+                    output = output[:max_output_length] + f"\n... (输出截断，限制{max_output_length}字符)"
 
                 if result.returncode != 0:
                     return f"❌ 命令执行失败 (退出码: {result.returncode})\n{output}"

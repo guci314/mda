@@ -1,0 +1,134 @@
+{
+  "@context": {
+    "cns": "http://cnschema.org/",
+    "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+    "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+    "xsd": "http://www.w3.org/2001/XMLSchema#",
+    "workflow": "http://example.org/workflow#"
+  },
+  "@graph": [
+    {
+      "@id": "workflow:calc_2plus2_001",
+      "@type": "workflow:WorkflowDocument",
+      "workflow:hasStatus": "workflow:StatusPending",
+      "workflow:hasCurrentOwner": "workflow:Agent_LiSi",
+      "workflow:hasPreviousOwner": "workflow:Agent_ZhangSan",
+      "workflow:hasTask": "workflow:Task_Calculate2Plus2",
+      "workflow:hasNextAction": "李四需要计算并回复结果",
+      "workflow:hasTerminationCondition": "李四给出答案后",
+      "cns:dateCreated": {
+        "@value": "2024-01-01T10:00:00",
+        "@type": "xsd:dateTime"
+      },
+      "cns:dateModified": {
+        "@value": "2024-01-01T10:00:01",
+        "@type": "xsd:dateTime"
+      }
+    },
+    {
+      "@id": "workflow:code_test_001",
+      "@type": "workflow:WorkflowDocument",
+      "workflow:hasStatus": "workflow:StatusInProgress",
+      "workflow:hasCurrentOwner": "workflow:Agent_Tester",
+      "workflow:hasPreviousOwner": "workflow:Agent_Programmer",
+      "workflow:hasTask": "workflow:Task_TestCalculator",
+      "workflow:hasNextAction": "测试员执行测试并报告结果",
+      "workflow:hasTerminationCondition": "测试完成并报告结果",
+      "cns:dateCreated": {
+        "@value": "2024-01-01T10:00:00",
+        "@type": "xsd:dateTime"
+      },
+      "cns:dateModified": {
+        "@value": "2024-01-01T10:05:00",
+        "@type": "xsd:dateTime"
+      }
+    },
+    {
+      "@id": "workflow:Agent_ZhangSan",
+      "@type": "workflow:Agent",
+      "rdfs:label": "张三"
+    },
+    {
+      "@id": "workflow:Agent_LiSi",
+      "@type": "workflow:Agent",
+      "rdfs:label": "李四"
+    },
+    {
+      "@id": "workflow:Agent_Programmer",
+      "@type": "workflow:Agent",
+      "rdfs:label": "程序员"
+    },
+    {
+      "@id": "workflow:Agent_Tester",
+      "@type": "workflow:Agent",
+      "rdfs:label": "测试员"
+    },
+    {
+      "@id": "workflow:Task_Calculate2Plus2",
+      "@type": "workflow:Task",
+      "rdfs:label": "计算2+2等于几",
+      "rdfs:comment": "简单的数学计算任务"
+    },
+    {
+      "@id": "workflow:Task_TestCalculator",
+      "@type": "workflow:Task",
+      "rdfs:label": "测试calculator.py中的add函数",
+      "rdfs:comment": "代码测试任务"
+    },
+    {
+      "@id": "workflow:Action_CreateWorkflow",
+      "@type": "workflow:WorkflowAction",
+      "rdfs:label": "创建工作流",
+      "workflow:performsAction": "workflow:Agent_ZhangSan",
+      "workflow:causesStatusChange": "workflow:StatusPending",
+      "cns:startTime": {
+        "@value": "2024-01-01T10:00:00",
+        "@type": "xsd:dateTime"
+      }
+    },
+    {
+      "@id": "workflow:Action_AssignTask",
+      "@type": "workflow:TransferAction",
+      "rdfs:label": "分配任务",
+      "workflow:performsAction": "workflow:Agent_ZhangSan",
+      "workflow:causesStatusChange": "workflow:StatusPending",
+      "cns:startTime": {
+        "@value": "2024-01-01T10:00:01",
+        "@type": "xsd:dateTime"
+      }
+    },
+    {
+      "@id": "workflow:Action_AcceptTask",
+      "@type": "workflow:AcceptAction",
+      "rdfs:label": "接受任务",
+      "workflow:performsAction": "workflow:Agent_Programmer",
+      "workflow:causesStatusChange": "workflow:StatusInProgress",
+      "cns:startTime": {
+        "@value": "2024-01-01T10:01:00",
+        "@type": "xsd:dateTime"
+      }
+    },
+    {
+      "@id": "workflow:Action_CompleteCoding",
+      "@type": "workflow:CompleteAction",
+      "rdfs:label": "完成编码",
+      "workflow:performsAction": "workflow:Agent_Programmer",
+      "workflow:causesStatusChange": "workflow:StatusPending",
+      "cns:startTime": {
+        "@value": "2024-01-01T10:05:00",
+        "@type": "xsd:dateTime"
+      }
+    },
+    {
+      "@id": "workflow:Action_TransferToTester",
+      "@type": "workflow:TransferAction",
+      "rdfs:label": "转交给测试员",
+      "workflow:performsAction": "workflow:Agent_Programmer",
+      "workflow:causesStatusChange": "workflow:StatusInProgress",
+      "cns:startTime": {
+        "@value": "2024-01-01T10:05:00",
+        "@type": "xsd:dateTime"
+      }
+    }
+  ]
+}

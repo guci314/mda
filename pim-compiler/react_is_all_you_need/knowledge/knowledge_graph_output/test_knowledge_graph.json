@@ -1,0 +1,88 @@
+{
+  "entities": [
+    {
+      "id": "entity_1",
+      "name": "Agent",
+      "type": "agent_concept",
+      "description": "智能代理，基于React循环的任务执行助手",
+      "source_files": [
+        "core/system_prompt.md",
+        "minimal/agent_essence.md"
+      ]
+    },
+    {
+      "id": "entity_2",
+      "name": "Function",
+      "type": "agent_concept",
+      "description": "计算的基本单元，Agent的本质",
+      "source_files": [
+        "minimal/agent_essence.md"
+      ]
+    },
+    {
+      "id": "entity_3",
+      "name": "ReactAgentMinimal",
+      "type": "technical_component",
+      "description": "基于React循环的Agent实现框架",
+      "source_files": [
+        "core/system_prompt.md"
+      ]
+    },
+    {
+      "id": "entity_4",
+      "name": "三位一体",
+      "type": "architecture_pattern",
+      "description": "Agent Creator的三重身份：创造者、索引者、学习核心",
+      "source_files": [
+        "knowledge.md"
+      ]
+    },
+    {
+      "id": "entity_5",
+      "name": "知识图谱",
+      "type": "technical_component",
+      "description": "用于组织和表示知识的图结构",
+      "source_files": [
+        "knowledge.md"
+      ]
+    }
+  ],
+  "relations": [
+    {
+      "source": "entity_1",
+      "target": "entity_2",
+      "type": "is_part_of",
+      "description": "Agent是Function的一种特殊形式",
+      "confidence": 0.9
+    },
+    {
+      "source": "entity_3",
+      "target": "entity_1",
+      "type": "implements",
+      "description": "ReactAgentMinimal实现了Agent的概念",
+      "confidence": 0.95
+    },
+    {
+      "source": "entity_4",
+      "target": "entity_1",
+      "type": "describes",
+      "description": "三位一体模式描述了Agent的多重身份",
+      "confidence": 0.8
+    },
+    {
+      "source": "entity_5",
+      "target": "entity_4",
+      "type": "supports",
+      "description": "知识图谱支持三位一体中的索引者角色",
+      "confidence": 0.85
+    }
+  ],
+  "metadata": {
+    "total_entities": 5,
+    "total_relations": 4,
+    "unique_entities": 5,
+    "unique_relations": 4,
+    "creation_time": "2024-10-01 06:10:00",
+    "description": "测试知识图谱 - 基于已知Agent知识体系"
+  }
+}

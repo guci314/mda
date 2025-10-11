@@ -1,0 +1,94 @@
+{
+  "by_type": {
+    "is_part_of": [
+      {
+        "source": "entity_1",
+        "target": "entity_2",
+        "description": "Agent是Function的一种特殊形式",
+        "confidence": 0.9
+      }
+    ],
+    "implements": [
+      {
+        "source": "entity_3",
+        "target": "entity_1",
+        "description": "ReactAgentMinimal实现了Agent的概念",
+        "confidence": 0.95
+      }
+    ],
+    "describes": [
+      {
+        "source": "entity_4",
+        "target": "entity_1",
+        "description": "三位一体模式描述了Agent的多重身份",
+        "confidence": 0.8
+      }
+    ],
+    "supports": [
+      {
+        "source": "entity_5",
+        "target": "entity_4",
+        "description": "知识图谱支持三位一体中的索引者角色",
+        "confidence": 0.85
+      }
+    ]
+  },
+  "by_source": {
+    "entity_1": [
+      {
+        "target": "entity_2",
+        "type": "is_part_of",
+        "description": "Agent是Function的一种特殊形式"
+      }
+    ],
+    "entity_3": [
+      {
+        "target": "entity_1",
+        "type": "implements",
+        "description": "ReactAgentMinimal实现了Agent的概念"
+      }
+    ],
+    "entity_4": [
+      {
+        "target": "entity_1",
+        "type": "describes",
+        "description": "三位一体模式描述了Agent的多重身份"
+      }
+    ],
+    "entity_5": [
+      {
+        "target": "entity_4",
+        "type": "supports",
+        "description": "知识图谱支持三位一体中的索引者角色"
+      }
+    ]
+  },
+  "by_target": {
+    "entity_2": [
+      {
+        "source": "entity_1",
+        "type": "is_part_of",
+        "description": "Agent是Function的一种特殊形式"
+      }
+    ],
+    "entity_1": [
+      {
+        "source": "entity_3",
+        "type": "implements",
+        "description": "ReactAgentMinimal实现了Agent的概念"
+      },
+      {
+        "source": "entity_4",
+        "type": "describes",
+        "description": "三位一体模式描述了Agent的多重身份"
+      }
+    ],
+    "entity_4": [
+      {
+        "source": "entity_5",
+        "type": "supports",
+        "description": "知识图谱支持三位一体中的索引者角色"
+      }
+    ]
+  }
+}

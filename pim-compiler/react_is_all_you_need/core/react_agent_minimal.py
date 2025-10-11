@@ -60,14 +60,14 @@ ensure_env_loaded()
 
 # 不再需要外部记忆系统 - Agent自己做笔记
 try:
-    from .tool_base import Function, ReadFileTool, WriteFileTool, AppendFileTool, ExecuteCommandTool
+    from .tool_base import Function, ReadFileTool, WriteFileTool, AppendFileTool
     from .tools.search_tool import SearchTool, NewsSearchTool
 except ImportError:
     # 支持直接运行此文件
     import sys
     from pathlib import Path
     sys.path.insert(0, str(Path(__file__).parent.parent))
-    from core.tool_base import Function, ReadFileTool, WriteFileTool, AppendFileTool, ExecuteCommandTool
+    from core.tool_base import Function, ReadFileTool, WriteFileTool, AppendFileTool
     from core.tools.search_tool import SearchTool, NewsSearchTool
 
 
@@ -98,7 +98,7 @@ class ReactAgentMinimal(Function):
                  model: str = "deepseek-chat",
                  api_key: Optional[str] = None,
                  base_url: Optional[str] = None,
-                 max_rounds: int = 100,
+                 max_rounds: int = 300,
                  knowledge_files: Optional[List[str]] = None,
                  stateful: bool = True,  # 新增：是否保持状态
                  _from_load: bool = False,  # 内部参数：是否从load方法创建
@@ -138,57 +138,21 @@ class ReactAgentMinimal(Function):
         self.work_dir = Path(work_dir)
         self.work_dir.mkdir(parents=True, exist_ok=True)
 
-        # 模型简写映射
-        model_shortcuts = {
-            "kimi": "kimi-k2-turbo-preview",
-            "grok": "x-ai/grok-code-fast-1",
-            "claude": "anthropic/claude-sonnet-4"
-        }
-        # 如果是简写，转换为完整模型名
-        if model in model_shortcuts:
-            model = model_shortcuts[model]
-
         self.model = model
         self.max_rounds = max_rounds
         self.stateful = stateful  # 保存状态标志
         self.interceptor = None  # 拦截器钩子，可选功能
         self.children = []  # 子Agent列表（金字塔结构）
 
-        # 移除LLM策略，保持简洁
-        
-        # API配置 - 根据模型名称智能选择
-        if "kimi" in model.lower() or "moonshot" in model.lower():
-            # Kimi模型 - 使用Moonshot API
-            self.api_key = api_key or os.getenv("MOONSHOT_API_KEY") or self._detect_api_key()
-            self.base_url = base_url or "https://api.moonshot.cn/v1"
-        elif "deepseek" in model.lower():
-            # DeepSeek模型
-            self.api_key = api_key or os.getenv("DEEPSEEK_API_KEY") or self._detect_api_key()
-            self.base_url = base_url or "https://api.deepseek.com/v1"
-        elif "anthropic" in model.lower() or "claude" in model.lower():
-            # Claude模型 - 通过OpenRouter
-            self.api_key = api_key or os.getenv("OPENROUTER_API_KEY") or self._detect_api_key()
-            self.base_url = base_url or "https://openrouter.ai/api/v1"
-        elif "grok" in model.lower() or "claude" in model.lower():
-            # grok模型 - 通过OpenRouter
-            self.api_key = api_key or os.getenv("OPENROUTER_API_KEY") or self._detect_api_key()
-            self.base_url = base_url or "https://openrouter.ai/api/v1"
-        elif "gemini" in model.lower():
-            # Gemini模型 - 通过OpenRouter（国内访问方便）
-            self.api_key = api_key or os.getenv("OPENROUTER_API_KEY") or self._detect_api_key()
-            self.base_url = base_url or "https://openrouter.ai/api/v1"
-        else:
-            # 默认配置
-            self.api_key = api_key or self._detect_api_key()
-            self.base_url = base_url or self._detect_base_url_for_key(self.api_key)
-        
-        # 保存极简模式开关（必须先设置，后面会用到）
-        
-        # Compact记忆配置
+        # API配置 - 必须通过参数传入或从.env读取
+        self.api_key = api_key or self._detect_api_key()
+        self.base_url = base_url or "https://api.deepseek.com/v1"  # 默认DeepSeek
+
+        # Compact记忆配置 - 使用当前Agent的模型配置
         self.compress_config = {
-            "model": "x-ai/grok-code-fast-1",  # 聪明、快速、便宜的模型
-            "base_url": "https://openrouter.ai/api/v1",
-            "api_key": os.getenv("OPENROUTER_API_KEY"),
+            "model": self.model,  # 使用当前Agent的模型
+            "base_url": self.base_url,  # 使用当前Agent的base_url
+            "api_key": self.api_key,  # 使用当前Agent的api_key
             "threshold": 70000,  # 触发压缩的token数
             "temperature": 0     # 确定性压缩
         }
@@ -206,10 +170,10 @@ class ReactAgentMinimal(Function):
         knowledge_dir = Path(__file__).parent.parent / "knowledge"
         self._load_knowledge_package(knowledge_dir / "minimal" / "system")
 
-        # 默认加载大道至简版验证知识（可通过knowledge_files覆盖）
-        validation_simplicity = knowledge_dir / "minimal" / "validation" / "validation_simplicity.md"
-        if validation_simplicity.exists() and str(validation_simplicity) not in self.knowledge_files:
-            self.knowledge_files.append(str(validation_simplicity))
+        # 默认加载自适应验证知识（客观+主观，根据任务类型选择）
+        validation_adaptive = knowledge_dir / "minimal" / "validation" / "validation_adaptive.md"
+        if validation_adaptive.exists() and str(validation_adaptive) not in self.knowledge_files:
+            self.knowledge_files.append(str(validation_adaptive))
 
         # 默认加载learning_functions知识，让每个Agent都能学习和记忆
         learning_functions = knowledge_dir / "learning_functions.md"
@@ -220,6 +184,16 @@ class ReactAgentMinimal(Function):
         agent_essence = knowledge_dir / "minimal" / "agent_essence.md"
         if agent_essence.exists() and str(agent_essence) not in self.knowledge_files:
             self.knowledge_files.append(str(agent_essence))
+
+        # 默认加载model_mappings知识，让Agent知道正确的模型名称映射
+        model_mappings = knowledge_dir / "model_mappings.md"
+        if model_mappings.exists() and str(model_mappings) not in self.knowledge_files:
+            self.knowledge_files.append(str(model_mappings))
+
+        # 默认加载诚实执行机制，防止Agent虚报成功和找借口
+        honesty_enforcement = knowledge_dir / "honesty_enforcement.md"
+        if honesty_enforcement.exists() and str(honesty_enforcement) not in self.knowledge_files:
+            self.knowledge_files.append(str(honesty_enforcement))
 
         # Home目录: ~/.agent/[agent名]/
         agent_home = Path.home() / ".agent" / self.name
@@ -285,9 +259,12 @@ class ReactAgentMinimal(Function):
 
         # sessions_dir已废弃，不再需要
         
+        # 初始化状态跟踪属性
+        self._previous_message_count = 0  # 用于检测消息增长
+
         # 自动加载记忆文件（基础设施保证）
         self._auto_load_memory()
-        
+
         # 初始化消息列表（在Agent初始化时，而不是任务执行时）
         self.messages = [
             {"role": "system", "content": self._build_minimal_prompt()}
@@ -299,10 +276,13 @@ class ReactAgentMinimal(Function):
             # 这样它会在对话中累积和演化
             if self.compact_memory:
                 self.messages.append({
-                    "role": "assistant", 
+                    "role": "assistant",
                     "content": f"[已加载历史压缩记忆]\n{self.compact_memory}"
                 })
                 print(f"  ✨ 已加载Compact记忆到消息列表")
+
+        # 尝试加载project_notes.md（如果存在）
+        self._load_project_notes()
         
         # 显示初始化信息（延迟到load方法，避免混淆）
         if not _from_load:  # 只在非load创建时显示
@@ -339,7 +319,13 @@ class ReactAgentMinimal(Function):
             method_args = kwargs.get("args", {})
 
             # 调用相应的方法
-            if method_name == "update_description":
+            if method_name == "update_api_config":
+                return self.update_api_config(
+                    model_name=method_args.get("model_name"),
+                    base_url=method_args.get("base_url"),
+                    api_key=method_args.get("api_key")
+                )
+            elif method_name == "update_description":
                 return self.update_description(method_args.get("new_description", ""))
             elif method_name == "get_status":
                 return self.get_status()
@@ -347,13 +333,6 @@ class ReactAgentMinimal(Function):
                 return self.update_knowledge(method_args.get("content", ""))
             elif method_name == "update_agent_knowledge":
                 return self.update_agent_knowledge()
-            elif method_name == "switch_model":
-                model = method_args.get("model", "")
-                old_model = self.model
-                self.switch_model(model)
-                # 保存状态
-                self._auto_save_state()
-                return f"✅ 模型已切换\n从: {old_model}\n到: {self.model}\nAPI: {self.base_url}"
             elif method_name == "change_work_dir":
                 new_work_dir = method_args.get("new_work_dir", "")
                 if not new_work_dir:
@@ -362,11 +341,11 @@ class ReactAgentMinimal(Function):
             elif method_name == "get_work_dir":
                 return self.get_work_dir()
             elif method_name == "execute":
-                # 递归调用execute，但这次用task参数
+                # 支持子Agent的execute调用，但在_execute_tool中会阻止自己调用自己
                 task = method_args.get("task", "")
                 if not task:
                     return "错误：execute方法需要task参数"
-                # 注意：这里直接传递task，不再传method/args
+                # 这里会执行任务，但如果是自己调用自己，会在_execute_tool中被阻止
                 return self.execute(task=task)
             else:
                 return f"错误：未知的方法 {method_name}"
@@ -399,11 +378,16 @@ class ReactAgentMinimal(Function):
         # personal_knowledge.md现在在init时作为知识文件加载，不需要在这里重复注入
         # 重定向标准输出到output.log
         import sys
+        import os
+
+        # 检查是否禁用stdout重定向
+        no_redirect = os.getenv('AGENT_NO_REDIRECT') == '1'
+
         output_log_path = self.notes_dir / "output.log"
-        
+
         # 确保目录存在（用于output.log）
         self.notes_dir.mkdir(parents=True, exist_ok=True)
-        
+
         # 保存原始stdout
         original_stdout = sys.stdout
         
@@ -430,11 +414,39 @@ class ReactAgentMinimal(Function):
                         except ValueError:
                             pass
         
-        # 打开日志文件（写入模式）- 每次运行清空重新开始
-        log_file = open(output_log_path, 'w', encoding='utf-8')
-        
-        # 设置stdout同时输出到控制台和文件
-        sys.stdout = Tee(original_stdout, log_file)
+        # 如果禁用重定向，跳过日志文件处理
+        log_file = None
+        if not no_redirect:
+            # 备份旧的output.log到output_logs目录
+            if output_log_path.exists():
+                # 创建output_logs目录
+                output_logs_dir = self.notes_dir / "output_logs"
+                output_logs_dir.mkdir(parents=True, exist_ok=True)
+
+                # 生成带时间戳的备份文件名
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                backup_path = output_logs_dir / f"output_{timestamp}.log"
+
+                # 移动旧日志到备份目录
+                import shutil
+                shutil.move(str(output_log_path), str(backup_path))
+                print(f"  📦 备份output.log -> {backup_path.name}")
+
+                # 保留最近10个，删除多余的
+                log_files = sorted(output_logs_dir.glob("output_*.log"))
+                if len(log_files) > 10:
+                    # 删除最老的文件
+                    for old_log in log_files[:-10]:
+                        old_log.unlink()
+                        print(f"  🗑️ 删除旧日志: {old_log.name}")
+
+            # 打开新的日志文件（写入模式）
+            log_file = open(output_log_path, 'w', encoding='utf-8')
+
+            # 设置stdout同时输出到控制台和文件
+            sys.stdout = Tee(original_stdout, log_file)
+        else:
+            print(f"  ⚠️  stdout重定向已禁用（AGENT_NO_REDIRECT=1）")
         
         try:
             print(f"\n[{self.name}] 执行任务...")
@@ -797,17 +809,16 @@ class ReactAgentMinimal(Function):
             ReadFileTool(self.work_dir),
             WriteFileTool(self.work_dir),
             AppendFileTool(self.work_dir),  # 追加文件工具
-            ExecuteCommandTool(self.work_dir),
             SearchTool()  # 搜索工具作为默认工具
         ]
-        
-        # 添加ExecuteCommandExtended工具（支持自定义超时和后台执行）
+
+        # 添加ExecuteCommandExtended工具（唯一的命令执行工具）
         try:
             from tools.execute_command_extended import ExecuteCommandExtended
             tools.append(ExecuteCommandExtended(self.work_dir))
         except ImportError:
-            # 如果导入失败，继续使用基础版本
-            pass
+            # ExecuteCommandExtended是必需的
+            raise ImportError("ExecuteCommandExtended工具未找到，请确保execute_command_extended.py存在")
         
         # 添加EditFile工具（安全的文件编辑）
         try:
@@ -844,57 +855,16 @@ class ReactAgentMinimal(Function):
 
         return tools
     
-    def switch_model(self, new_model: str, silent: bool = False) -> None:
-        """切换模型并更新API配置
-
-        支持的简写：
-        - 'kimi' -> 'kimi-k2-turbo-preview'
-        - 'grok' -> 'x-ai/grok-code-fast-1'
-        - 'claude' -> 'anthropic/claude-sonnet-4'
-
-        Args:
-            new_model: 新模型名称或简写
-            silent: 是否静默切换（不打印信息）
-        """
-        # 模型简写映射
-        model_shortcuts = {
-            "kimi": "kimi-k2-turbo-preview",
-            "grok": "x-ai/grok-code-fast-1",
-            "claude": "anthropic/claude-3.5-sonnet"
-        }
-
-        # 如果是简写，转换为完整模型名
-        if new_model in model_shortcuts:
-            new_model = model_shortcuts[new_model]
-
-        self.model = new_model
-
-        # 根据新模型更新API配置
-        if "kimi" in new_model.lower() or "moonshot" in new_model.lower():
-            self.api_key = os.getenv("MOONSHOT_API_KEY")
-            self.base_url = "https://api.moonshot.cn/v1"
-        elif "deepseek" in new_model.lower():
-            self.api_key = os.getenv("DEEPSEEK_API_KEY")
-            self.base_url = "https://api.deepseek.com/v1"
-        elif "x-ai/grok" in new_model.lower():  # Grok模型通过OpenRouter
-            self.api_key = os.getenv("OPENROUTER_API_KEY")
-            self.base_url = "https://openrouter.ai/api/v1"
-        elif "anthropic/" in new_model.lower():  # Claude模型通过OpenRouter
-            self.api_key = os.getenv("OPENROUTER_API_KEY")
-            self.base_url = "https://openrouter.ai/api/v1"
-        elif "/" in new_model:  # 其他OpenRouter模型格式
-            self.api_key = os.getenv("OPENROUTER_API_KEY")
-            self.base_url = "https://openrouter.ai/api/v1"
-        else:
-            # 保持现有配置
-            pass
-    
     def _execute_tool(self, tool_name: str, arguments: Dict) -> str:
         """执行工具 - 使用Tool实例"""
         try:
             # 查找对应的工具实例
             for tool in self.function_instances:  # 查找对应的function实例
                 if tool.name == tool_name:
+                    # 防止agent递归调用自己的execute方法
+                    # 但允许调用其他agent的execute方法
+                    if tool is self and arguments.get("method") == "execute":
+                        return "❌ 错误：Agent不允许递归调用自己的execute方法。请直接执行任务，而不是调用execute。"
                     return tool.execute(**arguments)
 
             return f"未知工具: {tool_name}"
@@ -905,12 +875,16 @@ class ReactAgentMinimal(Function):
     def _call_api(self, messages: List[Dict]) -> Optional[Dict]:
         """调用API - 极简版本（带重试）"""
         import time
-        
+        import os
+
         # 保持单一模型，不做切换
-        
-        max_retries = 3
+
+        max_retries = 6  # 增加到6次，应对网络不稳定
         retry_delay = 2  # 秒
-        
+
+        # 调试模式
+        debug = os.getenv('AGENT_DEBUG') == '1'
+
         for attempt in range(max_retries):
             try:
                 # 准备请求数据
@@ -922,17 +896,25 @@ class ReactAgentMinimal(Function):
                     "temperature": 0.3,
                     "max_tokens": 4096
                 }
-                
-                # 对于中国的API服务，不使用代理
-                proxies = None
-                if 'moonshot.cn' in self.base_url or 'deepseek.com' in self.base_url:
-                    # 禁用代理 - 使用空字符串覆盖环境变量
-                    proxies = {
-                        'http': '',
-                        'https': '',
-                        'all': ''
-                    }
-                
+
+                if debug:
+                    import json
+                    msg_size = len(json.dumps(messages))
+                    tools_size = len(json.dumps(self.functions))
+                    print(f"[DEBUG] Messages大小: {msg_size/1024:.1f}KB, Tools大小: {tools_size/1024:.1f}KB")
+                    print(f"[DEBUG] 发送API请求到: {self.base_url}")
+                    print(f"[DEBUG] 准备调用requests.post...")
+
+                # 使用环境代理设置（不强制禁用）
+                # 如果环境没有代理，requests会自动直连
+                # 如果环境有代理，requests会使用代理
+                if debug:
+                    print(f"[DEBUG] 序列化request_data...")
+                    import json
+                    payload = json.dumps(request_data)
+                    print(f"[DEBUG] Payload大小: {len(payload)/1024:.1f}KB")
+                    print(f"[DEBUG] 调用requests.post (timeout=10)...")
+
                 response = requests.post(
                     f"{self.base_url}/chat/completions",
                     headers={
@@ -940,9 +922,11 @@ class ReactAgentMinimal(Function):
                         "Content-Type": "application/json"
                     },
                     json=request_data,
-                    timeout=180,  # 增加到180秒，处理大型任务
-                    proxies=proxies
+                    timeout=10  # 临时改为10秒以便快速诊断
                 )
+
+                if debug:
+                    print(f"[DEBUG] requests.post返回，状态码: {response.status_code}")
             
                 if response.status_code == 200:
                     return response.json()
@@ -983,24 +967,6 @@ class ReactAgentMinimal(Function):
             if api_key:
                 return api_key
         raise ValueError("未找到API密钥")
-    
-    def _detect_base_url_for_key(self, api_key: str) -> str:
-        """根据API密钥检测对应的API URL"""
-        # 检查是否是特定服务的API密钥
-        if api_key == os.getenv("DEEPSEEK_API_KEY"):
-            return "https://api.deepseek.com/v1"
-        elif api_key == os.getenv("MOONSHOT_API_KEY"):
-            return "https://api.moonshot.cn/v1"
-        elif api_key == os.getenv("OPENROUTER_API_KEY"):
-            return "https://openrouter.ai/api/v1"
-        
-        # 如果无法确定，基于环境变量猜测
-        if os.getenv("DEEPSEEK_API_KEY") and not os.getenv("OPENROUTER_API_KEY"):
-            return "https://api.deepseek.com/v1"
-        elif os.getenv("MOONSHOT_API_KEY") and not os.getenv("OPENROUTER_API_KEY"):
-            return "https://api.moonshot.cn/v1"
-        else:
-            return "https://openrouter.ai/api/v1"
     
     def _detect_service(self) -> str:
         """检测服务类型"""
@@ -1043,11 +1009,11 @@ class ReactAgentMinimal(Function):
                                 "type": "string",
                                 "enum": [
                                     "execute",
+                                    "update_api_config",
                                     "update_description",
                                     "get_status",
                                     "update_knowledge",
                                     "update_agent_knowledge",
-                                    "switch_model",
                                     "change_work_dir",
                                     "get_work_dir"
                                 ],
@@ -1055,19 +1021,27 @@ class ReactAgentMinimal(Function):
                             },
                             "args": {
                                 "type": "object",
-                                "description": "方法参数。execute需要task参数；update_description需要new_description参数；switch_model需要model参数；update_knowledge需要content参数；change_work_dir需要new_work_dir参数；update_agent_knowledge和get_work_dir不需要参数",
+                                "description": "方法参数。execute需要task参数；update_api_config需要model_name/base_url/api_key参数；update_description需要new_description参数；update_knowledge需要content参数；change_work_dir需要new_work_dir参数；update_agent_knowledge和get_work_dir不需要参数",
                                 "properties": {
                                     "task": {
                                         "type": "string",
                                         "description": "要执行的任务（仅用于execute方法）"
                                     },
+                                    "model_name": {
+                                        "type": "string",
+                                        "description": "新的模型名称（仅用于update_api_config方法）"
+                                    },
+                                    "base_url": {
+                                        "type": "string",
+                                        "description": "新的API基础URL（仅用于update_api_config方法）"
+                                    },
+                                    "api_key": {
+                                        "type": "string",
+                                        "description": "新的API密钥（仅用于update_api_config方法）"
+                                    },
                                     "new_description": {
                                         "type": "string",
                                         "description": "新的description（仅用于update_description方法）"
-                                    },
-                                    "model": {
-                                        "type": "string",
-                                        "description": "新的模型名称，如'kimi'、'grok'、'claude'等（仅用于switch_model方法）"
                                     },
                                     "new_work_dir": {
                                         "type": "string",
@@ -1162,15 +1136,15 @@ class ReactAgentMinimal(Function):
         # 使用Agent的home目录
         agent_home = Path.home() / ".agent" / self.name
         compact_file = agent_home / "compact.md"
-        
+
         if not compact_file.exists():
             return False
-        
+
         print(f"  📚 加载Compact记忆: compact.md")
-        
+
         # 读取compact.md的内容
         compact_content = compact_file.read_text(encoding='utf-8')
-        
+
         # 从compact.md中提取实际的压缩内容
         # 查找 "### Assistant消息" 后的内容
         import re
@@ -1180,7 +1154,7 @@ class ReactAgentMinimal(Function):
         else:
             # 如果格式不对，使用整个内容
             compressed_history = compact_content
-        
+
         # 创建user/assistant消息对，这样压缩时能看到历史
         compact_messages = [
             {"role": "user", "content": "[请基于以下压缩的历史记忆继续对话]"},
@@ -1198,7 +1172,32 @@ class ReactAgentMinimal(Function):
         self.compact_memory = compressed_history  # 保存以便后续使用
         
         return True
-    
+
+    def _load_project_notes(self) -> bool:
+        """从project_notes.md加载项目上下文（如果存在）"""
+        # 检查工作目录下的.notes/project_notes.md
+        project_notes_path = self.work_dir / ".notes" / "project_notes.md"
+
+        if not project_notes_path.exists():
+            return False
+
+        try:
+            # 读取项目笔记内容
+            project_notes = project_notes_path.read_text(encoding='utf-8')
+
+            # 将项目笔记作为系统消息的一部分添加
+            # 这样Agent会知道项目上下文，但不会占用对话历史
+            if self.messages and self.messages[0]["role"] == "system":
+                # 在系统消息后追加项目上下文
+                self.messages[0]["content"] += f"\n\n## 项目上下文\n{project_notes}"
+                print(f"  📋 加载项目笔记: .notes/project_notes.md")
+                return True
+        except Exception as e:
+            print(f"  ⚠️ 加载项目笔记失败: {e}")
+            return False
+
+        return False
+
     def _find_project_root(self, start_path: Path) -> Optional[Path]:
         """查找项目根目录
         
@@ -1250,22 +1249,33 @@ class ReactAgentMinimal(Function):
         """
         自动保存Agent状态到home目录
         实现"活在文件系统"的理念 - 每次执行后自动持久化
+
+        新策略：
+        1. 先执行compact压缩对话历史到compact.md
+        2. state.json只保存配置，不保存messages
         """
         try:
-            # 构建状态
+            # 1. 先保存compact记忆（压缩对话历史）
+            if hasattr(self, 'messages') and len(self.messages) > 1:  # 至少有系统消息+其他消息
+                self._save_compact_memory()
+
+            # 2. 构建状态（不含messages）
             state = {
                 "name": self.name,
                 "description": self.description,  # 保存Agent描述
                 "model": self.model,  # 保存使用的LLM模型
+                "base_url": self.base_url,  # 保存API基础URL
+                "api_key": self.api_key,  # 保存API密钥（注意安全性）
                 "work_dir": str(self.work_dir),  # 保存工作目录
-                "messages": self.messages,
-                "compact_memory": self.compact_memory,
+                # "messages": self.messages,  # ← 不再保存messages！
+                "has_compact": True,  # 标记有compact.md存在
+                "message_count": len(self.messages) if hasattr(self, 'messages') else 0,  # 只记录数量
                 "timestamp": datetime.now().isoformat(),
                 "task_count": getattr(self, '_task_count', 0) + 1,
                 "children": self.children  # 保存子Agent列表（金字塔结构）
             }
 
-            # 保存到home目录
+            # 3. 保存到home目录
             agent_home = Path.home() / ".agent" / self.name
             agent_home.mkdir(parents=True, exist_ok=True)
             state_file = agent_home / "state.json"
@@ -1284,9 +1294,64 @@ class ReactAgentMinimal(Function):
             # 只是记录错误（不打印，避免干扰输出）
             pass
 
+    def _get_execution_context_info(self) -> str:
+        """获取ExecutionContext的完整信息（包括当前上下文和调用栈）
+
+        Returns:
+            ExecutionContext的格式化信息，如果为空返回None
+        """
+        try:
+            # 查找ExecutionContext工具实例
+            for tool in self.function_instances:
+                if hasattr(tool, 'name') and tool.name == 'context':
+                    # 获取当前上下文（栈顶）
+                    context_info = tool.execute(action='get_context')
+
+                    # 获取调用栈
+                    call_stack_info = tool.execute(action='get_call_stack')
+
+                    # 组合信息
+                    combined_info = []
+                    has_content = False
+
+                    # 解析当前上下文
+                    if context_info and context_info != "{}":
+                        try:
+                            context_data = json.loads(context_info)
+                            # 检查是否有实质内容
+                            if (context_data.get('目标') != '未设置' or
+                                context_data.get('任务详情') or
+                                context_data.get('当前状态') != '未设置' or
+                                context_data.get('数据存储')):
+                                combined_info.append("=== 当前执行上下文 ===")
+                                combined_info.append(context_info)
+                                has_content = True
+                        except:
+                            # 如果不是JSON格式，仍然保留
+                            if context_info.strip():
+                                combined_info.append("=== 当前执行上下文 ===")
+                                combined_info.append(context_info)
+                                has_content = True
+
+                    # 添加调用栈信息（如果不为空）
+                    if call_stack_info and "调用栈为空" not in call_stack_info:
+                        combined_info.append("\n=== 调用栈 ===")
+                        combined_info.append(call_stack_info)
+                        has_content = True
+
+                    # 返回组合的信息
+                    if has_content:
+                        return "\n".join(combined_info)
+
+                    break
+        except Exception as e:
+            print(f"  ⚠️ 获取ExecutionContext失败: {e}")
+
+        return None
+
     def _compact_messages(self, messages: List[Dict], manual: bool = False) -> List[Dict]:
         """智能压缩对话历史 - 使用description作为注意力先验
-        
+
         Args:
             messages: 消息列表
             manual: 是否手动触发（手动触发时不显示阈值信息）
@@ -1407,11 +1472,26 @@ Agent描述（注意力框架）：
                         pending_tool_messages = []
                         break
                 
-                # 返回新的消息列表：系统提示词 + 压缩的消息对 + 未完成的tool调用
+                # 获取ExecutionContext信息
+                execution_context_info = self._get_execution_context_info()
+
+                # 返回新的消息列表：系统提示词 + 压缩的消息对 + ExecutionContext信息 + 未完成的tool调用
                 result_messages = []
                 if original_system_msg:
                     result_messages.append(original_system_msg)
                 result_messages.extend(compressed_messages)
+
+                # 如果ExecutionContext不为空，添加到消息中
+                if execution_context_info:
+                    result_messages.append({
+                        "role": "user",
+                        "content": f"[当前ExecutionContext状态]\n{execution_context_info}"
+                    })
+                    result_messages.append({
+                        "role": "assistant",
+                        "content": "OK"
+                    })
+
                 result_messages.extend(pending_tool_messages)
                 return result_messages
             else:
@@ -1510,20 +1590,22 @@ Agent描述（注意力框架）：
                 if "work_dir" in state and work_dir == ".":
                     # 只有在没有显式指定work_dir时才使用保存的值
                     agent.work_dir = Path(state["work_dir"])
+                # 恢复API配置（如果保存了的话）
+                if "base_url" in state:
+                    agent.base_url = state["base_url"]
+                if "api_key" in state:
+                    agent.api_key = state["api_key"]
                 # 恢复模型设置（如果保存了的话）
                 if "model" in state:
-                    # 恢复之前切换的模型
-                    agent.switch_model(state["model"], silent=True)  # 静默切换，不打印
-                # 恢复消息历史
-                if "messages" in state and isinstance(state["messages"], list):
-                    # 保留系统提示词，添加历史消息
-                    if agent.messages and agent.messages[0]["role"] == "system":
-                        agent.messages = [agent.messages[0]] + state["messages"]
-                    else:
-                        agent.messages = state["messages"]
-                # 恢复compact记忆
-                if "compact_memory" in state:
-                    agent.compact_memory = state["compact_memory"]
+                    agent.model = state["model"]  # 直接恢复，不需要switch_model
+
+                # 新策略：不从state.json恢复messages
+                # compact.md已经在__init__中通过_load_compact_memory()加载
+                # 这里不需要额外处理messages
+
+                # 只记录消息数量信息（用于调试）
+                if "message_count" in state:
+                    agent._previous_message_count = state["message_count"]
                 # 恢复description（接口定义）
                 if "description" in state:
                     agent.description = state["description"]
@@ -1565,13 +1647,46 @@ Agent描述（注意力框架）：
     def _add_self_management_functions(self) -> None:
         """添加自我管理函数（元认知能力）
 
-        将Agent自己注册为工具，让Agent可以调用自己的所有方法。
-        这实现了真正的元认知：Agent可以调用自己。
+        将Agent自己注册为工具，让Agent可以调用自己的管理方法。
+        注意：execute方法中会阻止递归调用自己的execute。
         """
-        # 将自己作为Function添加
+        # 将自己作为Function添加，但execute方法会检查防止递归
         self.function_instances.append(self)
 
     # ========== 自我管理方法（暴露给Agent自己调用） ==========
+
+    def update_api_config(self, model_name: str = None, base_url: str = None, api_key: str = None) -> str:
+        """更新API配置（模型、base_url、api_key）
+
+        Args:
+            model_name: 新的模型名称
+            base_url: 新的API基础URL
+            api_key: 新的API密钥
+
+        Returns:
+            更新结果的描述
+        """
+        updates = []
+
+        if model_name:
+            old_model = self.model
+            self.model = model_name
+            updates.append(f"模型: {old_model} → {model_name}")
+
+        if base_url:
+            old_url = self.base_url
+            self.base_url = base_url
+            updates.append(f"Base URL: {old_url} → {base_url}")
+
+        if api_key:
+            self.api_key = api_key
+            updates.append(f"API Key: 已更新")
+
+        if updates:
+            self._auto_save_state()
+            return f"✅ API配置已更新:\n" + "\n".join(updates)
+        else:
+            return "⚠️ 没有提供任何更新参数"
 
     def update_description(self, new_description: str) -> str:
         """更新Agent的description（接口定义）"""
