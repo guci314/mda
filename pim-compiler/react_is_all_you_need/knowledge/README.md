@@ -12,7 +12,6 @@
 3. **learning_functions.md** - 学习与记忆契约函数
    - @learning() - 从实践学习
    - @memory() - 记住用户教育
-   - @learning_from_expert() - 向Claude请教
 4. **agent_essence.md** - Agent本质理解
 5. **model_mappings.md** - 模型配置
    - @切换模型() - LLM切换
@@ -26,9 +25,10 @@
 ## 按需加载（特定Agent手动加载）
 
 ### 专用功能
-- **test_fixing_function.md** (541行) - 测试修复
+- **test_fixing_function.md** (792行) - 测试修复与专家协作
   - @修复测试() - 系统化修复流程
-  - 诚实验证、禁止借口、完成验证契约
+  - @learning_from_expert() - 向Claude专家请教
+  - 诚实验证、禁止借口、完成验证契约、元认知检查
   - 适用：需要修复测试的Agent
 
 - **work_with_expert.md** - 与专家对比学习
@@ -93,7 +93,7 @@
 **学习功能**：
 - 从实践学习 → learning_functions.md (@learning)
 - 记住教育 → learning_functions.md (@memory)
-- 向专家请教 → learning_functions.md (@learning_from_expert)
+- 向专家请教 → test_fixing_function.md (@learning_from_expert)
 
 **诚实执行**：
 - 防止虚报成功 → honesty_enforcement.md
@@ -141,14 +141,14 @@
 默认加载：7个文件
 - system_prompt_minimal.md
 - validation_adaptive.md
-- learning_functions.md (3个契约函数)
+- learning_functions.md (2个契约函数)
 - agent_essence.md
 - model_mappings.md (1个契约函数)
 - honesty_enforcement.md
 - knowledge.md (个体)
 
 按需加载：2个文件
-- test_fixing_function.md (1个契约函数)
+- test_fixing_function.md (2个契约函数)
 - work_with_expert.md (1个契约函数)
 
 总契约函数：6个
