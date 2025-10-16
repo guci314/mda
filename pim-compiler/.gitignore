@@ -13,10 +13,14 @@ build/
 
 # Testing
 test_*.py
-test_*.md
 test_*_output/
 test_*/
 *.pid
+
+# Ignore test markdown files except in knowledge directories
+test_*.md
+!knowledge/test_*.md
+!**/knowledge/test_*.md
 
 # Compiled output
 compiled_output/
