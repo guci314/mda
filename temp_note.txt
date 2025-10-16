@@ -1,0 +1,16 @@
+已解决！
+
+问题原因
+
+pim-compiler/.gitignore 中的 test_*.md 规则把 test_fixing_function.md 忽略了，导致没有被git跟踪。
+
+解决方案
+
+1. 修改了 .gitignore，添加例外规则：
+test_*.md                  # 忽略临时测试文件
+!knowledge/test_*.md       # 但保留knowledge目录中的
+!**/knowledge/test_*.md    # 包括子目录
+2. 强制添加了 test_fixing_function.md 到版本控制
+3. 已提交并推送到GitHub
+
+现在你在macOS上重新pull，就能看到这个文件了。
