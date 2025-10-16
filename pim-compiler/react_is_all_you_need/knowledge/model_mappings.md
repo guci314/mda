@@ -2,7 +2,15 @@
 
 ## 契约函数 @切换模型(target_model)
 
-当用户要求切换LLM模型时，必须严格执行以下契约步骤：
+当用户要求切换LLM模型时，必须严格执行以下契约。
+
+### 函数签名
+```
+契约函数 @切换模型(target_model)
+```
+
+### 强制要求
+⚠️ **必须使用ExecutionContext严格执行每个步骤**
 
 ### 参数
 - `target_model`: 目标模型（简称或完整名称）
@@ -22,24 +30,54 @@
 
 ### 契约执行步骤
 
-1. **解析目标模型名称**
-   - 如果是简称，转换为完整名称（参考上面的映射）
+#### 步骤1: 初始化ExecutionContext
+```
+context(action='set_goal', goal='契约函数 @切换模型')
+```
 
-2. **确定API配置**
-   - 应用核心规则确定base_url和api_key_name
+#### 步骤2: 解析目标模型名称
+```
+context(action='add_step', step='解析目标模型名称')
+- 如果是简称，转换为完整名称（参考上面的映射）
+- 记录完整模型名称
+context(action='complete_step')
+```
 
-3. **读取API密钥**
-   - 使用`read_file`工具读取：`/home/guci/aiProjects/mda/pim-compiler/.env`
-   - 解析找到对应的`KEY_NAME=value`
-   - 提取API密钥值
+#### 步骤3: 确定API配置
+```
+context(action='add_step', step='确定API配置')
+- 应用核心规则确定base_url和api_key_name
+- 包含 `/` → OpenRouter
+- 不包含 `/` → 专用API
+context(action='complete_step')
+```
 
-4. **调用update_api_config**
-   - 工具：当前agent名称
-   - 方法：update_api_config
-   - 参数：model_name, base_url, api_key
+#### 步骤4: 读取API密钥
+```
+context(action='add_step', step='读取API密钥')
+- 使用read_file工具读取：/Users/guci/aiProjects/mda/pim-compiler/.env
+- 解析找到对应的KEY_NAME=value
+- 提取API密钥值
+context(action='complete_step')
+```
 
-5. **报告结果**
-   - 确认切换成功
+#### 步骤5: 调用update_api_config
+```
+context(action='add_step', step='调用update_api_config')
+- 工具：当前agent名称
+- 方法：update_api_config
+- 参数：model_name, base_url, api_key
+context(action='complete_step')
+```
+
+#### 步骤6: 报告结果
+```
+context(action='add_step', step='报告结果')
+- 确认切换成功
+- 显示新的模型配置
+context(action='set_status', status='completed')
+context(action='complete_step')
+```
 
 ### 触发方式
 - `@切换模型 grok`

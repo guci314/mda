@@ -166,34 +166,27 @@ class ReactAgentMinimal(Function):
         # 知识文件（自然语言程序）- 支持包和单独文件
         self.knowledge_files = self._resolve_knowledge_files(knowledge_files or [])
 
-        # 加载极简system包和默认验证知识（大道至简版）
+        # 🔧 极简化：不再预加载任何知识文件
+        # Agent会通过索引自主读取需要的知识
         knowledge_dir = Path(__file__).parent.parent / "knowledge"
-        self._load_knowledge_package(knowledge_dir / "minimal" / "system")
 
-        # 默认加载自适应验证知识（客观+主观，根据任务类型选择）
-        validation_adaptive = knowledge_dir / "minimal" / "validation" / "validation_adaptive.md"
-        if validation_adaptive.exists() and str(validation_adaptive) not in self.knowledge_files:
-            self.knowledge_files.append(str(validation_adaptive))
+        # ❌ 已移除：默认加载system包
+        # ❌ 已移除：默认加载validation_adaptive
+        # ❌ 已移除：默认加载knowledge_function_concepts
+        # ❌ 已移除：默认加载learning_functions
+        # ❌ 已移除：默认加载agent_essence
+        # ❌ 已移除：默认加载model_mappings
+        # ❌ 已移除：默认加载honesty_enforcement
 
-        # 默认加载learning_functions知识，让每个Agent都能学习和记忆
-        learning_functions = knowledge_dir / "learning_functions.md"
-        if learning_functions.exists() and str(learning_functions) not in self.knowledge_files:
-            self.knowledge_files.append(str(learning_functions))
+        # ✅ 保留：只加载用户指定的knowledge_files（通过参数传入）
 
-        # 默认加载agent_essence知识，让每个Agent理解自己的本质
-        agent_essence = knowledge_dir / "minimal" / "agent_essence.md"
-        if agent_essence.exists() and str(agent_essence) not in self.knowledge_files:
-            self.knowledge_files.append(str(agent_essence))
-
-        # 默认加载model_mappings知识，让Agent知道正确的模型名称映射
-        model_mappings = knowledge_dir / "model_mappings.md"
-        if model_mappings.exists() and str(model_mappings) not in self.knowledge_files:
-            self.knowledge_files.append(str(model_mappings))
-
-        # 默认加载诚实执行机制，防止Agent虚报成功和找借口
-        honesty_enforcement = knowledge_dir / "honesty_enforcement.md"
-        if honesty_enforcement.exists() and str(honesty_enforcement) not in self.knowledge_files:
-            self.knowledge_files.append(str(honesty_enforcement))
+        # 🔧 初始化知识函数自动加载器（Unix哲学实现）
+        from .knowledge_function_loader import KnowledgeFunctionLoader
+        self.knowledge_loader = KnowledgeFunctionLoader(
+            knowledge_dirs=[str(knowledge_dir)],
+            already_loaded=set(self.knowledge_files)  # 记录已加载的默认知识文件
+        )
+        print(f"  📂 知识函数索引: {len(self.knowledge_loader.function_index)}个函数")
 
         # Home目录: ~/.agent/[agent名]/
         agent_home = Path.home() / ".agent" / self.name
@@ -266,9 +259,11 @@ class ReactAgentMinimal(Function):
         self._auto_load_memory()
 
         # 初始化消息列表（在Agent初始化时，而不是任务执行时）
+        system_prompt = self._build_minimal_prompt()
         self.messages = [
-            {"role": "system", "content": self._build_minimal_prompt()}
+            {"role": "system", "content": system_prompt}
         ]
+        print(f"  📝 系统提示词: {len(system_prompt)}字符")
         
         # 尝试加载compact.md（如果存在）
         if self._load_compact_memory():
@@ -503,7 +498,10 @@ class ReactAgentMinimal(Function):
 
             # 3. 未知斜杠命令
             return f"❓ 未知命令: {task.strip()}\n使用 /help 查看可用命令"
-        
+
+        # ❌ 已移除：自动检测并加载@知识函数
+        # Agent现在通过索引自主读取知识文件，无需代码自动加载
+
         # 添加用户任务到消息列表（消息列表已在__init__中初始化）
         self.messages.append({"role": "user", "content": task})
         
@@ -584,7 +582,7 @@ class ReactAgentMinimal(Function):
     
     def _resolve_knowledge_files(self, knowledge_files: List[str]) -> List[str]:
         """解析知识文件列表，支持包和单独文件
-        
+
         支持的格式：
         - 单个文件：'knowledge/file.md'
         - 整个包：'knowledge/system' （加载包内所有.md文件）
@@ -592,10 +590,10 @@ class ReactAgentMinimal(Function):
         """
         resolved_files = []
         knowledge_dir = Path(__file__).parent.parent / "knowledge"
-        
+
         for item in knowledge_files:
             path = Path(item)
-            
+
             # 如果是相对路径，基于knowledge目录
             if not path.is_absolute():
                 # 如果路径已经包含"knowledge/"前缀，去掉它
@@ -603,7 +601,7 @@ class ReactAgentMinimal(Function):
                     path = knowledge_dir / str(path).replace("knowledge/", "", 1)
                 else:
                     path = knowledge_dir / path
-            
+
             if path.is_dir():
                 # 如果是目录，加载其中所有.md文件
                 md_files = sorted(path.glob("*.md"))
@@ -623,7 +621,13 @@ class ReactAgentMinimal(Function):
                     for match in matching_files:
                         if str(match) not in resolved_files:
                             resolved_files.append(str(match))
-        
+            else:
+                # 文件不存在或不是.md文件，显示警告
+                if not path.exists():
+                    print(f"  ⚠️ 知识文件不存在: {item}")
+                elif path.suffix != '.md':
+                    print(f"  ⚠️ 不是.md文件: {item}")
+
         return resolved_files
     
     def _load_knowledge_package(self, package_path: Path):
@@ -681,29 +685,81 @@ class ReactAgentMinimal(Function):
                     else:
                         self.knowledge_files.append(str(md_file))
     
+    def _build_knowledge_index(self) -> str:
+        """构建知识函数索引信息
+
+        Returns:
+            格式化的知识函数索引字符串，如果索引为空返回空字符串
+        """
+        if not self.knowledge_loader.function_index:
+            return ""
+
+        lines = ["## 📚 知识函数索引"]
+        lines.append("\n你可以使用ReadFileTool主动读取以下知识文件：\n")
+
+        # 按类型分组
+        contract_funcs = []
+        soft_funcs = []
+
+        for func_name, func_info in sorted(self.knowledge_loader.function_index.items()):
+            if func_info.func_type == 'contract':
+                contract_funcs.append(func_info)
+            else:
+                soft_funcs.append(func_info)
+
+        # 显示契约函数
+        if contract_funcs:
+            lines.append("### 契约函数（必须使用ExecutionContext）\n")
+            for func_info in contract_funcs:
+                lines.append(f"- **@{func_info.name}** - {func_info.docstring}")
+                lines.append(f"  → `{func_info.path}`\n")
+
+        # 显示软约束函数
+        if soft_funcs:
+            lines.append("### 软约束函数（ExecutionContext可选）\n")
+            for func_info in soft_funcs:
+                lines.append(f"- **@{func_info.name}** - {func_info.docstring}")
+                lines.append(f"  → `{func_info.path}`\n")
+
+        lines.append("\n**重要**：上述路径是绝对路径，可以直接用ReadFileTool读取。")
+        lines.append("\n**使用方法**：当看到用户消息中的`@xxx`指令时，这是知识函数引用。请先使用ReadFileTool读取对应文件了解其定义，然后按定义执行。")
+        lines.append("\n**示例**：用户说\"请执行@learning\"，你应该：")
+        lines.append("1. 查看索引了解函数用途")
+        lines.append("2. 使用ReadFileTool读取对应的绝对路径文件")
+        lines.append("3. 理解@learning函数的完整定义")
+        lines.append("4. 按照定义执行相应步骤\n")
+
+        return "\n".join(lines)
+
     def _build_minimal_prompt(self) -> str:
         """构建极简系统提示"""
         # 使用极简提示词模板
         prompt_template_path = Path(__file__).parent.parent / "knowledge" / "minimal" / "system" / "system_prompt_minimal.md"
-        
+
         if prompt_template_path.exists():
             # 使用外部模板
             template = prompt_template_path.read_text(encoding='utf-8')
-            
+
             # 准备知识内容部分
             knowledge_section = ""
             if self.knowledge_content:
                 knowledge_section = f"\n## 知识库（可参考的自然语言程序）\n**说明**：以下是已加载的知识文件内容，直接参考使用，无需再去文件系统查找。\n\n{self.knowledge_content}"
-            
+
+            # 添加知识函数索引（无论knowledge_content是否为空，都添加索引）
+            knowledge_index = self._build_knowledge_index()
+            if knowledge_index:
+                if knowledge_section:
+                    knowledge_section += f"\n\n{knowledge_index}"
+                else:
+                    knowledge_section = f"\n{knowledge_index}"
+
             # 不在系统提示词中包含Compact记忆
             # Compact记忆应该在消息列表中，这样才能累积和演化
-            
-            # 替换模板中的占位符
-            # 注意：system_prompt.md中的{{agent_name}}是转义的，会变成{agent_name}
-            # 而{agent_name}需要被替换
+
             # 准备知识文件列表字符串
             knowledge_files_str = "\n".join([f"  - {kf}" for kf in self.knowledge_files])
 
+            # 🎯 按照模板的原始设计：system_prompt_minimal.md 在前，知识内容通过占位符插入
             prompt = template.format(
                 work_dir=self.work_dir,
                 notes_dir=self.notes_dir,
@@ -715,6 +771,7 @@ class ReactAgentMinimal(Function):
             )
         else:
             # 降级到内置提示词（保持向后兼容）
+            # 🎯 一致性：系统提示词在前，知识内容在后
             prompt = f"""你是一个编程助手，像数学家一样使用笔记扩展认知。
 你只能写工作目录和笔记目录下的文件，别的地方可以读，但不能写。
 
@@ -726,12 +783,17 @@ class ReactAgentMinimal(Function):
 
 这就是图灵完备：你 + 文件系统 = 数学家 + 纸笔
 """
-            
+
             if self.knowledge_content:
-                prompt += f"\n知识库：\n{self.knowledge_content}"
-            
+                prompt += f"\n## 知识库\n{self.knowledge_content}"
+
+            # 添加知识函数索引（即使没有外部模板）
+            knowledge_index = self._build_knowledge_index()
+            if knowledge_index:
+                prompt += f"\n\n{knowledge_index}"
+
             prompt += "\n请高效完成任务。"
-        
+
         return prompt
     
     def _load_knowledge(self) -> str:
@@ -879,7 +941,7 @@ class ReactAgentMinimal(Function):
 
         # 保持单一模型，不做切换
 
-        max_retries = 6  # 增加到6次，应对网络不稳定
+        max_retries = 3  # API调用最大重试次数
         retry_delay = 2  # 秒
 
         # 调试模式
@@ -905,15 +967,30 @@ class ReactAgentMinimal(Function):
                     print(f"[DEBUG] 发送API请求到: {self.base_url}")
                     print(f"[DEBUG] 准备调用requests.post...")
 
-                # 使用环境代理设置（不强制禁用）
-                # 如果环境没有代理，requests会自动直连
-                # 如果环境有代理，requests会使用代理
+                # 智能代理管理：国内API禁用代理，国外API使用代理
+                proxies = None
+                base_url_lower = self.base_url.lower()
+
+                # 检测是否为国内API（不需要代理）
+                domestic_apis = ["deepseek.com", "moonshot.cn"]
+                is_domestic = any(domain in base_url_lower for domain in domestic_apis)
+
+                if is_domestic:
+                    # 国内API：显式禁用代理
+                    proxies = {
+                        "http": None,
+                        "https": None
+                    }
+                    if debug:
+                        print(f"[DEBUG] 检测到国内API，已禁用代理")
+                # 否则使用系统代理（适用于OpenRouter、Gemini等国外API）
+
                 if debug:
                     print(f"[DEBUG] 序列化request_data...")
                     import json
                     payload = json.dumps(request_data)
                     print(f"[DEBUG] Payload大小: {len(payload)/1024:.1f}KB")
-                    print(f"[DEBUG] 调用requests.post (timeout=10)...")
+                    print(f"[DEBUG] 调用requests.post (timeout=60)...")
 
                 response = requests.post(
                     f"{self.base_url}/chat/completions",
@@ -922,7 +999,8 @@ class ReactAgentMinimal(Function):
                         "Content-Type": "application/json"
                     },
                     json=request_data,
-                    timeout=10  # 临时改为10秒以便快速诊断
+                    proxies=proxies,  # 智能代理设置
+                    timeout=60  # 恢复正常超时时间
                 )
 
                 if debug:
@@ -1090,13 +1168,30 @@ class ReactAgentMinimal(Function):
         agent_home = Path.home() / ".agent" / self.name
         agent_home.mkdir(parents=True, exist_ok=True)
         compact_file = agent_home / "compact.md"
-        
+
         # 确保目录存在
         self.notes_dir.mkdir(parents=True, exist_ok=True)
-        
-        # 过滤掉系统消息，只保存对话消息
+
+        # 🎯 优先使用已压缩的记忆（如果存在）
+        if hasattr(self, 'compact_memory') and self.compact_memory:
+            # 使用已经压缩的内容
+            dialogue_msgs = [m for m in self.messages if m.get("role") != "system"]
+            content = f"""# Compact Memory - {self.name}
+
+生成时间: {datetime.now().isoformat()}
+消息数量: {len(dialogue_msgs)}
+预估tokens: {self._count_tokens(dialogue_msgs)}
+
+## 压缩的对话历史
+
+{self.compact_memory}
+"""
+            compact_file.write_text(content, encoding='utf-8')
+            return
+
+        # 降级：如果没有压缩记忆，保存原始消息（向后兼容）
         dialogue_msgs = [m for m in self.messages if m.get("role") != "system"]
-        
+
         # 准备内容
         content = [f"""# Compact Memory - {self.name}
 
@@ -1107,13 +1202,13 @@ class ReactAgentMinimal(Function):
 ## 压缩的对话历史
 
 """]
-        
+
         # 添加消息内容（不包含系统消息）
         msg_counter = 1
         for msg in dialogue_msgs:
             role = msg.get("role", "unknown")
             content_text = msg.get("content", "")
-            
+
             if role == "user":
                 content.append(f"### 用户消息 {msg_counter}\n{content_text}\n\n")
             elif role == "assistant":
@@ -1125,9 +1220,9 @@ class ReactAgentMinimal(Function):
                     content.append(f"### 工具响应 {msg_counter}\n{content_text[:2000]}...\n\n")
                 else:
                     content.append(f"### 工具响应 {msg_counter}\n{content_text}\n\n")
-            
+
             msg_counter += 1
-        
+
         # 写入文件
         compact_file.write_text(''.join(content), encoding='utf-8')
     
@@ -1361,29 +1456,25 @@ class ReactAgentMinimal(Function):
         else:
             print(f"\n🧠 执行Compact压缩...")
         
-        # 构建压缩提示词 - 将description作为注意力框架
-        if self.description:
-            compress_prompt = f"""你是一个对话历史压缩专家。
+        # 构建压缩提示词 - 从外部文件加载
+        compress_prompt_file = Path(__file__).parent.parent / "knowledge" / "minimal" / "system" / "compact_prompt.md"
 
-Agent描述（注意力框架）：
-{self.description}
+        if compress_prompt_file.exists():
+            # 从外部文件读取压缩提示词
+            compress_prompt_template = compress_prompt_file.read_text(encoding='utf-8')
 
-基于上述Agent的专业身份和职责，压缩对话历史时请重点关注与其相关的内容。
-
-压缩原则：
-1. 如果遇到"[已加载压缩的历史记忆]"，适度压缩为关键要点（保留200-500字）
-2. 保留最新对话的关键事实和重要细节（包括关键过程）
-3. 旧记忆简洁总结，新记忆充分保留（可以包含重要代码片段）
-4. 去除所有重复和冗余
-5. 确保时间顺序：旧记忆→新记忆
-
-输出要求：
-- 旧记忆：简洁总结（500-1000字）
-- 新记忆：详细要点（10-20点）
-- 总长度不超过10000字
-- 不要嵌套结构"""
+            # 替换description占位符
+            if self.description:
+                compress_prompt = compress_prompt_template.replace('{description}', self.description)
+            else:
+                # 无description时，移除注意力框架部分
+                compress_prompt = compress_prompt_template.replace(
+                    '## Agent注意力框架\n\n{description}\n\n基于上述Agent的专业身份和职责，压缩对话历史时请重点关注与其相关的内容。\n\n',
+                    ''
+                )
         else:
-            # 无description时使用通用压缩
+            # 降级到内置简单压缩（向后兼容）
+            print(f"  ⚠️ 未找到compact_prompt.md，使用内置简单压缩")
             compress_prompt = """你是一个对话历史压缩专家。请将冗长的对话历史压缩成精炼的摘要。
 
 压缩原则：
@@ -1420,13 +1511,57 @@ Agent描述（注意力框架）：
         if compact_count >= 3:
             print(f"  🔄 深度压缩模式（已压缩{compact_count}次）")
         
+        # 🎯 解析应答对结构，明确标注最后一个应答对
+        dialogue_turns = []
+        current_turn = []
+
+        for msg in dialogue_msgs:
+            if msg.get("role") == "user":
+                # 遇到新的用户消息，开始新的应答对
+                if current_turn:
+                    dialogue_turns.append(current_turn)
+                current_turn = [msg]
+            else:
+                # 将assistant/tool消息添加到当前应答对
+                current_turn.append(msg)
+
+        # 添加最后一个应答对
+        if current_turn:
+            dialogue_turns.append(current_turn)
+
+        # 构建明确的应答对描述
+        turns_description = []
+        for i, turn in enumerate(dialogue_turns):
+            turn_num = i + 1
+            is_last = (i == len(dialogue_turns) - 1)
+
+            # 标记最后一个应答对
+            marker = " ← 最后一个应答对（完整保留）" if is_last else ""
+
+            turns_description.append(f"### 应答对 {turn_num}{marker}")
+            turns_description.append(json.dumps(turn, ensure_ascii=False, indent=2))
+            turns_description.append("")  # 空行
+
         # 调用压缩模型
         try:
             compress_messages = [
                 {"role": "system", "content": compress_prompt},
-                {"role": "user", "content": f"请压缩以下对话历史：\n\n{json.dumps(dialogue_msgs, ensure_ascii=False, indent=2)}"}
+                {"role": "user", "content": f"""请压缩以下对话历史。
+
+**重要**：对话已划分为{len(dialogue_turns)}个应答对，最后一个应答对已明确标注。
+
+{chr(10).join(turns_description)}"""}
             ]
             
+            # 智能代理管理（压缩API）
+            compress_proxies = None
+            compress_base_url_lower = self.compress_config['base_url'].lower()
+            compress_domestic_apis = ["deepseek.com", "moonshot.cn"]
+            compress_is_domestic = any(domain in compress_base_url_lower for domain in compress_domestic_apis)
+
+            if compress_is_domestic:
+                compress_proxies = {"http": None, "https": None}
+
             compress_response = requests.post(
                 f"{self.compress_config['base_url']}/chat/completions",
                 headers={
@@ -1437,7 +1572,8 @@ Agent描述（注意力框架）：
                     "model": self.compress_config["model"],
                     "messages": compress_messages,
                     "temperature": self.compress_config["temperature"]
-                }
+                },
+                proxies=compress_proxies  # 智能代理设置
             )
             
             if compress_response.status_code == 200:
@@ -1472,25 +1608,11 @@ Agent描述（注意力框架）：
                         pending_tool_messages = []
                         break
                 
-                # 获取ExecutionContext信息
-                execution_context_info = self._get_execution_context_info()
-
-                # 返回新的消息列表：系统提示词 + 压缩的消息对 + ExecutionContext信息 + 未完成的tool调用
+                # 返回新的消息列表：系统提示词 + 压缩的消息对 + 未完成的tool调用
                 result_messages = []
                 if original_system_msg:
                     result_messages.append(original_system_msg)
                 result_messages.extend(compressed_messages)
-
-                # 如果ExecutionContext不为空，添加到消息中
-                if execution_context_info:
-                    result_messages.append({
-                        "role": "user",
-                        "content": f"[当前ExecutionContext状态]\n{execution_context_info}"
-                    })
-                    result_messages.append({
-                        "role": "assistant",
-                        "content": "OK"
-                    })
 
                 result_messages.extend(pending_tool_messages)
                 return result_messages

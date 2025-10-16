@@ -108,7 +108,8 @@ class ExecutionContext(Function):
             "goal": None,
             "tasks": {},  # {task_name: {status, result}}
             "current_state": None,
-            "data": {}  # 自由KV存储
+            "data": {},  # 自由KV存储
+            "current_task": None  # 🔧 新增：跟踪当前正在执行的任务
         }
     
     def execute(self, **kwargs) -> str:
@@ -167,6 +168,7 @@ class ExecutionContext(Function):
         self.project["tasks"] = {}
         self.project["current_state"] = "项目已初始化"
         self.project["data"] = {}
+        self.project["current_task"] = None  # 🔧 清除当前任务
 
         # 如果栈为空，创建根Context
         stack = get_context_stack()
@@ -204,30 +206,57 @@ class ExecutionContext(Function):
         """开始执行任务"""
         if task not in self.project["tasks"]:
             return f"❌ 任务不存在: {task}"
-        
+
         self.project["tasks"][task]["status"] = "in_progress"
+        self.project["current_task"] = task  # 🔧 记录当前任务
         return f"✅ 任务 {task} 标记为执行中"
     
-    def _complete_task(self, task: str, result: str = None) -> str:
-        """完成任务"""
+    def _complete_task(self, task: str = None, result: str = None) -> str:
+        """完成任务
+
+        如果没有提供task参数，自动使用当前正在执行的任务
+        """
+        # 🔧 智能任务推断：如果没有指定task，使用current_task
+        if task is None:
+            task = self.project.get("current_task")
+            if task is None:
+                return "❌ 未指定任务，且没有正在执行的任务"
+
         if task not in self.project["tasks"]:
             return f"❌ 任务不存在: {task}"
-        
+
         self.project["tasks"][task]["status"] = "completed"
         if result:
             self.project["tasks"][task]["result"] = result
-        
+
+        # 清除current_task标记
+        if self.project.get("current_task") == task:
+            self.project["current_task"] = None
+
         return f"✅ 任务 {task} 已完成"
     
-    def _fail_task(self, task: str, result: str = None) -> str:
-        """标记任务失败"""
+    def _fail_task(self, task: str = None, result: str = None) -> str:
+        """标记任务失败
+
+        如果没有提供task参数，自动使用当前正在执行的任务
+        """
+        # 🔧 智能任务推断：如果没有指定task，使用current_task
+        if task is None:
+            task = self.project.get("current_task")
+            if task is None:
+                return "❌ 未指定任务，且没有正在执行的任务"
+
         if task not in self.project["tasks"]:
             return f"❌ 任务不存在: {task}"
-        
+
         self.project["tasks"][task]["status"] = "failed"
         if result:
             self.project["tasks"][task]["result"] = result
-        
+
+        # 清除current_task标记
+        if self.project.get("current_task") == task:
+            self.project["current_task"] = None
+
         return f"✅ 任务 {task} 标记为失败"
     
     # ========== 状态管理方法 ==========
@@ -350,7 +379,8 @@ class ExecutionContext(Function):
             "tasks": {},
             "current_state": "项目已初始化",
             "data": {},
-            "context_id": ctx.context_id
+            "context_id": ctx.context_id,
+            "current_task": None  # 🔧 新Context没有当前任务
         }
 
         return f"✅ 进入函数: {goal}\n📚 栈深度: {stack.depth}\n🆔 Context ID: {ctx.context_id}"

@@ -573,3 +573,4 @@ debugger = train_agent(
 pim-compiler/react_is_all_you_need
 此目录是项目的核心代码目录，其它目录都是废弃的代码
 
+执行python命令应该使用python3.12

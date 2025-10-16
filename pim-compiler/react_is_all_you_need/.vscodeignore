@@ -1,0 +1,36 @@
+# VS Code中隐藏的文件和目录
+
+# Python缓存
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info/
+
+# Agent运行产物
+.notes/
+output_logs/
+test_*/
+**/output.log
+**/output_*.log
+
+# Jupyter
+.ipynb_checkpoints/
+notebooks/  # 如果不需要notebook可以隐藏
+
+# 临时文件
+*.tmp
+*.bak
+*.swp
+*~
+.DS_Store
+
+# IDE
+.idea/
+*.iml
+
+# 旧版本/废弃代码
+# 根据实际情况添加
