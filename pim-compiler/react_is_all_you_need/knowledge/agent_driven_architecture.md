@@ -1,7 +1,8 @@
 # Agent驱动架构理论
 
-## 概念 @Agent驱动架构(Agent Driven Architecture, ADA)
+## 概念 @Agent驱动架构
 """
+Agent Driven Architecture, ADA
 Agent驱动架构是对MDA的革命性简化。认识到自然语言也是Code，
 ADA将传统的 PIM→PSM→Code 三层架构简化为 PIM→Code 两层架构。
 知识函数就是最终的可执行代码，Agent就是执行这些代码的运行时。
@@ -119,10 +120,15 @@ public class UserService {
 
 参考：[Agent架构概念详解](agent_architecture.md)
 
-## 契约函数 @自我实现(knowledge_file, requirements_doc)
+## 函数 @自我实现(knowledge_file, requirements_doc)
 """
 智能体自我实现：通过学习knowledge或根据需求编程来获得新能力。
 这是领域无关的系统级能力，任何智能体都可以自我实现。
+
+Agent可以根据实际情况选择最适合的执行策略：
+- 简单学习：直接整合knowledge_file内容
+- 复杂创造：使用ExecutionContext管理多步骤过程
+- 混合模式：先学习基础，再根据需求扩展
 
 核心理念（类比人类）：
 - 学习已有知识：读一本销售手册，掌握销售技能
@@ -153,7 +159,7 @@ public class UserService {
 }
 
 前置要求:
-- 必须先理解@Agent架构概念
+- 必须先理解@Agent架构 概念
 - 了解knowledge.md是智能体的先天知识
 - 理解description是智能体的对外接口
 
