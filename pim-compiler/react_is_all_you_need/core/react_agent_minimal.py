@@ -166,9 +166,15 @@ class ReactAgentMinimal(Function):
         # 知识文件（自然语言程序）- 支持包和单独文件
         self.knowledge_files = self._resolve_knowledge_files(knowledge_files or [])
 
-        # 🔧 极简化：不再预加载任何知识文件
-        # Agent会通过索引自主读取需要的知识
+        # 🎯 自我认知是基础，必须默认加载
+        # Agent必须先知道"我是谁"才能正确执行任务
         knowledge_dir = Path(__file__).parent.parent / "knowledge"
+        self_awareness_path = str(knowledge_dir / "self_awareness.md")
+        if self_awareness_path not in self.knowledge_files:
+            self.knowledge_files.insert(0, self_awareness_path)  # 自我认知优先级最高
+
+        # 🔧 极简化：不再预加载其他知识文件
+        # Agent会通过索引自主读取需要的知识
 
         # ❌ 已移除：默认加载system包
         # ❌ 已移除：默认加载validation_adaptive
@@ -180,17 +186,29 @@ class ReactAgentMinimal(Function):
 
         # ✅ 保留：只加载用户指定的knowledge_files（通过参数传入）
 
-        # 🔧 初始化知识函数自动加载器（Unix哲学实现）
-        from .knowledge_function_loader import KnowledgeFunctionLoader
-        self.knowledge_loader = KnowledgeFunctionLoader(
-            knowledge_dirs=[str(knowledge_dir)],
-            already_loaded=set(self.knowledge_files)  # 记录已加载的默认知识文件
-        )
-        print(f"  📂 知识函数索引: {len(self.knowledge_loader.function_index)}个函数")
+        # ❌ 已删除：KnowledgeFunctionLoader索引构建器
+        # 理由：智能体会用grep搜索，索引不是必需的（大道至简）
+        # 智能体直接用grep搜索knowledge/目录即可
 
         # Home目录: ~/.agent/[agent名]/
         agent_home = Path.home() / ".agent" / self.name
         agent_home.mkdir(parents=True, exist_ok=True)  # 确保home目录存在
+
+        # 🌟 自我认知变量（Agent的核心自我意识）
+        self.self_name = self.name  # 我的名字
+        self.self_home_dir = str(agent_home)  # 我的Home目录
+        self.self_knowledge_path = str(agent_home / "knowledge.md")  # 我的知识文件
+        self.self_compact_path = str(agent_home / "compact.md")  # 我的记忆文件
+        self.self_external_tools_dir = str(agent_home / "external_tools")  # 我的工具箱
+        self.self_description = self.description  # 我的对外接口描述
+        self.self_work_dir = self.work_dir  # 我的工作目录
+        self.self_source_code = str(Path(__file__).resolve())  # 我的源代码位置（只读）
+        # 知识目录位置（智能体用grep搜索）
+        self.self_knowledge_dir = str(Path(__file__).parent.parent / "knowledge")
+
+        # 确保工具箱目录存在
+        external_tools_dir = agent_home / "external_tools"
+        external_tools_dir.mkdir(parents=True, exist_ok=True)
 
         # 个体知识文件
         knowledge = agent_home / "knowledge.md"
@@ -296,56 +314,84 @@ class ReactAgentMinimal(Function):
         # 不加载任何历史记忆文件
         pass
     
-    def execute(self, **kwargs) -> str:
+    def execute(self, task=None, **kwargs) -> str:
         """
         执行任务 - 实现Function接口
 
-        特殊处理：如果是self_management调用，执行相应的自我管理方法。
+        统一设计：使用action参数路由到不同操作（类似ExecutionContext）
 
         Args:
-            **kwargs: 包含task参数或method/args参数
+            task: 位置参数，直接传入任务描述时自动设置action='execute_task'
+            **kwargs: 参数字典，包含action和相关参数
 
         Returns:
-            任务结果
+            执行结果
         """
-        # 检查是否是self_management调用
-        if "method" in kwargs:
-            method_name = kwargs["method"]
-            method_args = kwargs.get("args", {})
+        # 如果有位置参数task，自动设置action='execute_task'
+        if task is not None:
+            action = "execute_task"
+            kwargs["task"] = task  # 将位置参数添加到kwargs中
+        else:
+            # 获取action参数
+            action = kwargs.get("action")
+            # 如果没有位置参数，action是必需的
+            if not action:
+                return "错误：缺少必需参数action"
 
-            # 调用相应的方法
-            if method_name == "update_api_config":
-                return self.update_api_config(
-                    model_name=method_args.get("model_name"),
-                    base_url=method_args.get("base_url"),
-                    api_key=method_args.get("api_key")
-                )
-            elif method_name == "update_description":
-                return self.update_description(method_args.get("new_description", ""))
-            elif method_name == "get_status":
-                return self.get_status()
-            elif method_name == "update_knowledge":
-                return self.update_knowledge(method_args.get("content", ""))
-            elif method_name == "update_agent_knowledge":
-                return self.update_agent_knowledge()
-            elif method_name == "change_work_dir":
-                new_work_dir = method_args.get("new_work_dir", "")
-                if not new_work_dir:
-                    return "错误：change_work_dir方法需要new_work_dir参数"
-                return self.change_work_dir(new_work_dir)
-            elif method_name == "get_work_dir":
-                return self.get_work_dir()
-            elif method_name == "execute":
-                # 支持子Agent的execute调用，但在_execute_tool中会阻止自己调用自己
-                task = method_args.get("task", "")
-                if not task:
-                    return "错误：execute方法需要task参数"
-                # 这里会执行任务，但如果是自己调用自己，会在_execute_tool中被阻止
-                return self.execute(task=task)
-            else:
-                return f"错误：未知的方法 {method_name}"
+        # 路由到对应的操作（类似ExecutionContext的设计）
+        if action == "execute_task":
+            task = kwargs.get("task", "")
+            if not task:
+                return "错误：execute_task需要task参数"
+            # 跳转到普通任务执行流程
+            # 直接进入下面的任务执行代码
+            pass  # 继续执行下面的代码
 
-        # 普通任务执行
+        elif action == "update_api_config":
+            return self.update_api_config(
+                model_name=kwargs.get("model_name"),
+                base_url=kwargs.get("base_url"),
+                api_key=kwargs.get("api_key")
+            )
+
+        elif action == "update_description":
+            new_description = kwargs.get("new_description", "")
+            if not new_description:
+                return "错误：update_description需要new_description参数"
+            return self.update_description(new_description)
+
+        elif action == "get_status":
+            return self.get_status()
+
+        elif action == "update_knowledge":
+            content = kwargs.get("content", "")
+            if not content:
+                return "错误：update_knowledge需要content参数"
+            return self.update_knowledge(content)
+
+        elif action == "update_agent_knowledge":
+            return self.update_agent_knowledge()
+
+        elif action == "change_work_dir":
+            new_work_dir = kwargs.get("new_work_dir", "")
+            if not new_work_dir:
+                return "错误：change_work_dir需要new_work_dir参数"
+            return self.change_work_dir(new_work_dir)
+
+        elif action == "get_work_dir":
+            return self.get_work_dir()
+
+        elif action == "remove_child_agent":
+            child_name = kwargs.get("child_name", "")
+            if not child_name:
+                return "错误：remove_child_agent需要child_name参数"
+            return self.remove_child_agent(child_name)
+
+        else:
+            return f"错误：未知的action: {action}"
+
+        # ========== 任务执行流程 ==========
+        # 只有action == "execute_task"或直接传入task时才会执行到这里
         task = kwargs.get("task", "")
         if not task:
             return "错误：未提供任务描述"
@@ -684,52 +730,6 @@ class ReactAgentMinimal(Function):
                         self.knowledge_files.insert(0, str(md_file))
                     else:
                         self.knowledge_files.append(str(md_file))
-    
-    def _build_knowledge_index(self) -> str:
-        """构建知识函数索引信息
-
-        Returns:
-            格式化的知识函数索引字符串，如果索引为空返回空字符串
-        """
-        if not self.knowledge_loader.function_index:
-            return ""
-
-        lines = ["## 📚 知识函数索引"]
-        lines.append("\n你可以使用ReadFileTool主动读取以下知识文件：\n")
-
-        # 按类型分组
-        contract_funcs = []
-        soft_funcs = []
-
-        for func_name, func_info in sorted(self.knowledge_loader.function_index.items()):
-            if func_info.func_type == 'contract':
-                contract_funcs.append(func_info)
-            else:
-                soft_funcs.append(func_info)
-
-        # 显示契约函数
-        if contract_funcs:
-            lines.append("### 契约函数（必须使用ExecutionContext）\n")
-            for func_info in contract_funcs:
-                lines.append(f"- **@{func_info.name}** - {func_info.docstring}")
-                lines.append(f"  → `{func_info.path}`\n")
-
-        # 显示软约束函数
-        if soft_funcs:
-            lines.append("### 软约束函数（ExecutionContext可选）\n")
-            for func_info in soft_funcs:
-                lines.append(f"- **@{func_info.name}** - {func_info.docstring}")
-                lines.append(f"  → `{func_info.path}`\n")
-
-        lines.append("\n**重要**：上述路径是绝对路径，可以直接用ReadFileTool读取。")
-        lines.append("\n**使用方法**：当看到用户消息中的`@xxx`指令时，这是知识函数引用。请先使用ReadFileTool读取对应文件了解其定义，然后按定义执行。")
-        lines.append("\n**示例**：用户说\"请执行@learning\"，你应该：")
-        lines.append("1. 查看索引了解函数用途")
-        lines.append("2. 使用ReadFileTool读取对应的绝对路径文件")
-        lines.append("3. 理解@learning函数的完整定义")
-        lines.append("4. 按照定义执行相应步骤\n")
-
-        return "\n".join(lines)
 
     def _build_minimal_prompt(self) -> str:
         """构建极简系统提示"""
@@ -745,13 +745,9 @@ class ReactAgentMinimal(Function):
             if self.knowledge_content:
                 knowledge_section = f"\n## 知识库（可参考的自然语言程序）\n**说明**：以下是已加载的知识文件内容，直接参考使用，无需再去文件系统查找。\n\n{self.knowledge_content}"
 
-            # 添加知识函数索引（无论knowledge_content是否为空，都添加索引）
-            knowledge_index = self._build_knowledge_index()
-            if knowledge_index:
-                if knowledge_section:
-                    knowledge_section += f"\n\n{knowledge_index}"
-                else:
-                    knowledge_section = f"\n{knowledge_index}"
+            # ❌ 不再添加索引到系统提示词
+            # 智能体应该主动读取knowledge_function_index.json
+            # 而不是被动接收索引信息
 
             # 不在系统提示词中包含Compact记忆
             # Compact记忆应该在消息列表中，这样才能累积和演化
@@ -759,15 +755,38 @@ class ReactAgentMinimal(Function):
             # 准备知识文件列表字符串
             knowledge_files_str = "\n".join([f"  - {kf}" for kf in self.knowledge_files])
 
+            # 🌟 构建自我认知部分（Agent的核心自我意识）
+            self_awareness_section = f"""
+## 你的自我认知（Self-Awareness）
+**你必须明确知道自己是谁、在哪里、能做什么**：
+- 你的名字（self.name）: {self.self_name}
+- 你的Home目录（self.home_dir）: {self.self_home_dir}
+- 你的知识文件（self.knowledge_path）: {self.self_knowledge_path}
+- 你的记忆文件（self.compact_path）: {self.self_compact_path}
+- 你的工具箱（self.external_tools_dir）: {self.self_external_tools_dir}
+- 你的职责描述（self.description）: {self.self_description}
+- 你的工作目录（self.work_dir）: {self.self_work_dir}
+- 你的源代码（self.source_code）: {self.self_source_code} **（只读，永远不要修改）**
+- 知识目录（self.knowledge_dir）: {self.self_knowledge_dir} **（用grep搜索知识函数）**
+
+**重要原则**：
+- Home目录是你的私有空间，更新knowledge.md就是更新你自己的能力
+- 工作目录是项目空间，不要在这里创建knowledge.md
+- External tools要在你的工具箱目录创建，不要污染工作目录
+- **源代码是只读的**：{self.self_source_code}是所有Agent共享的执行框架，永远不要修改
+- **用grep搜索知识函数**：在{self.self_knowledge_dir}中用grep搜索函数定义和类型
+"""
+
             # 🎯 按照模板的原始设计：system_prompt_minimal.md 在前，知识内容通过占位符插入
             prompt = template.format(
                 work_dir=self.work_dir,
                 notes_dir=self.notes_dir,
                 notes_file=self.notes_file,
-                knowledge_content=knowledge_section,
+                knowledge_content=knowledge_section + self_awareness_section,
                 agent_name=self.agent_name,
                 description=self.description,
-                knowledge_files_list=knowledge_files_str
+                knowledge_files_list=knowledge_files_str,
+                knowledge_dir=self.self_knowledge_dir  # 添加knowledge_dir参数
             )
         else:
             # 降级到内置提示词（保持向后兼容）
@@ -787,10 +806,8 @@ class ReactAgentMinimal(Function):
             if self.knowledge_content:
                 prompt += f"\n## 知识库\n{self.knowledge_content}"
 
-            # 添加知识函数索引（即使没有外部模板）
-            knowledge_index = self._build_knowledge_index()
-            if knowledge_index:
-                prompt += f"\n\n{knowledge_index}"
+            # ❌ 不再添加索引到系统提示词
+            # 智能体应该主动读取knowledge_function_index.json
 
             prompt += "\n请高效完成任务。"
 
@@ -843,11 +860,19 @@ class ReactAgentMinimal(Function):
         if not hasattr(function, 'execute') or not hasattr(function, 'to_openai_function'):
             raise TypeError(f"Function必须有execute和to_openai_function方法")
 
+        # 检查是否已存在同名工具（避免重复导致API错误）
+        function_name = function.name if hasattr(function, 'name') else str(function)
+        for existing in self.function_instances:
+            existing_name = existing.name if hasattr(existing, 'name') else str(existing)
+            if existing_name == function_name:
+                # 工具已存在，跳过添加
+                print(f"  ℹ️ 工具已存在，跳过: {function_name}")
+                return
+
         self.function_instances.append(function)
         self.functions = [f.to_openai_function() for f in self.function_instances]
 
         # 显示添加的工具信息
-        function_name = function.name if hasattr(function, 'name') else str(function)
         print(f"  ➕ 已添加函数: {function_name}")
 
     def append_tool(self, tool):
@@ -923,10 +948,10 @@ class ReactAgentMinimal(Function):
             # 查找对应的工具实例
             for tool in self.function_instances:  # 查找对应的function实例
                 if tool.name == tool_name:
-                    # 防止agent递归调用自己的execute方法
-                    # 但允许调用其他agent的execute方法
-                    if tool is self and arguments.get("method") == "execute":
-                        return "❌ 错误：Agent不允许递归调用自己的execute方法。请直接执行任务，而不是调用execute。"
+                    # 防止agent递归调用自己的execute_task
+                    # 但允许调用其他管理方法（如get_status、update_knowledge等）
+                    if tool is self and arguments.get("action") == "execute_task":
+                        return "❌ 错误：Agent不允许递归调用自己执行任务。请直接处理任务，而不是调用execute_task。"
                     return tool.execute(**arguments)
 
             return f"未知工具: {tool_name}"
@@ -941,7 +966,7 @@ class ReactAgentMinimal(Function):
 
         # 保持单一模型，不做切换
 
-        max_retries = 3  # API调用最大重试次数
+        max_retries = 6  # API调用最大重试次数
         retry_delay = 2  # 秒
 
         # 调试模式
@@ -1074,70 +1099,72 @@ class ReactAgentMinimal(Function):
         """
         # ReactAgentMinimal实例返回特殊格式，暴露所有方法
         if isinstance(self, ReactAgentMinimal):
-            # 这是Agent自己，暴露所有主要方法
+            # 这是Agent自己，暴露所有主要方法（类似ExecutionContext的设计）
             return {
                 "type": "function",
                 "function": {
                     "name": self.name,
-                    "description": f"{self.description} - 可调用管理方法进行自我管理",
+                    "description": f"{self.description} - 支持多种操作的智能Agent",
                     "parameters": {
                         "type": "object",
                         "properties": {
-                            "method": {
+                            # 统一使用action参数，类似ExecutionContext
+                            "action": {
                                 "type": "string",
                                 "enum": [
-                                    "execute",
-                                    "update_api_config",
-                                    "update_description",
-                                    "get_status",
-                                    "update_knowledge",
-                                    "update_agent_knowledge",
-                                    "change_work_dir",
-                                    "get_work_dir"
+                                    "execute_task",           # 执行任务（默认）
+                                    "update_api_config",      # 更新API配置
+                                    "update_description",     # 更新描述
+                                    "get_status",            # 获取状态
+                                    "update_knowledge",      # 更新知识
+                                    "update_agent_knowledge", # 更新Agent知识
+                                    "change_work_dir",       # 更改工作目录
+                                    "get_work_dir",          # 获取工作目录
+                                    "remove_child_agent"     # 删除子Agent
                                 ],
-                                "description": "要调用的方法名"
+                                "description": "要执行的操作类型。execute_task:执行任务（默认）；update_api_config:更新API配置；get_status:获取Agent状态；remove_child_agent:删除子Agent等"
                             },
-                            "args": {
-                                "type": "object",
-                                "description": "方法参数。execute需要task参数；update_api_config需要model_name/base_url/api_key参数；update_description需要new_description参数；update_knowledge需要content参数；change_work_dir需要new_work_dir参数；update_agent_knowledge和get_work_dir不需要参数",
-                                "properties": {
-                                    "task": {
-                                        "type": "string",
-                                        "description": "要执行的任务（仅用于execute方法）"
-                                    },
-                                    "model_name": {
-                                        "type": "string",
-                                        "description": "新的模型名称（仅用于update_api_config方法）"
-                                    },
-                                    "base_url": {
-                                        "type": "string",
-                                        "description": "新的API基础URL（仅用于update_api_config方法）"
-                                    },
-                                    "api_key": {
-                                        "type": "string",
-                                        "description": "新的API密钥（仅用于update_api_config方法）"
-                                    },
-                                    "new_description": {
-                                        "type": "string",
-                                        "description": "新的description（仅用于update_description方法）"
-                                    },
-                                    "new_work_dir": {
-                                        "type": "string",
-                                        "description": "新的工作目录路径（仅用于change_work_dir方法）"
-                                    },
-                                    "content": {
-                                        "type": "string",
-                                        "description": "要添加的知识内容（仅用于update_knowledge方法）"
-                                    },
-                                    "operation": {
-                                        "type": "string",
-                                        "enum": ["append", "replace"],
-                                        "description": "知识操作类型（仅用于update_knowledge方法）"
-                                    }
-                                }
+
+                            # 所有参数平铺（不再嵌套在args中）
+                            "task": {
+                                "type": "string",
+                                "description": "要执行的任务描述（用于execute_task操作）"
+                            },
+                            "model_name": {
+                                "type": "string",
+                                "description": "新的模型名称（用于update_api_config操作）"
+                            },
+                            "base_url": {
+                                "type": "string",
+                                "description": "新的API基础URL（用于update_api_config操作）"
+                            },
+                            "api_key": {
+                                "type": "string",
+                                "description": "新的API密钥（用于update_api_config操作）"
+                            },
+                            "new_description": {
+                                "type": "string",
+                                "description": "新的Agent描述（用于update_description操作）"
+                            },
+                            "new_work_dir": {
+                                "type": "string",
+                                "description": "新的工作目录路径（用于change_work_dir操作）"
+                            },
+                            "content": {
+                                "type": "string",
+                                "description": "要添加的知识内容（用于update_knowledge操作）"
+                            },
+                            "operation": {
+                                "type": "string",
+                                "enum": ["append", "replace"],
+                                "description": "知识操作类型（用于update_knowledge操作）"
+                            },
+                            "child_name": {
+                                "type": "string",
+                                "description": "要删除的子Agent名称（用于remove_child_agent操作）"
                             }
                         },
-                        "required": ["method"]
+                        "required": ["action"]  # action是必需参数
                     }
                 }
             }
@@ -1939,6 +1966,63 @@ class ReactAgentMinimal(Function):
 路径: {self.work_dir}
 绝对路径: {Path(self.work_dir).resolve()}
 存在: {'✅ 是' if Path(self.work_dir).exists() else '❌ 否'}"""
+
+    def remove_child_agent(self, child_name: str) -> str:
+        """删除子Agent
+
+        Args:
+            child_name: 要删除的子Agent名称
+
+        Returns:
+            删除结果描述
+        """
+        # 检查是否是子Agent
+        if child_name not in self.children:
+            return f"❌ {child_name} 不是子Agent\n当前子Agent列表: {self.children}"
+
+        try:
+            # 1. 从children列表中移除
+            self.children.remove(child_name)
+
+            # 2. 从function_instances中移除对应的Function
+            removed_from_tools = False
+            for i, func in enumerate(self.function_instances):
+                if hasattr(func, 'name') and func.name == child_name:
+                    self.function_instances.pop(i)
+                    removed_from_tools = True
+                    break
+
+            # 3. 更新functions列表（OpenAI格式）
+            self.functions = [f.to_openai_function() for f in self.function_instances]
+
+            # 4. 删除子Agent的物理存储
+            import shutil
+            child_home = Path.home() / ".agent" / child_name
+            if child_home.exists():
+                shutil.rmtree(child_home)
+                physical_deleted = True
+            else:
+                physical_deleted = False
+
+            # 5. 保存父Agent状态
+            self._auto_save_state()
+
+            # 返回结果
+            result = f"""✅ 子Agent已删除
+
+**删除详情**：
+- Agent名称：{child_name}
+- 从children列表移除：✅
+- 从工具列表移除：{'✅' if removed_from_tools else '❌'}
+- 物理存储删除：{'✅ ' + str(child_home) if physical_deleted else '⚠️ 目录不存在'}
+- 父Agent状态已保存：✅
+
+**当前子Agent列表**：{self.children if self.children else '（无）'}
+"""
+            return result
+
+        except Exception as e:
+            return f"❌ 删除子Agent失败: {str(e)}"
 
     def _reload_system_prompt(self) -> None:
         """重新加载系统提示词，包括更新后的knowledge.md"""

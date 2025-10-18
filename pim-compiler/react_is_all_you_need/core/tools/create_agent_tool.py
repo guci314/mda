@@ -14,8 +14,8 @@ import json
 # 添加父目录到路径
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from tool_base import Function
-from react_agent_minimal import ReactAgentMinimal
+from core.tool_base import Function
+from core.react_agent_minimal import ReactAgentMinimal
 
 
 class CreateAgentTool(Function):

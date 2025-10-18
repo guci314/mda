@@ -10,9 +10,10 @@
 """
 
 import re
+import json
 from pathlib import Path
 from typing import List, Set, Dict, Optional
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 
 
 @dataclass
@@ -20,33 +21,42 @@ class FunctionInfo:
     """知识函数信息
 
     类似Unix的whatis命令结果
+    支持partial定义（类似C#的partial class）
     """
     name: str              # 函数名（不含@）
-    path: Path             # 文件绝对路径
+    path: Path             # 主文件绝对路径（第一个定义）
     docstring: str         # 第一段描述
     func_type: str         # 'contract' 或 'soft'
+    signature: str = ""    # 函数签名（参数列表）
+    all_locations: list = None  # 所有定义位置（支持partial定义）
+
+    def __post_init__(self):
+        if self.all_locations is None:
+            self.all_locations = [self.path]
 
 
 class KnowledgeFunctionLoader:
-    """知识函数自动加载器
+    """知识函数索引构建器
 
     功能：
     1. 启动时扫描knowledge/目录，建立函数索引
-    2. 从用户消息中检测所有@函数引用
-    3. 自动加载对应的知识文件
-    4. 避免重复加载（智能去重）
+    2. 将索引保存到knowledge_function_index.json
+    3. 智能体主动查询索引，自己读取需要的知识文件
+
+    核心理念：
+    - 系统只建立索引（类似图书馆目录）
+    - 智能体自己查询索引、自己读取文件（主动学习）
+    - 不是系统自动加载（避免剥夺智能体的主动性）
     """
 
-    def __init__(self, knowledge_dirs: List[str], already_loaded: Set[str] = None):
-        """初始化加载器
+    def __init__(self, knowledge_dirs: List[str]):
+        """初始化索引构建器
 
         Args:
             knowledge_dirs: 知识目录列表（类似PATH环境变量）
-            already_loaded: 已加载的知识文件集合
         """
         self.knowledge_dirs = [Path(d) for d in knowledge_dirs]
         self.function_index: Dict[str, FunctionInfo] = {}  # @函数名 -> 函数信息
-        self.loaded_files: Set[str] = already_loaded or set()  # 已加载的文件路径
 
         # 启动时建立索引
         self._build_index()
@@ -66,11 +76,47 @@ class KnowledgeFunctionLoader:
                 # 提取文件中定义的所有@函数
                 functions = self._extract_functions(md_file)
 
-                # 建立映射
+                # 建立映射（支持partial定义，类似C# partial class）
                 for func_info in functions:
-                    # 如果已存在映射，保留第一个（优先级）
                     if func_info.name not in self.function_index:
+                        # 第一次遇到，添加到索引
                         self.function_index[func_info.name] = func_info
+                    else:
+                        # 检测到重复定义（类似Unix PATH机制）
+                        existing = self.function_index[func_info.name]
+                        if existing.path != func_info.path:
+                            # 检查核心一致性：签名和类型（不验证docstring）
+                            signature_match = existing.signature == func_info.signature
+                            type_match = existing.func_type == func_info.func_type
+                            docstring_match = existing.docstring == func_info.docstring
+
+                            if signature_match and type_match:
+                                # ✅ Partial定义（类似C# partial class）
+                                # docstring可以不同（允许从不同角度解释）
+                                existing.all_locations.append(func_info.path)
+                                print(f"  ✅ Partial定义: @{func_info.name}")
+                                print(f"     主定义: {existing.path.name}")
+                                print(f"     也出现在: {func_info.path.name}")
+                                print(f"     验证核心: 签名✓ 类型✓")
+
+                                if not docstring_match:
+                                    print(f"     📝 docstring不同（允许，建议添加链接到主定义）")
+                            else:
+                                # ⚠️ 版本冲突（类似Unix PATH优先级）
+                                print(f"  ⚠️ 版本冲突: @{func_info.name}")
+                                print(f"     使用: {existing.path.name} (优先级高)")
+                                print(f"     忽略: {func_info.path.name} (优先级低)")
+
+                                # 详细差异报告（不抛出错误）
+                                if not signature_match:
+                                    print(f"        签名: ({existing.signature}) ≠ ({func_info.signature})")
+                                if not type_match:
+                                    print(f"        类型: {existing.func_type} ≠ {func_info.func_type}")
+
+                                print(f"     💡 类似Unix: /usr/bin/ls 优先于 /bin/ls")
+
+        # 保存索引到磁盘
+        self._save_index_to_disk()
 
     def _extract_functions(self, file_path: Path) -> List[FunctionInfo]:
         """从.md文件中提取所有@函数的完整信息
@@ -94,14 +140,16 @@ class KnowledgeFunctionLoader:
             content = file_path.read_text(encoding='utf-8')
             functions = []
 
-            # 匹配函数定义标题，捕获类型和名称
-            # 格式: ## [契约]函数 @名称(...)
-            pattern = r'##\s+(契约)?函数\s+@(\w+)\s*\([^)]*\)'
+            # 匹配函数定义标题，捕获类型、名称和签名
+            # 格式: ## [契约]函数 @名称(...) 或 ## [契约]函数 @名称
+            # 括号是可选的，支持无参数函数
+            pattern = r'##\s+(契约)?函数\s+@(\w+)(?:\s*\(([^)]*)\))?'
 
             # 找到所有匹配
             for match in re.finditer(pattern, content):
                 is_contract = match.group(1) is not None  # 是否是契约函数
                 func_name = match.group(2)
+                signature = match.group(3).strip() if match.group(3) else ""  # 提取参数签名（可能为空）
 
                 # 提取docstring：标题后的第一段非空文本
                 # 策略：从匹配位置向后查找，直到遇到下一个##或文件结束
@@ -123,7 +171,8 @@ class KnowledgeFunctionLoader:
                     name=func_name,
                     path=file_path.resolve(),  # 使用绝对路径
                     docstring=docstring,
-                    func_type='contract' if is_contract else 'soft'
+                    func_type='contract' if is_contract else 'soft',
+                    signature=signature  # 保存参数签名
                 )
                 functions.append(func_info)
 
@@ -226,68 +275,6 @@ class KnowledgeFunctionLoader:
 
         return docstring if docstring else '（无描述）'
 
-    def detect_functions_in_message(self, message: str) -> List[str]:
-        """从用户消息中提取所有@函数引用
-
-        匹配格式：@函数名（支持英文字母、数字、下划线、中文）
-
-        Args:
-            message: 用户消息文本
-
-        Returns:
-            函数名列表（不含@符号）
-        """
-        # 匹配 @后面的标识符
-        # 策略：先用宽松的正则匹配所有可能的候选，然后用索引过滤
-        pattern = r'@([\w]+)'
-
-        # 找到所有匹配
-        all_matches = re.findall(pattern, message)
-
-        # 智能过滤：尝试从左到右逐步缩短，找到索引中的匹配
-        valid_matches = []
-        for match in all_matches:
-            # 尝试从完整匹配逐步缩短
-            # 例如 "learning学习" -> 尝试 "learning学习", "learning学", "learning"
-            for i in range(len(match), 0, -1):
-                candidate = match[:i]
-                if candidate in self.function_index:
-                    valid_matches.append(candidate)
-                    break  # 找到最长匹配就停止
-
-        return valid_matches
-
-    def load_required_functions(self, message: str) -> List[Path]:
-        """检测消息中的@函数，自动加载对应知识文件
-
-        工作流程：
-        1. 从消息中提取所有@函数引用
-        2. 在索引中查找对应的知识文件
-        3. 避免重复加载
-        4. 返回新加载的文件列表
-
-        Args:
-            message: 用户消息文本
-
-        Returns:
-            新加载的知识文件路径列表
-        """
-        detected = self.detect_functions_in_message(message)
-        newly_loaded = []
-
-        for func_name in detected:
-            # 在索引中查找
-            if func_name in self.function_index:
-                func_info = self.function_index[func_name]
-                file_str = str(func_info.path)
-
-                # 避免重复加载
-                if file_str not in self.loaded_files:
-                    self.loaded_files.add(file_str)
-                    newly_loaded.append(func_info.path)
-
-        return newly_loaded
-
     def get_index_info(self) -> str:
         """获取索引信息（用于调试）"""
         lines = [f"知识函数索引：共{len(self.function_index)}个函数"]
@@ -295,3 +282,106 @@ class KnowledgeFunctionLoader:
             lines.append(f"  @{func_name} ({func_info.func_type}) -> {func_info.path.name}")
             lines.append(f"    {func_info.docstring}")
         return "\n".join(lines)
+
+    def _save_index_to_disk(self):
+        """将索引保存到磁盘上的JSON文件
+
+        保存位置：项目根目录/knowledge_function_index.json
+
+        文件格式：
+        {
+            "metadata": {
+                "total_functions": 数量,
+                "knowledge_dirs": 扫描的目录列表,
+                "generated_at": 生成时间
+            },
+            "functions": {
+                "函数名": {
+                    "name": "函数名",
+                    "path": "文件绝对路径",
+                    "docstring": "函数描述",
+                    "func_type": "contract/soft",
+                    "file_name": "文件名"
+                }
+            },
+            "by_file": {
+                "文件路径": ["函数1", "函数2", ...]
+            },
+            "by_type": {
+                "contract": ["契约函数1", "契约函数2", ...],
+                "soft": ["软约束函数1", "软约束函数2", ...]
+            }
+        }
+        """
+        import datetime
+
+        # 构建保存的数据结构
+        index_data = {
+            "metadata": {
+                "total_functions": len(self.function_index),
+                "knowledge_dirs": [str(d) for d in self.knowledge_dirs],
+                "generated_at": datetime.datetime.now().isoformat()
+            },
+            "functions": {},
+            "by_file": {},
+            "by_type": {"contract": [], "soft": []}
+        }
+
+        # 转换函数索引为可序列化的格式
+        for func_name, func_info in sorted(self.function_index.items()):
+            # 函数信息
+            index_data["functions"][func_name] = {
+                "name": func_info.name,
+                "path": str(func_info.path),
+                "docstring": func_info.docstring,
+                "func_type": func_info.func_type,
+                "signature": func_info.signature,
+                "file_name": func_info.path.name,
+                "all_locations": [str(loc) for loc in func_info.all_locations],  # 所有定义位置
+                "is_partial": len(func_info.all_locations) > 1  # 是否是partial定义
+            }
+
+            # 按文件分组（包含所有定义位置）
+            for loc in func_info.all_locations:
+                loc_str = str(loc)
+                if loc_str not in index_data["by_file"]:
+                    index_data["by_file"][loc_str] = []
+                index_data["by_file"][loc_str].append(func_name)
+
+            # 按类型分组
+            index_data["by_type"][func_info.func_type].append(func_name)
+
+        # 确定保存路径（项目根目录）
+        # 假设knowledge_dirs的第一个是 xxx/knowledge/，则项目根是上一级
+        if self.knowledge_dirs:
+            project_root = self.knowledge_dirs[0].parent
+        else:
+            project_root = Path.cwd()
+
+        index_file = project_root / "knowledge_function_index.json"
+
+        # 保存到文件
+        try:
+            with open(index_file, 'w', encoding='utf-8') as f:
+                json.dump(index_data, f, ensure_ascii=False, indent=2)
+
+            # 统计partial定义
+            partial_funcs = [name for name, info in self.function_index.items()
+                            if len(info.all_locations) > 1]
+
+            print(f"\n📚 知识函数索引已保存到: {index_file}")
+            print(f"   - 共索引 {len(self.function_index)} 个函数")
+            print(f"   - 契约函数: {len(index_data['by_type']['contract'])} 个")
+            print(f"   - 软约束函数: {len(index_data['by_type']['soft'])} 个")
+            print(f"   - Partial定义: {len(partial_funcs)} 个")
+            print(f"   - 涉及文件: {len(index_data['by_file'])} 个")
+
+            if partial_funcs:
+                print(f"\n   📋 Partial定义的函数:")
+                for func_name in partial_funcs:
+                    func_info = self.function_index[func_name]
+                    print(f"      @{func_name}: {len(func_info.all_locations)} 个位置")
+                    for loc in func_info.all_locations:
+                        print(f"         - {loc.name}")
+        except Exception as e:
+            print(f"  ⚠️ 保存索引失败: {e}")

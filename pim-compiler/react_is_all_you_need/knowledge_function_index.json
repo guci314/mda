@@ -1,0 +1,355 @@
+{
+  "metadata": {
+    "total_functions": 22,
+    "knowledge_dirs": [
+      "/Users/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/knowledge"
+    ],
+    "generated_at": "2025-10-19T02:16:58.672886"
+  },
+  "functions": {
+    "hello": {
+      "name": "hello",
+      "path": "/Users/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/knowledge/minimal/system/system_prompt_minimal_old.md",
+      "docstring": "x=@hello2 return \"你好\"+\" \"+x",
+      "func_type": "soft",
+      "signature": "",
+      "file_name": "system_prompt_minimal_old.md",
+      "all_locations": [
+        "/Users/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/knowledge/minimal/system/system_prompt_minimal_old.md"
+      ],
+      "is_partial": false
+    },
+    "hello1": {
+      "name": "hello1",
+      "path": "/Users/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/knowledge/minimal/system/system_prompt_minimal_old.md",
+      "docstring": "return \"今天天气不错\"",
+      "func_type": "soft",
+      "signature": "",
+      "file_name": "system_prompt_minimal_old.md",
+      "all_locations": [
+        "/Users/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/knowledge/minimal/system/system_prompt_minimal_old.md"
+      ],
+      "is_partial": false
+    },
+    "hello2": {
+      "name": "hello2",
+      "path": "/Users/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/knowledge/minimal/system/system_prompt_minimal_old.md",
+      "docstring": "x=@hello1 return \"人的天性是善良的\"+\" \"+x",
+      "func_type": "soft",
+      "signature": "",
+      "file_name": "system_prompt_minimal_old.md",
+      "all_locations": [
+        "/Users/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/knowledge/minimal/system/system_prompt_minimal_old.md"
+      ],
+      "is_partial": false
+    },
+    "learning": {
+      "name": "learning",
+      "path": "/Users/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/knowledge/learning_functions.md",
+      "docstring": "从本次会话中学习经验，将有价值的知识持久化。",
+      "func_type": "contract",
+      "signature": "",
+      "file_name": "learning_functions.md",
+      "all_locations": [
+        "/Users/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/knowledge/learning_functions.md"
+      ],
+      "is_partial": false
+    },
+    "learning_from_expert": {
+      "name": "learning_from_expert",
+      "path": "/Users/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/knowledge/test_fixing_function.md",
+      "docstring": "当你遇到困难或陷入重复模式时，向更强的模型请教。",
+      "func_type": "contract",
+      "signature": "expert_model",
+      "file_name": "test_fixing_function.md",
+      "all_locations": [
+        "/Users/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/knowledge/test_fixing_function.md"
+      ],
+      "is_partial": false
+    },
+    "memory": {
+      "name": "memory",
+      "path": "/Users/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/knowledge/learning_functions.md",
+      "docstring": "记住用户直接教育的内容。",
+      "func_type": "contract",
+      "signature": "",
+      "file_name": "learning_functions.md",
+      "all_locations": [
+        "/Users/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/knowledge/learning_functions.md"
+      ],
+      "is_partial": false
+    },
+    "sayHello": {
+      "name": "sayHello",
+      "path": "/Users/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/knowledge/liangsong.md",
+      "docstring": "返回 \"hello\"",
+      "func_type": "soft",
+      "signature": "",
+      "file_name": "liangsong.md",
+      "all_locations": [
+        "/Users/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/knowledge/liangsong.md"
+      ],
+      "is_partial": false
+    },
+    "sayHello1": {
+      "name": "sayHello1",
+      "path": "/Users/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/knowledge/liangsong.md",
+      "docstring": "x=kkk y=调用@sayHello2 z=x+y 返回 z",
+      "func_type": "contract",
+      "signature": "",
+      "file_name": "liangsong.md",
+      "all_locations": [
+        "/Users/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/knowledge/liangsong.md"
+      ],
+      "is_partial": false
+    },
+    "sayHello2": {
+      "name": "sayHello2",
+      "path": "/Users/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/knowledge/liangsong.md",
+      "docstring": "x=ppp y=调用@sayHello3 z=x+y 返回 z",
+      "func_type": "contract",
+      "signature": "",
+      "file_name": "liangsong.md",
+      "all_locations": [
+        "/Users/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/knowledge/liangsong.md"
+      ],
+      "is_partial": false
+    },
+    "sayHello3": {
+      "name": "sayHello3",
+      "path": "/Users/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/knowledge/liangsong.md",
+      "docstring": "返回 qqq",
+      "func_type": "contract",
+      "signature": "",
+      "file_name": "liangsong.md",
+      "all_locations": [
+        "/Users/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/knowledge/liangsong.md"
+      ],
+      "is_partial": false
+    },
+    "searchBooks": {
+      "name": "searchBooks",
+      "path": "/Users/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/knowledge/minimal/system/system_prompt_minimal.md",
+      "docstring": "1. books = @loadBooks()  ← 软约束调用软约束 2. 过滤books 3. 返回结果 # 不需要Context栈 books = loadBooks()  # 直接调用 ...",
+      "func_type": "soft",
+      "signature": "",
+      "file_name": "system_prompt_minimal.md",
+      "all_locations": [
+        "/Users/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/knowledge/minimal/system/system_prompt_minimal.md"
+      ],
+      "is_partial": false
+    },
+    "work_with_expert": {
+      "name": "work_with_expert",
+      "path": "/Users/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/knowledge/work_with_expert.md",
+      "docstring": "当用户明确指定某个任务需要与专家对比学习时执行。",
+      "func_type": "contract",
+      "signature": "task, expert_model",
+      "file_name": "work_with_expert.md",
+      "all_locations": [
+        "/Users/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/knowledge/work_with_expert.md"
+      ],
+      "is_partial": false
+    },
+    "x": {
+      "name": "x",
+      "path": "/Users/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/knowledge/minimal/system/system_prompt_minimal.md",
+      "docstring": "` → 软约束函数 - `## 契约函数 @y` → 契约函数",
+      "func_type": "soft",
+      "signature": "",
+      "file_name": "system_prompt_minimal.md",
+      "all_locations": [
+        "/Users/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/knowledge/minimal/system/system_prompt_minimal.md"
+      ],
+      "is_partial": false
+    },
+    "y": {
+      "name": "y",
+      "path": "/Users/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/knowledge/minimal/system/system_prompt_minimal.md",
+      "docstring": "` → 契约函数",
+      "func_type": "contract",
+      "signature": "",
+      "file_name": "system_prompt_minimal.md",
+      "all_locations": [
+        "/Users/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/knowledge/minimal/system/system_prompt_minimal.md"
+      ],
+      "is_partial": false
+    },
+    "修复测试": {
+      "name": "修复测试",
+      "path": "/Users/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/knowledge/auto_trigger_expert.md",
+      "docstring": "...原有内容...",
+      "func_type": "contract",
+      "signature": "test_target",
+      "file_name": "auto_trigger_expert.md",
+      "all_locations": [
+        "/Users/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/knowledge/auto_trigger_expert.md",
+        "/Users/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/knowledge/test_fixing_function.md"
+      ],
+      "is_partial": true
+    },
+    "切换模型": {
+      "name": "切换模型",
+      "path": "/Users/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/knowledge/model_mappings.md",
+      "docstring": "当用户要求切换LLM模型时，必须严格执行以下契约。",
+      "func_type": "contract",
+      "signature": "target_model",
+      "file_name": "model_mappings.md",
+      "all_locations": [
+        "/Users/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/knowledge/model_mappings.md"
+      ],
+      "is_partial": false
+    },
+    "创建子智能体": {
+      "name": "创建子智能体",
+      "path": "/Users/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/knowledge/self_awareness.md",
+      "docstring": ",  # 父智能体根据requirements编程",
+      "func_type": "contract",
+      "signature": "agent_name, knowledge_file, requirements, model, self_implement",
+      "file_name": "self_awareness.md",
+      "all_locations": [
+        "/Users/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/knowledge/self_awareness.md"
+      ],
+      "is_partial": false
+    },
+    "快速记忆": {
+      "name": "快速记忆",
+      "path": "/Users/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/knowledge/learning_functions.md",
+      "docstring": "当用户提供简短的关键信息时，可以使用这个软约束函数快速记录。",
+      "func_type": "soft",
+      "signature": "key_point",
+      "file_name": "learning_functions.md",
+      "all_locations": [
+        "/Users/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/knowledge/learning_functions.md"
+      ],
+      "is_partial": false
+    },
+    "批量创建智能体": {
+      "name": "批量创建智能体",
+      "path": "/Users/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/knowledge/self_awareness.md",
+      "docstring": "父Agent的任务处理决策",
+      "func_type": "contract",
+      "signature": "name_prefix, count, knowledge_file, model",
+      "file_name": "self_awareness.md",
+      "all_locations": [
+        "/Users/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/knowledge/self_awareness.md"
+      ],
+      "is_partial": false
+    },
+    "睡眠巩固": {
+      "name": "睡眠巩固",
+      "path": "/Users/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/knowledge/sleep_consolidation.md",
+      "docstring": "当对话历史超过阈值时，执行睡眠式记忆巩固（类似人类睡眠中的记忆处理）。",
+      "func_type": "contract",
+      "signature": "",
+      "file_name": "sleep_consolidation.md",
+      "all_locations": [
+        "/Users/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/knowledge/sleep_consolidation.md",
+        "/Users/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/knowledge/KNOWLEDGE_FUNCTION_REFACTOR.md"
+      ],
+      "is_partial": true
+    },
+    "自我实现": {
+      "name": "自我实现",
+      "path": "/Users/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/knowledge/agent_driven_architecture.md",
+      "docstring": "\"\"\" 智能体自我实现：通过学习knowledge或根据需求编程来获得新能力。 这是领域无关的系统级能力，任何智能体都可以自我实现。",
+      "func_type": "contract",
+      "signature": "knowledge_file, requirements_doc",
+      "file_name": "agent_driven_architecture.md",
+      "all_locations": [
+        "/Users/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/knowledge/agent_driven_architecture.md"
+      ],
+      "is_partial": false
+    },
+    "获取模型配置": {
+      "name": "获取模型配置",
+      "path": "/Users/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/knowledge/model_mappings.md",
+      "docstring": "当需要获取模型的正确配置信息时调用此函数，特别是在创建子Agent时。",
+      "func_type": "contract",
+      "signature": "model_name",
+      "file_name": "model_mappings.md",
+      "all_locations": [
+        "/Users/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/knowledge/model_mappings.md"
+      ],
+      "is_partial": false
+    }
+  },
+  "by_file": {
+    "/Users/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/knowledge/minimal/system/system_prompt_minimal_old.md": [
+      "hello",
+      "hello1",
+      "hello2"
+    ],
+    "/Users/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/knowledge/learning_functions.md": [
+      "learning",
+      "memory",
+      "快速记忆"
+    ],
+    "/Users/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/knowledge/test_fixing_function.md": [
+      "learning_from_expert",
+      "修复测试"
+    ],
+    "/Users/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/knowledge/liangsong.md": [
+      "sayHello",
+      "sayHello1",
+      "sayHello2",
+      "sayHello3"
+    ],
+    "/Users/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/knowledge/minimal/system/system_prompt_minimal.md": [
+      "searchBooks",
+      "x",
+      "y"
+    ],
+    "/Users/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/knowledge/work_with_expert.md": [
+      "work_with_expert"
+    ],
+    "/Users/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/knowledge/auto_trigger_expert.md": [
+      "修复测试"
+    ],
+    "/Users/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/knowledge/model_mappings.md": [
+      "切换模型",
+      "获取模型配置"
+    ],
+    "/Users/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/knowledge/self_awareness.md": [
+      "创建子智能体",
+      "批量创建智能体"
+    ],
+    "/Users/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/knowledge/sleep_consolidation.md": [
+      "睡眠巩固"
+    ],
+    "/Users/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/knowledge/KNOWLEDGE_FUNCTION_REFACTOR.md": [
+      "睡眠巩固"
+    ],
+    "/Users/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/knowledge/agent_driven_architecture.md": [
+      "自我实现"
+    ]
+  },
+  "by_type": {
+    "contract": [
+      "learning",
+      "learning_from_expert",
+      "memory",
+      "sayHello1",
+      "sayHello2",
+      "sayHello3",
+      "work_with_expert",
+      "y",
+      "修复测试",
+      "切换模型",
+      "创建子智能体",
+      "批量创建智能体",
+      "睡眠巩固",
+      "自我实现",
+      "获取模型配置"
+    ],
+    "soft": [
+      "hello",
+      "hello1",
+      "hello2",
+      "sayHello",
+      "searchBooks",
+      "x",
+      "快速记忆"
+    ]
+  }
+}

@@ -182,7 +182,14 @@ class WriteFileTool(Function):
         self.work_dir = Path(work_dir)
     
     def execute(self, **kwargs) -> str:
+        # 参数验证
+        if "file_path" not in kwargs:
+            return "错误：缺少必需参数 'file_path'"
+        if "content" not in kwargs:
+            return "错误：缺少必需参数 'content'。请提供要写入文件的完整内容。"
+
         path_str = kwargs["file_path"]
+        content = kwargs["content"]
 
         # 处理绝对路径和~路径（与ReadFileTool保持一致）
         if path_str.startswith('~') or path_str.startswith('/'):
@@ -192,10 +199,13 @@ class WriteFileTool(Function):
             # 相对路径
             file_path = self.work_dir / path_str
 
-        file_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(file_path, 'w', encoding='utf-8') as f:
-            f.write(kwargs["content"])
-        return f"文件已写入: {path_str}"
+        try:
+            file_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(file_path, 'w', encoding='utf-8') as f:
+                f.write(content)
+            return f"文件已写入: {path_str}"
+        except Exception as e:
+            return f"写入文件失败: {str(e)}"
 
 
 class AppendFileTool(Function):
@@ -219,7 +229,14 @@ class AppendFileTool(Function):
         self.work_dir = Path(work_dir)
     
     def execute(self, **kwargs) -> str:
+        # 参数验证
+        if "file_path" not in kwargs:
+            return "错误：缺少必需参数 'file_path'"
+        if "content" not in kwargs:
+            return "错误：缺少必需参数 'content'。请提供要追加到文件的内容。"
+
         path_str = kwargs["file_path"]
+        content = kwargs["content"]
 
         # 处理绝对路径和~路径（与ReadFileTool保持一致）
         if path_str.startswith('~') or path_str.startswith('/'):
@@ -229,10 +246,13 @@ class AppendFileTool(Function):
             # 相对路径
             file_path = self.work_dir / path_str
 
-        file_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(file_path, 'a', encoding='utf-8') as f:
-            f.write(kwargs["content"])
-        return f"内容已追加到: {path_str}"
+        try:
+            file_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(file_path, 'a', encoding='utf-8') as f:
+                f.write(content)
+            return f"内容已追加到: {path_str}"
+        except Exception as e:
+            return f"追加文件失败: {str(e)}"
 
 
 # ExecuteCommandTool已移除，统一使用ExecuteCommandExtended

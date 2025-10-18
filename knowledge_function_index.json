@@ -1,0 +1,65 @@
+{
+  "total_functions": 10,
+  "functions": {
+    "ada自我实现": {
+      "type": "contract",
+      "file": "agent_driven_architecture.md",
+      "path": "/Users/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/knowledge/agent_driven_architecture.md",
+      "description": "参数: requirements_doc: 需求文档路径（支持业务设计文档、用户故事等） 返回: 1. 更新后的knowledge.md文件（先天知识） 2. 更新后的description（对..."
+    },
+    "create_subagent": {
+      "type": "contract",
+      "file": "self_awareness.md",
+      "path": "/Users/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/knowledge/self_awareness.md",
+      "description": "\"\"\" 创建当前Agent的子Agent，建立父子继承关系，确保子Agent具备独立执行能力。 这是一个契约函数，必须保证子Agent的完备性、独立性和可执行性。 每个Agent都能通过这个函数..."
+    },
+    "learning": {
+      "type": "contract",
+      "file": "learning_functions.md",
+      "path": "/Users/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/knowledge/learning_functions.md",
+      "description": "从本次会话中学习经验，将有价值的知识持久化。"
+    },
+    "learning_from_expert": {
+      "type": "contract",
+      "file": "test_fixing_function.md",
+      "path": "/Users/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/knowledge/test_fixing_function.md",
+      "description": "当你遇到困难或陷入重复模式时，向更强的模型请教。"
+    },
+    "memory": {
+      "type": "contract",
+      "file": "learning_functions.md",
+      "path": "/Users/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/knowledge/learning_functions.md",
+      "description": "记住用户直接教育的内容。"
+    },
+    "work_with_expert": {
+      "type": "contract",
+      "file": "work_with_expert.md",
+      "path": "/Users/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/knowledge/work_with_expert.md",
+      "description": "当用户明确指定某个任务需要与专家对比学习时执行。"
+    },
+    "修复测试": {
+      "type": "contract",
+      "file": "auto_trigger_expert.md",
+      "path": "/Users/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/knowledge/auto_trigger_expert.md",
+      "description": "...原有内容..."
+    },
+    "切换模型": {
+      "type": "contract",
+      "file": "model_mappings.md",
+      "path": "/Users/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/knowledge/model_mappings.md",
+      "description": "当用户要求切换LLM模型时，必须严格执行以下契约。"
+    },
+    "快速记忆": {
+      "type": "soft",
+      "file": "learning_functions.md",
+      "path": "/Users/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/knowledge/learning_functions.md",
+      "description": "当用户提供简短的关键信息时，可以使用这个软约束函数快速记录。"
+    },
+    "睡眠巩固": {
+      "type": "contract",
+      "file": "sleep_consolidation.md",
+      "path": "/Users/guci/aiProjects/mda/pim-compiler/react_is_all_you_need/knowledge/sleep_consolidation.md",
+      "description": "当对话历史超过阈值时，执行睡眠式记忆巩固（类似人类睡眠中的记忆处理）。"
+    }
+  }
+}
