@@ -210,10 +210,10 @@ class ReactAgentMinimal(Function):
         external_tools_dir = agent_home / "external_tools"
         external_tools_dir.mkdir(parents=True, exist_ok=True)
 
-        # 确保docs目录存在（智能体的Event Log）
-        docs_dir = agent_home / "docs"
-        docs_dir.mkdir(parents=True, exist_ok=True)
-        self.self_docs_dir = str(docs_dir)  # 智能体的决策日志目录
+        # 确保decisions目录存在（智能体的决策日志）
+        decisions_dir = agent_home / "decisions"
+        decisions_dir.mkdir(parents=True, exist_ok=True)
+        self.self_decisions_dir = str(decisions_dir)  # 智能体的决策日志目录
 
         # 个体知识文件
         knowledge = agent_home / "knowledge.md"
@@ -768,7 +768,7 @@ class ReactAgentMinimal(Function):
 - 你的Home目录（self.home_dir）: {self.self_home_dir}
 - 你的知识文件（self.knowledge_path）: {self.self_knowledge_path} **（语义记忆）**
 - 你的记忆文件（self.compact_path）: {self.self_compact_path} **（压缩的情景记忆）**
-- 你的决策日志（self.docs_dir）: {self.self_docs_dir} **（完整的情景记忆-Event Log）**
+- 你的决策日志（self.docs_dir）: {self.self_decisions_dir} **（完整的情景记忆-Event Log）**
 - 你的工具箱（self.external_tools_dir）: {self.self_external_tools_dir}
 - 你的职责描述（self.description）: {self.self_description}
 - 你的工作目录（self.work_dir）: {self.self_work_dir}
@@ -776,17 +776,17 @@ class ReactAgentMinimal(Function):
 - 知识目录（self.knowledge_dir）: {self.self_knowledge_dir} **（用grep搜索知识函数）**
 
 **双记忆系统（类比人类）**：
-- **情景记忆**：output.log（原始）+ compact.md（压缩）+ docs/（重要决策）
+- **情景记忆**：output.log（原始）+ compact.md（压缩）+ decisions/（重要决策）
 - **语义记忆**：knowledge.md（提炼的知识和能力）
 - 上帝设计人类的双记忆系统有合理性，Agent应该模仿
 
-**重要决策时写docs/**：
+**重要决策时写decisions/**：
 ```
 何时写：创建子智能体、修复Bug、改变架构、学到关键经验
-格式：docs/decision_xxx.md
+格式：decisions/decision_xxx.md
 内容：问题、分析、决策、原因、效果、经验
 作用：理解"为什么"，避免重复错误，支持自我反思
-查阅：read_file(self.docs_dir + "/decision_xxx.md")
+查阅：read_file(self.decisions_dir + "/decision_xxx.md")
 ```
 
 **重要原则**：
@@ -795,7 +795,7 @@ class ReactAgentMinimal(Function):
 - External tools要在你的工具箱目录创建，不要污染工作目录
 - **源代码是只读的**：{self.self_source_code}是所有Agent共享的执行框架，永远不要修改
 - **用grep搜索知识函数**：在{self.self_knowledge_dir}中用grep搜索函数定义和类型
-- **记录重要决策**：在{self.self_docs_dir}中写decision_xxx.md记录推理过程
+- **记录重要决策**：在{self.self_decisions_dir}中写decision_xxx.md记录推理过程
 """
 
             # 🎯 按照模板的原始设计：system_prompt_minimal.md 在前，知识内容通过占位符插入
