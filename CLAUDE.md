@@ -631,3 +631,75 @@ pim-compiler/react_is_all_you_need
 - docs/是AI的工作空间，想写多少写多少
 - doc_for_human/是交付物，精心编写
 - ai_script/是实验空间，随意创建删除
+
+## 笔记和临时文件位置原则
+
+### Claude Code的笔记位置
+
+**认可写笔记**：
+- 写笔记是Claude Code完备性的必要条件 ✅
+- 不要担心写太多（思考过程需要外部化）
+- Event Sourcing需要完整的事件日志
+
+**不要污染项目**：
+- ❌ 不在项目根目录写临时文件
+- ❌ 不在项目目录写笔记
+- ✅ 使用专门的目录（docs/、ai_script/）
+
+**位置规则**：
+```
+Claude Code的笔记：
+├── docs/ - 设计决策和思考记录（项目目录）
+├── ai_script/ - 临时验证脚本（项目目录）
+└── ~/.claude/ - Claude的配置和状态（home目录）
+
+不应该：
+❌ 项目根目录的临时文件
+❌ .notes/在项目目录（污染）
+```
+
+### 智能体的笔记位置（建议）
+
+**统一在Home目录**：
+```
+~/.agent/{agent_name}/
+├── knowledge.md        # 语义记忆
+├── compact.md          # 短期情景记忆
+├── decisions/          # 长期情景记忆（决策日志）
+├── output.log          # 执行日志
+├── external_tools/     # 工具箱
+├── state.json          # 状态快照
+└── temp/               # 临时文件（如果需要）
+
+不建议：
+❌ {work_dir}/.notes/  - 污染项目目录
+```
+
+**原因**：
+- Home目录是智能体的私有空间
+- 工作目录是项目空间（应该干净）
+- 避免污染用户的项目文件
+- 清理时不会误删项目文件
+
+### 记忆系统的Event Sourcing对应
+
+**完美的架构同构**：
+
+```
+情景记忆 = Event Store（事件存储）：
+- decisions/（长期事件，不可变）
+- compact.md（短期事件）
+- output.log（原始事件）
+
+语义记忆 = Read Model（物化视图）：
+- knowledge.md（从事件重建的能力状态）
+
+演绎-归纳 = CQRS模式：
+- 演绎：应用Read Model → 产生Event
+- 归纳：从Event Store → 重建Read Model
+```
+
+**不是简单类比，是架构同构**：
+- 智能体记忆系统 = Event Sourcing在认知层面的实现
+- 解释了为什么这样设计
+- 不是发明，是模仿成熟的架构模式
